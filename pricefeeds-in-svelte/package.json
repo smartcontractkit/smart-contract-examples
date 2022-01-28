@@ -1,0 +1,17 @@
+{
+  "name": "price-feed-demo",
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "svelte-kit dev",
+    "build": "svelte-kit build",
+    "package": "svelte-kit package",
+    "preview": "svelte-kit preview"
+  },
+  "devDependencies": {
+    "@sveltejs/adapter-auto": "next",
+    "@sveltejs/kit": "next",
+    "ethers": "^5.5.3",
+    "svelte": "^3.44.0"
+  },
+  "type": "module"
+}
