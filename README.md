@@ -30,7 +30,13 @@
     </li>
     <li>
       <a href="#getting-started">Getting Started</a>
-    <li><a href="#contributing">Contributing</a></li>
+    </li>
+    <li>
+    <a href="#downloading-a-single-directory">Downloading A Single Directory</a>
+    </li>
+    <li>
+      <a href="#contributing">Contributing</a>
+    </li>
   </ol>
 </details>
 
@@ -39,7 +45,7 @@
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
-This repo contains example and sample projects each in their own directory. 
+This repo contains example and sample projects, each in their own directory. 
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
@@ -49,6 +55,30 @@ This repo contains example and sample projects each in their own directory.
 ## Getting Started
 
 Each directory within this repo will have a `README.md` that details everything you need to run the sample.
+
+## Downloading A Single Directory
+```sh
+# Create a directory, and enter it
+mkdir smart-contract-examples && cd smart-contract-examples
+
+# Initialize a Git repository
+git init
+
+# Add this repository as a remote origin
+git remote add -f origin https://github.com/smartcontractkit/smart-contract-examples/
+
+# Enable the tree check feature
+git config core.sparseCheckout true
+
+# Create the spare-checkout file with the value
+# the directory you wish to download
+#
+# Use the name of the directory as 'REPLACE_ME'
+echo 'REPLACE_ME' >> .git/info/sparse-checkout
+
+## Download with pull
+git pull origin master
+```
 
 <!-- CONTRIBUTING -->
 ## Contributing
