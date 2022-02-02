@@ -97,7 +97,7 @@ Ensure you have Node.js and npm installed
 <!-- USAGE EXAMPLES -->
 ## Usage
 
-Once you'veinstalled dependencies with `npm install` and updated your RPC URL, start the server:
+Once you've installed dependencies with `npm install` and updated your RPC URL, start the server:
    ```bash
    npm run dev
     # or start the server and open the app in a new browser tab
