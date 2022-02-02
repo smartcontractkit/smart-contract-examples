@@ -79,7 +79,7 @@ Ensure you have Node.js and npm installed
    ```
 1. Enter the direcory
    ```sh
-   cd smart-contract-examples
+   cd smart-contract-examples/datafeeds-in-svelte
    ```
 1. Install NPM packages
    ```sh
