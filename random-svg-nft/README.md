@@ -12,8 +12,6 @@ This demo project demonstrates how to create randomly generated on-chain Emoji N
 
 Be sure to have installed the following
 
-Be sure to have installed the following
-
 - [Git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
 - [Node.js](https://nodejs.org/en/download/)
 - [Yarn](https://yarnpkg.com/getting-started/install)
