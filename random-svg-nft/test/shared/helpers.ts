@@ -1,13 +1,15 @@
-import { BigNumber, Contract, Wallet } from "ethers";
+import { BigNumber, Wallet } from "ethers";
 import { parseEther } from "ethers/lib/utils";
-import { LinkToken } from "../../typechain";
+import { VRFCoordinatorV2Mock } from "../../typechain";
 
-export const fundLink = async (
-  vrfConsumer: Contract,
-  linkToken: LinkToken,
-  sender: Wallet
-): Promise<void> => {
-  const linkAmount: BigNumber = parseEther(`1`);
+export const createAndFundMockSubscription = async (
+  vrfCoordinatorMock: VRFCoordinatorV2Mock,
+  deployer: Wallet
+): Promise<BigNumber> => {
+  const tx = await vrfCoordinatorMock.connect(deployer).createSubscription();
+  const txReceipt = await tx.wait();
+  const subscriptionId = BigNumber.from(txReceipt.logs[0].topics[1]);
+  await vrfCoordinatorMock.fundSubscription(subscriptionId, parseEther(`1`));
 
-  await linkToken.connect(sender).transfer(vrfConsumer.address, linkAmount);
+  return subscriptionId;
 };

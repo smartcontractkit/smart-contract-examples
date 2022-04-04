@@ -1,4 +1,3 @@
-import { parseEther } from "ethers/lib/utils";
 import { ethers, run } from "hardhat";
 
 async function main() {
@@ -10,7 +9,7 @@ async function main() {
 
   const numberOfBlockConfiramtions = 6;
   /**
-   * https://docs.chain.link/docs/vrf-contracts/#rinkeby
+   * https://docs.chain.link/docs/vrf-contracts/#rinkeby-testnet
    *
    * Rinkeby Faucets
    *
@@ -18,35 +17,37 @@ async function main() {
    * Testnet ETH is available from: https://faucets.chain.link/rinkeby
    * Backup Testnet ETH Faucets: https://rinkeby-faucet.com/, https://app.mycrypto.com/faucet
    */
-  const linkAddress = `0x01BE23585060835E02B77ef475b0Cc51aA1e0709`;
-  const vrfCoordinator = `0xb3dCcb4Cf7a26f6cf6B120Cf5A73875B7BBc655B`;
-  const keyHash = `0x2ed0feb3e7fd2022120aa84fab1945545a9f2ffc9076fd6156fa96eaff4c1311`;
-  const fee = parseEther(`0.1`);
+  const vrfCoordinator = `0x6168499c0cFfCaCD319c818142124B7A15E857ab`;
+  const subscriptionId = process.env.SUBSCRIPTION_ID!;
+  const keyHash = `0xd89b2bf150e3b9e13446986e571fb9cab24b13cea0a43ea20a6049a85cc807cc`;
+  const callbackGasLimit = 1000000;
+  const numWords = 4;
+  const requestConfirmations = 3;
 
   const emojiNftFactory = await ethers.getContractFactory(`EmojiNFT`);
   const emojiNft = await emojiNftFactory.deploy(
     vrfCoordinator,
-    linkAddress,
     keyHash,
-    fee
+    subscriptionId,
+    callbackGasLimit,
+    numWords,
+    requestConfirmations
   );
 
   await emojiNft.deployTransaction.wait(numberOfBlockConfiramtions);
 
   console.log(`EmojiNFT contract deployed to: ${emojiNft.address}`);
 
-  // auto-fund
-  const amount = `1`;
-  console.log(`Attempting to auto-fund Emoji NFT contract with ${amount} LINK`);
-  const linkContract = await ethers.getContractAt(`LinkToken`, linkAddress);
-
-  await linkContract.transfer(emojiNft.address, parseEther(amount));
-
-  console.log(`Emoji NFT successfully funded`);
-
   run("verify:verify", {
     address: emojiNft.address,
-    constructorArguments: [vrfCoordinator, linkAddress, keyHash, fee],
+    constructorArguments: [
+      vrfCoordinator,
+      keyHash,
+      subscriptionId,
+      callbackGasLimit,
+      numWords,
+      requestConfirmations,
+    ],
   });
 }
 

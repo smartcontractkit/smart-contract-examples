@@ -1,14 +1,13 @@
 import { Fixture } from "ethereum-waffle";
 import { Wallet } from "@ethersproject/wallet";
-import { EmojiNFT, LinkToken, VRFCoordinatorMock } from "../../typechain";
+import { EmojiNFT, VRFCoordinatorV2Mock } from "../../typechain";
 
 declare module "mocha" {
   export interface Context {
     loadFixture: <T>(fixture: Fixture<T>) => Promise<T>;
     signers: Signers;
     emojiNft: EmojiNFT;
-    vrfCoordinatorMock: VRFCoordinatorMock;
-    linkToken: LinkToken;
+    vrfCoordinatorMock: VRFCoordinatorV2Mock;
   }
 }
 

@@ -17,12 +17,12 @@ describe(`Unit tests`, async () => {
 
   describe(`EmojiNFT`, async () => {
     beforeEach(async function () {
-      const { emojiNft, vrfCoordinatorMock, linkToken } =
-        await this.loadFixture(unitEmojiNftFixture);
+      const { emojiNft, vrfCoordinatorMock } = await this.loadFixture(
+        unitEmojiNftFixture
+      );
 
       this.emojiNft = emojiNft;
       this.vrfCoordinatorMock = vrfCoordinatorMock;
-      this.linkToken = linkToken;
     });
 
     shouldMint();

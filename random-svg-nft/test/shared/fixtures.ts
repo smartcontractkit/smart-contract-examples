@@ -1,60 +1,57 @@
 import { Fixture } from "ethereum-waffle";
 import { BigNumber, ContractFactory, Wallet } from "ethers";
-import { parseEther } from "ethers/lib/utils";
 import { ethers } from "hardhat";
-import { EmojiNFT, LinkToken, VRFCoordinatorMock } from "../../typechain";
-import { fundLink } from "./helpers";
+import { EmojiNFT, VRFCoordinatorV2Mock } from "../../typechain";
+import { createAndFundMockSubscription } from "./helpers";
 
 type UnitEmojiNftFixtureType = {
   emojiNft: EmojiNFT;
-  vrfCoordinatorMock: VRFCoordinatorMock;
-  linkToken: LinkToken;
+  vrfCoordinatorMock: VRFCoordinatorV2Mock;
 };
 
 export const unitEmojiNftFixture: Fixture<UnitEmojiNftFixtureType> = async (
   signers: Wallet[]
 ) => {
   const deployer: Wallet = signers[0];
-
-  const linkTokenFactory: ContractFactory = await ethers.getContractFactory(
-    `LinkToken`
-  );
-
-  const linkToken: LinkToken = (await linkTokenFactory
-    .connect(deployer)
-    .deploy()) as LinkToken;
-
-  await linkToken.deployed();
+  const pointOneLink = BigNumber.from("100000000000000000");
 
   const vrfCoordinatorMockFactory: ContractFactory =
-    await ethers.getContractFactory(`VRFCoordinatorMock`);
+    await ethers.getContractFactory(`VRFCoordinatorV2Mock`);
 
-  const vrfCoordinatorMock: VRFCoordinatorMock =
-    (await vrfCoordinatorMockFactory
-      .connect(deployer)
-      .deploy(linkToken.address)) as VRFCoordinatorMock;
+  const vrfCoordinatorMock: VRFCoordinatorV2Mock =
+    (await vrfCoordinatorMockFactory.connect(deployer).deploy(
+      pointOneLink,
+      1e9 // 0.000000001 LINK per gas
+    )) as VRFCoordinatorV2Mock;
 
   await vrfCoordinatorMock.deployed();
+
+  const subscriptionId = await createAndFundMockSubscription(
+    vrfCoordinatorMock,
+    deployer
+  );
 
   const emojiNftFactory: ContractFactory = await ethers.getContractFactory(
     `EmojiNFT`
   );
 
-  const keyHash: string = `0x6c3699283bda56ad74f6b855546325b68d482e983852a7a82979cc4807b641f4`;
-  const fee: BigNumber = parseEther(`0.1`);
+  const keyHash: string = `0xd89b2bf150e3b9e13446986e571fb9cab24b13cea0a43ea20a6049a85cc807cc`;
+  const callbackGasLimit: BigNumber = BigNumber.from(`1000000`);
+  const numWords: BigNumber = BigNumber.from(`4`);
+  const requestConfirmations: BigNumber = BigNumber.from(`3`);
 
   const emojiNft: EmojiNFT = (await emojiNftFactory
     .connect(deployer)
     .deploy(
       vrfCoordinatorMock.address,
-      linkToken.address,
       keyHash,
-      fee
+      subscriptionId,
+      callbackGasLimit,
+      numWords,
+      requestConfirmations
     )) as EmojiNFT;
 
   await emojiNft.deployed();
 
-  await fundLink(emojiNft, linkToken, deployer);
-
-  return { emojiNft, vrfCoordinatorMock, linkToken };
+  return { emojiNft, vrfCoordinatorMock };
 };

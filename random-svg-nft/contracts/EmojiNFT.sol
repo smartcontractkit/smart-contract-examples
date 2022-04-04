@@ -1,13 +1,14 @@
 //SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.7;
 
-import "@chainlink/contracts/src/v0.8/VRFConsumerBase.sol";
+import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
+import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/utils/Base64.sol";
 
-contract EmojiNFT is ERC721URIStorage, VRFConsumerBase {
+contract EmojiNFT is ERC721URIStorage, VRFConsumerBaseV2 {
   using Counters for Counters.Counter;
   Counters.Counter private tokenIds;
 
@@ -24,44 +25,55 @@ contract EmojiNFT is ERC721URIStorage, VRFConsumerBase {
     unicode"🙄"
   ];
 
+  VRFCoordinatorV2Interface internal immutable vrfCoordinator;
   bytes32 internal immutable keyHash;
-  uint256 internal immutable fee;
+  uint64 internal immutable subscriptionId;
+  uint32 internal immutable callbackGasLimit;
+  uint32 internal immutable numWords;
+  uint16 internal immutable requestConfirmations;
 
-  mapping(bytes32 => address) requestToSender;
+  mapping(uint256 => address) requestToSender;
 
-  event RandomnessRequested(bytes32 indexed requestId);
+  event RandomnessRequested(uint256 indexed requestId);
 
   constructor(
-    address _VRFCoordinator,
-    address _linkToken,
-    bytes32 _keyhash,
-    uint256 _fee
-  ) VRFConsumerBase(_VRFCoordinator, _linkToken) ERC721("EmojiNFT", "EMOJI") {
-    keyHash = _keyhash;
-    fee = _fee;
+    address _vrfCoordinator,
+    bytes32 _keyHash,
+    uint64 _subscriptionId,
+    uint32 _callbackGasLimit,
+    uint32 _numWords,
+    uint16 _requestConfirmations
+  ) VRFConsumerBaseV2(_vrfCoordinator) ERC721("EmojiNFT", "EMOJI") {
+    vrfCoordinator = VRFCoordinatorV2Interface(_vrfCoordinator);
+    keyHash = _keyHash;
+    subscriptionId = _subscriptionId;
+    callbackGasLimit = _callbackGasLimit;
+    numWords = _numWords;
+    requestConfirmations = _requestConfirmations;
   }
 
-  function mint() public returns (bytes32 requestId) {
-    require(
-      LINK.balanceOf(address(this)) >= fee,
-      "Not enough LINK - fill contract with faucet"
+  function mint() public returns (uint256 requestId) {
+    requestId = vrfCoordinator.requestRandomWords(
+      keyHash,
+      subscriptionId,
+      requestConfirmations,
+      callbackGasLimit,
+      numWords
     );
-
-    requestId = requestRandomness(keyHash, fee);
 
     requestToSender[requestId] = msg.sender;
 
     emit RandomnessRequested(requestId);
   }
 
-  function pickRandomColor(uint256 randomNumber)
+  function pickRandomColor(uint256 firstRandomNumber, uint256 secondRandomNumber, uint256 thirdRandomNumber)
     internal
     pure
     returns (string memory)
   {
-    uint256 r = uint256(keccak256(abi.encode(randomNumber, 1))) % 256;
-    uint256 g = uint256(keccak256(abi.encode(randomNumber, 2))) % 256;
-    uint256 b = uint256(keccak256(abi.encode(randomNumber, 3))) % 256;
+    uint256 r = firstRandomNumber % 256;
+    uint256 g = secondRandomNumber % 256;
+    uint256 b = thirdRandomNumber % 256;
 
     return
       string(
@@ -77,26 +89,14 @@ contract EmojiNFT is ERC721URIStorage, VRFConsumerBase {
       );
   }
 
-  function fulfillRandomness(bytes32 requestId, uint256 randomNumber)
-    internal
-    override
-  {
-    uint256 tokenId = tokenIds.current();
+  function createOnChainSvg(string memory emoji, string memory color) internal pure returns(string memory svg) {
+    string memory baseSvg = "<svg xmlns='http://www.w3.org/2000/svg' preserveAspectRatio='xMinYMin meet' viewBox='0 0 350 350'><style>.base { font-size: 100px; }</style><rect width='100%' height='100%' style='fill:";
+    string memory afterColorSvg = "' /><text x='50%' y='50%' class='base' dominant-baseline='middle' text-anchor='middle'>";
 
-    uint256 emojiIndex = (randomNumber % emojis.length) + 1;
-    string memory emoji = emojis[emojiIndex];
+    svg = string(abi.encodePacked(baseSvg, color, afterColorSvg, emoji, "</text></svg>"));
+  }
 
-    string memory color = pickRandomColor(randomNumber);
-
-    string
-      memory baseSvg = "<svg xmlns='http://www.w3.org/2000/svg' preserveAspectRatio='xMinYMin meet' viewBox='0 0 350 350'><style>.base { fill: black; font-family: serif; font-size: 24px; }</style><rect width='100%' height='100%' style='fill:";
-    string
-      memory afterColorSvg = "' /><text x='50%' y='50%' class='base' dominant-baseline='middle' text-anchor='middle'>";
-
-    string memory svg = string(
-      abi.encodePacked(baseSvg, color, afterColorSvg, emoji, "</text></svg>")
-    );
-
+  function createTokenUri(string memory emoji, string memory svg) internal pure returns(string memory tokenUri) {
     string memory json = Base64.encode(
       bytes(
         string(
@@ -111,9 +111,22 @@ contract EmojiNFT is ERC721URIStorage, VRFConsumerBase {
       )
     );
 
-    string memory tokenUri = string(
+    tokenUri = string(
       abi.encodePacked("data:application/json;base64,", json)
     );
+  }
+
+  function fulfillRandomWords(uint256 requestId, uint256[] memory randomNumbers)
+    internal
+    override
+  {
+    uint256 tokenId = tokenIds.current();
+
+    uint256 emojiIndex = (randomNumbers[0] % emojis.length) + 1;
+    string memory emoji = emojis[emojiIndex];
+    string memory color = pickRandomColor(randomNumbers[1], randomNumbers[2], randomNumbers[3]);
+    string memory svg = createOnChainSvg(emoji, color);
+    string memory tokenUri = createTokenUri(emoji, svg);
 
     _safeMint(requestToSender[requestId], tokenId);
     _setTokenURI(tokenId, tokenUri);
