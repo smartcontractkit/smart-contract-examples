@@ -21,7 +21,6 @@ async function main() {
   const subscriptionId = process.env.SUBSCRIPTION_ID!;
   const keyHash = `0xd89b2bf150e3b9e13446986e571fb9cab24b13cea0a43ea20a6049a85cc807cc`;
   const callbackGasLimit = 1000000;
-  const numWords = 4;
   const requestConfirmations = 3;
 
   const emojiNftFactory = await ethers.getContractFactory(`EmojiNFT`);
@@ -30,7 +29,6 @@ async function main() {
     keyHash,
     subscriptionId,
     callbackGasLimit,
-    numWords,
     requestConfirmations
   );
 
@@ -45,7 +43,6 @@ async function main() {
       keyHash,
       subscriptionId,
       callbackGasLimit,
-      numWords,
       requestConfirmations,
     ],
   });

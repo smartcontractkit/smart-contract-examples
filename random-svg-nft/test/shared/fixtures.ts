@@ -37,7 +37,6 @@ export const unitEmojiNftFixture: Fixture<UnitEmojiNftFixtureType> = async (
 
   const keyHash: string = `0xd89b2bf150e3b9e13446986e571fb9cab24b13cea0a43ea20a6049a85cc807cc`;
   const callbackGasLimit: BigNumber = BigNumber.from(`1000000`);
-  const numWords: BigNumber = BigNumber.from(`4`);
   const requestConfirmations: BigNumber = BigNumber.from(`3`);
 
   const emojiNft: EmojiNFT = (await emojiNftFactory
@@ -47,7 +46,6 @@ export const unitEmojiNftFixture: Fixture<UnitEmojiNftFixtureType> = async (
       keyHash,
       subscriptionId,
       callbackGasLimit,
-      numWords,
       requestConfirmations
     )) as EmojiNFT;
 

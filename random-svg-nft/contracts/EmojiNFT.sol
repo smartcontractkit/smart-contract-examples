@@ -41,14 +41,13 @@ contract EmojiNFT is ERC721URIStorage, VRFConsumerBaseV2 {
     bytes32 _keyHash,
     uint64 _subscriptionId,
     uint32 _callbackGasLimit,
-    uint32 _numWords,
     uint16 _requestConfirmations
   ) VRFConsumerBaseV2(_vrfCoordinator) ERC721("EmojiNFT", "EMOJI") {
     vrfCoordinator = VRFCoordinatorV2Interface(_vrfCoordinator);
     keyHash = _keyHash;
     subscriptionId = _subscriptionId;
     callbackGasLimit = _callbackGasLimit;
-    numWords = _numWords;
+    numWords = 4;
     requestConfirmations = _requestConfirmations;
   }
 
