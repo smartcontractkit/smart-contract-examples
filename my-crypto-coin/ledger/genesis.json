@@ -1,0 +1,7 @@
+{
+  "genesis_time": "2022-04-12T00:00:00.000000000Z",
+  "chain_id": "our-blockchain",
+  "balances": {
+    "alice": 1000000
+  }
+}
