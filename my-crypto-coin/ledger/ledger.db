@@ -1,0 +1,7 @@
+{"from":"alice","to":"bob","value":10}
+{"from":"alice","to":"alice","value":3}
+{"from":"alice","to":"alice","value":500}
+{"from":"alice","to":"bob","value":100}
+{"from":"bob","to":"alice","value":5}
+{"from":"bob","to":"carol","value":10}
+{"from":"alice","to":"carol","value":10}
