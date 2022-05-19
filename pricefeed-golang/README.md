@@ -9,7 +9,7 @@
 
 ## About The Project
 
-The project shows how to retrieve asset price from any EVM chain. The contract addresses can be found [here](https://docs.chain.link/docs/reference-contracts/).
+The project shows how to retrieve asset price from any EVM chain. The price data feed contract addresses can be found [here](https://docs.chain.link/docs/reference-contracts/).
 
 ## Prerequisites
 
@@ -27,7 +27,7 @@ The project shows how to retrieve asset price from any EVM chain. The contract a
    ```sh
    cd pricefeed-golang
    ```
-1. Create the `.env` file
+1. Copy the example environment file `.env.example` to create `.env` file
    ```sh
    cp .env.example .env
    ```
