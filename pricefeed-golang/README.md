@@ -11,6 +11,24 @@
 
 The project shows how to retrieve asset price from any EVM chain. The price data feed contract addresses can be found [here](https://docs.chain.link/docs/reference-contracts/).
 
+> 📘 Note on `Go` bindings [`aggregator_v3_interface.go`](aggregatorv3/aggregator_v3_interface.go)
+> 
+>  Follow these steps to learn how to generate this file:
+> 
+> 1. Generate the [Contract ABI](https://docs.soliditylang.org/en/latest/abi-spec.html) from a solidity source file using [solc](https://docs.soliditylang.org/en/latest/using-the-compiler.html). In this case, we are going to download the [`AggregatorV3Interface`](https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol) and generate an ABI called `AggregatorV3Interface.abi`:
+> ```shell 
+> wget https://raw.githubusercontent.com/smartcontractkit/chainlink/develop/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol
+> solc --abi AggregatorV3Interface.sol -o .
+> ```
+>
+> 2. From `AggregatorV3Interface.abi`, generate the `Go` bindings `aggregator_v3_interface.go` required to programmatically interact with a smart contract > using generated, typesafe `Go`code. Ensure that [Geth](https://geth.ethereum.org/docs/install-and-build/installing-geth) is installed so you can use > > > [`abigen`](https://geth.ethereum.org/docs/dapp/native-bindings).
+> 
+> ```shell
+> abigen --abi=AggregatorV3Interface.abi --pkg=aggregator_v3_interface --out=aggregator_v3_interface.go
+> ``` 
+
+
+
 ## Prerequisites
 
 - [Go](https://go.dev/doc/install)
