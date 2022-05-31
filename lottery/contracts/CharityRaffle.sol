@@ -40,6 +40,8 @@ contract CharityRaffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
     bytes32 private immutable i_gasLane;
 
     // Lottery Variables
+    uint256 private immutable i_duration;
+    uint256 private immutable i_startTime;
     uint256 private immutable i_entranceFee;
     uint256 private immutable i_jackpot;
     uint256 private s_highestDonations;
@@ -50,11 +52,11 @@ contract CharityRaffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
     address private immutable i_fundingWallet;
     address private s_charityWinner;
     bool private s_matchFunded;
-    
+
     address[] private s_players;
     RaffleState private s_raffleState;
 
-    mapping (address => uint256) donations;
+    mapping(address => uint256) donations;
 
     /* Events */
     event RequestedRaffleWinner(uint256 indexed requestId);
@@ -69,14 +71,16 @@ contract CharityRaffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
         bytes32 gasLane, // keyHash
         uint256 entranceFee,
         uint256 jackpot,
+        uint256 duration,
         uint32 callbackGasLimit,
         address charity1,
         address charity2,
         address charity3,
         address fundingWallet
-    ) VRFConsumerBaseV2(vrfCoordinatorV2) 
-    {
+    ) VRFConsumerBaseV2(vrfCoordinatorV2) {
         i_vrfCoordinator = VRFCoordinatorV2Interface(vrfCoordinatorV2);
+        i_duration = duration;
+        i_startTime = block.timestamp;
         i_gasLane = gasLane;
         i_subscriptionId = subscriptionId;
         i_entranceFee = entranceFee;
@@ -130,17 +134,31 @@ contract CharityRaffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
      * they look for `upkeepNeeded` to return True.
      * the following should be true for this to return true:
      * 1. The lottery is open.
-     * 2. The contract has ETH.
-     * 3. Implicity, your subscription is funded with LINK.
+     * 2. Lottery duration time has elapsed
+     * 3. The contract has ETH.
+     * 4. Implicity, your subscription is funded with LINK.
      */
-    function checkUpkeep(bytes memory /* checkData */) public view override returns (bool upkeepNeeded, bytes memory /* performData */) {
+    function checkUpkeep(
+        bytes memory /* checkData */
+    )
+        public
+        view
+        override
+        returns (
+            bool upkeepNeeded,
+            bytes memory /* performData */
+        )
+    {
         bool isOpen = RaffleState.OPEN == s_raffleState;
+        bool timeOver = (block.timestamp - i_startTime) >= i_duration;
         bool hasPlayers = s_players.length > 0;
         bool hasBalance = address(this).balance > 0;
-        upkeepNeeded = (isOpen && hasBalance && hasPlayers);
+        upkeepNeeded = (isOpen && timeOver && hasBalance && hasPlayers);
     }
 
-    function performUpkeep(bytes calldata /* performData */) external override {
+    function performUpkeep(
+        bytes calldata /* performData */
+    ) external override {
         (bool upkeepNeeded, ) = checkUpkeep("");
         if (!upkeepNeeded) {
             revert Raffle__UpkeepNotNeeded(
@@ -160,7 +178,11 @@ contract CharityRaffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
         emit RequestedRaffleWinner(requestId);
     }
 
-    function fulfillRandomWords(uint256, /* requestId */ uint256[] memory randomWords) internal override {
+    function fulfillRandomWords(
+        uint256,
+        /* requestId */
+        uint256[] memory randomWords
+    ) internal override {
         // declare player winner
         uint256 indexOfWinner = randomWords[0] % s_players.length;
         address recentWinner = s_players[indexOfWinner];
@@ -171,24 +193,69 @@ contract CharityRaffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
         if (!success) {
             revert Raffle__JackpotTransferFailed();
         }
-        // handle if there is charity donations tie 
+        // handle if there is charity donations tie
         bool tie = checkForTie();
         uint256 charity1Total = donations[i_charity1];
         donations[i_charity1] = 0;
         uint256 charity2Total = donations[i_charity2];
         donations[i_charity2] = 0;
-        uint256 charity3Total =  donations[i_charity3];
+        uint256 charity3Total = donations[i_charity3];
         donations[i_charity3] = 0;
         if (tie) {
-            // find top two winners
-            uint256[] memory data = new uint256[](3);
-            data[0] = charity1Total;
-            data[1] = charity2Total;
-            data[2] = charity3Total;
-            uint256[] memory sortedData = sort(data); // sortedData[2] = highest value
-            s_highestDonations = sortedData[2];
-            // three-way-tie 
-            if (charity1Total == charity2Total && charity1Total == charity3Total) {
+            handleTie(randomWords, charity1Total, charity2Total, charity3Total);
+        } else {
+            // not a tie
+            if (charity1Total > charity2Total && charity1Total > charity3Total) {
+                // charity1 wins
+                s_highestDonations = charity1Total;
+                s_charityWinner = i_charity1;
+                emit CharityWinnerPicked(i_charity1);
+            }
+            if (charity2Total > charity1Total && charity2Total > charity3Total) {
+                // charity2 wins
+                s_highestDonations = charity2Total;
+                s_charityWinner = i_charity2;
+                emit CharityWinnerPicked(i_charity2);
+            }
+            if (charity3Total > charity1Total && charity3Total > charity2Total) {
+                // charity3 wins
+                s_highestDonations = charity3Total;
+                s_charityWinner = i_charity3;
+                emit CharityWinnerPicked(i_charity3);
+            }
+        }
+        emit WinnerPicked(recentWinner);
+    }
+
+    function checkForTie() internal view returns (bool) {
+        if (
+            donations[i_charity1] == donations[i_charity2] ||
+            donations[i_charity1] == donations[i_charity3] ||
+            donations[i_charity2] == donations[i_charity3]
+        ) {
+            return true;
+        }
+    }
+
+    /*
+     * @dev Instead of requesting 4 random words from Chainlink VRF, could get "sudo" random numbers by taking the hash and abi.encode of one random number (would be more computationally expensive function)
+     */
+
+    function handleTie(
+        uint256[] memory randomWords,
+        uint256 charity1Total,
+        uint256 charity2Total,
+        uint256 charity3Total
+    ) internal {
+        // find top two winners
+        uint256[] memory data = new uint256[](3);
+        data[0] = charity1Total;
+        data[1] = charity2Total;
+        data[2] = charity3Total;
+        uint256[] memory sortedData = sort(data); // sortedData[2] = highest value
+        s_highestDonations = sortedData[2];
+        // three-way-tie
+        if (charity1Total == charity2Total && charity1Total == charity3Total) {
             charity1Total += randomWords[1];
             charity2Total += randomWords[2];
             charity3Total += randomWords[3];
@@ -206,101 +273,69 @@ contract CharityRaffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
                 //charity2 wins
                 s_charityWinner = i_charity2;
                 emit CharityWinnerPicked(i_charity2);
-            }
-            else {
+            } else {
                 // charity3 wins
-                s_charityWinner = i_charity3;
-                emit CharityWinnerPicked(i_charity3);
-                }
-            }
-            // charity1 and charity2 tie
-            if (sortedData[2] == charity1Total && sortedData[2] == charity2Total) {
-                charity1Total += randomWords[1];
-                charity2Total += randomWords[2];
-                if (charity1Total > charity2Total) {
-                    // charity1 wins
-                    s_charityWinner = i_charity1;
-                    emit CharityWinnerPicked(i_charity1);
-                }
-                else {
-                    //charity2 wins
-                    s_charityWinner = i_charity2;
-                    emit CharityWinnerPicked(i_charity2);
-                }
-            }
-            // charity1 and charity3 tie
-            if (sortedData[2] == charity1Total && sortedData[2] == charity3Total) {
-                charity1Total += randomWords[1];
-                charity3Total += randomWords[2];
-                if (charity1Total > charity3Total) {
-                    // charity1 wins
-                    s_charityWinner = i_charity1;
-                    emit CharityWinnerPicked(i_charity1);
-                }
-                else {
-                    //charity3 wins
-                    s_charityWinner = i_charity3;
-                    emit CharityWinnerPicked(i_charity3);
-                }
-            }
-            // charity2 and charity3 tie
-            if (sortedData[2] == charity2Total && sortedData[2] == charity3Total) {
-                charity2Total += randomWords[1];
-                charity3Total += randomWords[2];
-                if (charity2Total > charity3Total) {
-                    // charity2 wins
-                    s_charityWinner = i_charity2;
-                    emit CharityWinnerPicked(i_charity2);
-                }
-                else {
-                    //charity3 wins
-                    s_charityWinner = i_charity3;
-                    emit CharityWinnerPicked(i_charity3);
-                }
-            }
-        } else {
-            // not a tie
-            if (charity1Total > charity2Total && charity1Total > charity3Total) {
-                // charity1 wins
-                s_highestDonations = charity1Total;
-                s_charityWinner = i_charity1;
-                emit CharityWinnerPicked(i_charity1);
-            }
-            if (charity2Total > charity1Total && charity2Total > charity3Total) {
-                // charity2 wins 
-                s_highestDonations = charity2Total;
-                s_charityWinner = i_charity2;
-                emit CharityWinnerPicked(i_charity2);
-            }
-            if (charity3Total > charity1Total && charity3Total > charity2Total) {
-                // charity3 wins
-                s_highestDonations = charity3Total;
                 s_charityWinner = i_charity3;
                 emit CharityWinnerPicked(i_charity3);
             }
         }
-        emit WinnerPicked(recentWinner);
-    }
-
-    function checkForTie() internal view returns (bool tie) {
-        if (
-        donations[i_charity1] == donations[i_charity2] || 
-        donations[i_charity1] == donations[i_charity3] || 
-        donations[i_charity2] == donations[i_charity3]
-        ) {
-            tie = true; 
+        // charity1 and charity2 tie
+        if (sortedData[2] == charity1Total && sortedData[2] == charity2Total) {
+            charity1Total += randomWords[1];
+            charity2Total += randomWords[2];
+            if (charity1Total > charity2Total) {
+                // charity1 wins
+                s_charityWinner = i_charity1;
+                emit CharityWinnerPicked(i_charity1);
+            } else {
+                //charity2 wins
+                s_charityWinner = i_charity2;
+                emit CharityWinnerPicked(i_charity2);
+            }
+        }
+        // charity1 and charity3 tie
+        if (sortedData[2] == charity1Total && sortedData[2] == charity3Total) {
+            charity1Total += randomWords[1];
+            charity3Total += randomWords[2];
+            if (charity1Total > charity3Total) {
+                // charity1 wins
+                s_charityWinner = i_charity1;
+                emit CharityWinnerPicked(i_charity1);
+            } else {
+                //charity3 wins
+                s_charityWinner = i_charity3;
+                emit CharityWinnerPicked(i_charity3);
+            }
+        }
+        // charity2 and charity3 tie
+        if (sortedData[2] == charity2Total && sortedData[2] == charity3Total) {
+            charity2Total += randomWords[1];
+            charity3Total += randomWords[2];
+            if (charity2Total > charity3Total) {
+                // charity2 wins
+                s_charityWinner = i_charity2;
+                emit CharityWinnerPicked(i_charity2);
+            } else {
+                //charity3 wins
+                s_charityWinner = i_charity3;
+                emit CharityWinnerPicked(i_charity3);
+            }
         }
     }
 
     function sort(uint256[] memory data) internal returns (uint256[] memory) {
-        quickSort(data, int(0), int(data.length - 1));
+        quickSort(data, int256(0), int256(data.length - 1));
         return data;
     }
-    
-    function quickSort(uint256[] memory arr, int left, int right) internal {
-        int i = left;
-        int j = right;
-        if(i==j) return;
+
+    function quickSort(
+        uint256[] memory arr,
+        int256 left,
+        int256 right
+    ) internal {
+        int256 i = left;
+        int256 j = right;
+        if (i == j) return;
         uint256 pivot = arr[uint256(left + (right - left) / 2)];
         while (i <= j) {
             while (arr[uint256(i)] < pivot) i++;
@@ -311,10 +346,8 @@ contract CharityRaffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
                 j--;
             }
         }
-        if (left < j)
-            quickSort(arr, left, j);
-        if (i < right)
-            quickSort(arr, i, right);
+        if (left < j) quickSort(arr, left, j);
+        if (i < right) quickSort(arr, i, right);
     }
 
     function fundDonationMatch() external {
@@ -377,7 +410,7 @@ contract CharityRaffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
     function getPlayer(uint256 index) external view returns (address) {
         return s_players[index];
     }
-    
+
     function getAllPlayers() external view returns (address[] memory) {
         return s_players;
     }
@@ -406,5 +439,9 @@ contract CharityRaffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
 
     function getJackpot() external view returns (uint256) {
         return i_jackpot;
+    }
+
+    function getDuration() external view returns (uint256) {
+        return i_duration;
     }
 }
