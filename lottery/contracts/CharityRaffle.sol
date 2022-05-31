@@ -441,6 +441,10 @@ contract CharityRaffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
         return i_jackpot;
     }
 
+    function getStartTime() external view returns (uint256) {
+        return i_startTime;
+    }
+
     function getDuration() external view returns (uint256) {
         return i_duration;
     }
