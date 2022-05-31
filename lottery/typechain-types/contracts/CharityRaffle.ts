@@ -47,6 +47,7 @@ export interface CharityRaffleInterface extends utils.Interface {
     "getRaffleState()": FunctionFragment;
     "getRecentWinner()": FunctionFragment;
     "getRequestConfirmations()": FunctionFragment;
+    "getStartTime()": FunctionFragment;
     "performUpkeep(bytes)": FunctionFragment;
     "rawFulfillRandomWords(uint256,uint256[])": FunctionFragment;
   };
@@ -71,6 +72,7 @@ export interface CharityRaffleInterface extends utils.Interface {
       | "getRaffleState"
       | "getRecentWinner"
       | "getRequestConfirmations"
+      | "getStartTime"
       | "performUpkeep"
       | "rawFulfillRandomWords"
   ): FunctionFragment;
@@ -148,6 +150,10 @@ export interface CharityRaffleInterface extends utils.Interface {
     values?: undefined
   ): string;
   encodeFunctionData(
+    functionFragment: "getStartTime",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
     functionFragment: "performUpkeep",
     values: [BytesLike]
   ): string;
@@ -220,6 +226,10 @@ export interface CharityRaffleInterface extends utils.Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "getRequestConfirmations",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "getStartTime",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -358,6 +368,8 @@ export interface CharityRaffle extends BaseContract {
 
     getRequestConfirmations(overrides?: CallOverrides): Promise<[BigNumber]>;
 
+    getStartTime(overrides?: CallOverrides): Promise<[BigNumber]>;
+
     performUpkeep(
       arg0: BytesLike,
       overrides?: Overrides & { from?: string | Promise<string> }
@@ -416,6 +428,8 @@ export interface CharityRaffle extends BaseContract {
 
   getRequestConfirmations(overrides?: CallOverrides): Promise<BigNumber>;
 
+  getStartTime(overrides?: CallOverrides): Promise<BigNumber>;
+
   performUpkeep(
     arg0: BytesLike,
     overrides?: Overrides & { from?: string | Promise<string> }
@@ -469,6 +483,8 @@ export interface CharityRaffle extends BaseContract {
     getRecentWinner(overrides?: CallOverrides): Promise<string>;
 
     getRequestConfirmations(overrides?: CallOverrides): Promise<BigNumber>;
+
+    getStartTime(overrides?: CallOverrides): Promise<BigNumber>;
 
     performUpkeep(arg0: BytesLike, overrides?: CallOverrides): Promise<void>;
 
@@ -548,6 +564,8 @@ export interface CharityRaffle extends BaseContract {
 
     getRequestConfirmations(overrides?: CallOverrides): Promise<BigNumber>;
 
+    getStartTime(overrides?: CallOverrides): Promise<BigNumber>;
+
     performUpkeep(
       arg0: BytesLike,
       overrides?: Overrides & { from?: string | Promise<string> }
@@ -615,6 +633,8 @@ export interface CharityRaffle extends BaseContract {
     getRequestConfirmations(
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
+
+    getStartTime(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     performUpkeep(
       arg0: BytesLike,
