@@ -97,7 +97,7 @@ contract CharityRaffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
         }
     }
 
-    function enterRaffle(uint256 charityChoice) public payable {
+    function enterRaffle(uint256 charityChoice) external payable {
         if (msg.value < i_entranceFee) {
             revert Raffle__SendMoreToEnterRaffle();
         }
@@ -350,7 +350,7 @@ contract CharityRaffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
         if (i < right) quickSort(arr, i, right);
     }
 
-    function fundDonationMatch() external {
+    function fundDonationMatch() external payable {
         if (s_raffleState != RaffleState.CLOSED) {
             revert Raffle__RaffleNotClosed();
         }

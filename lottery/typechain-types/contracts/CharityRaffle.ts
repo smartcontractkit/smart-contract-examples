@@ -322,7 +322,7 @@ export interface CharityRaffle extends BaseContract {
     ): Promise<ContractTransaction>;
 
     fundDonationMatch(
-      overrides?: Overrides & { from?: string | Promise<string> }
+      overrides?: PayableOverrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
     getAllPlayers(overrides?: CallOverrides): Promise<[string[]]>;
@@ -385,7 +385,7 @@ export interface CharityRaffle extends BaseContract {
   ): Promise<ContractTransaction>;
 
   fundDonationMatch(
-    overrides?: Overrides & { from?: string | Promise<string> }
+    overrides?: PayableOverrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
   getAllPlayers(overrides?: CallOverrides): Promise<string[]>;
@@ -514,7 +514,7 @@ export interface CharityRaffle extends BaseContract {
     ): Promise<BigNumber>;
 
     fundDonationMatch(
-      overrides?: Overrides & { from?: string | Promise<string> }
+      overrides?: PayableOverrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
     getAllPlayers(overrides?: CallOverrides): Promise<BigNumber>;
@@ -576,7 +576,7 @@ export interface CharityRaffle extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     fundDonationMatch(
-      overrides?: Overrides & { from?: string | Promise<string> }
+      overrides?: PayableOverrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
     getAllPlayers(overrides?: CallOverrides): Promise<PopulatedTransaction>;
