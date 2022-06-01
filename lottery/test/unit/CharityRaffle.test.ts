@@ -1,18 +1,19 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { assert, expect } from "chai"
 import { BigNumber } from "ethers"
+// @ts-ignore
 import { network, deployments, ethers } from "hardhat"
 import { developmentChains, networkConfig } from "../../helper-hardhat-config"
-import { Raffle, VRFCoordinatorV2Mock } from "../../typechain-types"
+import { CharityRaffle, VRFCoordinatorV2Mock } from "../../typechain-types"
 
 !developmentChains.includes(network.name)
   ? describe.skip
-  : describe("Raffle Unit Tests", function () {
-      let raffle: Raffle
-      let raffleContract: Raffle
+  : describe("Charity Raffle Unit Tests", function () {
+      let CharityRaffle: CharityRaffle
+      let charityRaffleContract: CharityRaffle
       let vrfCoordinatorV2Mock: VRFCoordinatorV2Mock
       let raffleEntranceFee: BigNumber
-      let interval: number
+      let duration: number
       let player: SignerWithAddress
       let accounts: SignerWithAddress[]
 
@@ -20,7 +21,7 @@ import { Raffle, VRFCoordinatorV2Mock } from "../../typechain-types"
         accounts = await ethers.getSigners() // could also do with getNamedAccounts
         //   deployer = accounts[0]
         player = accounts[1]
-        await deployments.fixture(["mocks", "raffle"])
+        await deployments.fixture(["mocks", "charity-raffle"])
         vrfCoordinatorV2Mock = await ethers.getContract("VRFCoordinatorV2Mock")
         raffleContract = await ethers.getContract("Raffle")
         raffle = raffleContract.connect(player)

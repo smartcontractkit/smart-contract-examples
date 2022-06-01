@@ -97,6 +97,8 @@ contract CharityRaffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
         }
     }
 
+    receive() external payable {}
+
     function enterRaffle(uint256 charityChoice) external payable {
         if (msg.value < i_entranceFee) {
             revert Raffle__SendMoreToEnterRaffle();
