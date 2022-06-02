@@ -26,8 +26,8 @@ const deployCharityRaffle: DeployFunction = async function (hre: HardhatRuntimeE
     // accounts[0] = deployer and accounts[1] = player
     const accounts: SignerWithAddress[] = await ethers.getSigners()
     const charity1: string = accounts[2].address.toString()
-    const charity2: string = accounts[4].address.toString()
-    const charity3: string = accounts[5].address.toString()
+    const charity2: string = accounts[3].address.toString()
+    const charity3: string = accounts[4].address.toString()
     // create VRFV2 Subscription
     const vrfCoordinatorV2Mock = await ethers.getContract("VRFCoordinatorV2Mock")
     vrfCoordinatorV2Address = vrfCoordinatorV2Mock.address
