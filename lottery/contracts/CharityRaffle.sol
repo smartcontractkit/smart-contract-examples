@@ -7,16 +7,17 @@ import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/KeeperCompatibleInterface.sol";
 import "hardhat/console.sol";
 
-error Raffle__FundingContractFailed();
-error Raffle__UpkeepNotNeeded(uint256 currentBalance, uint256 numPlayers, uint256 raffleState);
-error Raffle__CharityTransferFailed(address charity);
-error Raffle__SendMoreToEnterRaffle();
-error Raffle__RaffleNotOpen();
-error Raffle__RaffleNotClosed();
-error Raffle__JackpotTransferFailed();
-error Raffle__MustBeFunder();
-error Raffle__FundingToMatchTransferFailed();
-error Raffle__DonationMatchFailed();
+error CharityRaffle__NotJackpotValue();
+error CharityRaffle__FundingContractFailed();
+error CharityRaffle__UpkeepNotNeeded(uint256 currentBalance, uint256 numPlayers, uint256 raffleState);
+error CharityRaffle__CharityTransferFailed(address charity);
+error CharityRaffle__SendMoreToEnterRaffle();
+error CharityRaffle__RaffleNotOpen();
+error CharityRaffle__RaffleNotClosed();
+error CharityRaffle__JackpotTransferFailed();
+error CharityRaffle__MustBeFunder();
+error CharityRaffle__FundingToMatchTransferFailed();
+error CharityRaffle__DonationMatchFailed();
 
 /**@title A sample Charity Raffle Contract originally @author Patrick Collins
  * @notice This contract creates a lottery in which players enter by donating to 1 of 3 charities
@@ -26,6 +27,7 @@ error Raffle__DonationMatchFailed();
 contract CharityRaffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
     /* Type declarations */
     enum RaffleState {
+        NOTSTARTED,
         OPEN,
         CALCULATING,
         CLOSED
@@ -41,7 +43,7 @@ contract CharityRaffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
 
     // Lottery Variables
     uint256 private immutable i_duration;
-    uint256 private immutable i_startTime;
+    uint256 private s_startTime;
     uint256 private immutable i_entranceFee;
     uint256 private immutable i_jackpot;
     uint256 private s_highestDonations;
@@ -64,8 +66,16 @@ contract CharityRaffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
     event WinnerPicked(address indexed player);
     event CharityWinnerPicked(address indexed charity);
 
+    /* Modifier */
+    modifier onlyFunder() {
+        if (msg.sender != i_fundingWallet) {
+            revert CharityRaffle__MustBeFunder();
+        }
+        _;
+    }
+
     /* Functions */
-    constructor(
+    constructor (
         address vrfCoordinatorV2,
         uint64 subscriptionId,
         bytes32 gasLane, // keyHash
@@ -80,50 +90,55 @@ contract CharityRaffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
     ) VRFConsumerBaseV2(vrfCoordinatorV2) {
         i_vrfCoordinator = VRFCoordinatorV2Interface(vrfCoordinatorV2);
         i_duration = duration;
-        i_startTime = block.timestamp;
         i_gasLane = gasLane;
         i_subscriptionId = subscriptionId;
         i_entranceFee = entranceFee;
         i_jackpot = jackpot;
-        s_raffleState = RaffleState.OPEN;
+        s_raffleState = RaffleState.NOTSTARTED;
         i_callbackGasLimit = callbackGasLimit;
         i_charity1 = charity1;
         i_charity2 = charity2;
         i_charity3 = charity3;
         i_fundingWallet = fundingWallet;
-        (bool success, ) = payable(address(this)).call{value: jackpot}("");
+    }
+
+    function startRaffle() external payable onlyFunder {
+        if (msg.value < i_jackpot) {
+            revert CharityRaffle__NotJackpotValue();
+        }
+        s_raffleState = RaffleState.OPEN;
+        s_startTime = block.timestamp;
+        (bool success, ) = payable(address(this)).call{value: i_jackpot}("");
         if (!success) {
-            revert Raffle__FundingContractFailed();
+            revert CharityRaffle__FundingContractFailed();
         }
     }
 
-    receive() external payable {}
-
     function enterRaffle(uint256 charityChoice) external payable {
         if (msg.value < i_entranceFee) {
-            revert Raffle__SendMoreToEnterRaffle();
+            revert CharityRaffle__SendMoreToEnterRaffle();
         }
         if (s_raffleState != RaffleState.OPEN) {
-            revert Raffle__RaffleNotOpen();
+            revert CharityRaffle__RaffleNotOpen();
         }
         if (charityChoice == 1) {
             (bool success, ) = i_charity1.call{value: msg.value}("");
             if (!success) {
-                revert Raffle__CharityTransferFailed(i_charity1);
+                revert CharityRaffle__CharityTransferFailed(i_charity1);
             }
             donations[i_charity1]++;
         }
         if (charityChoice == 2) {
             (bool success, ) = i_charity2.call{value: msg.value}("");
             if (!success) {
-                revert Raffle__CharityTransferFailed(i_charity2);
+                revert CharityRaffle__CharityTransferFailed(i_charity2);
             }
             donations[i_charity2]++;
         }
         if (charityChoice == 3) {
             (bool success, ) = i_charity3.call{value: msg.value}("");
             if (!success) {
-                revert Raffle__CharityTransferFailed(i_charity3);
+                revert CharityRaffle__CharityTransferFailed(i_charity3);
             }
             donations[i_charity3]++;
         }
@@ -152,7 +167,7 @@ contract CharityRaffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
         )
     {
         bool isOpen = RaffleState.OPEN == s_raffleState;
-        bool timeOver = (block.timestamp - i_startTime) >= i_duration;
+        bool timeOver = (block.timestamp - s_startTime) >= i_duration;
         bool hasPlayers = s_players.length > 0;
         bool hasBalance = address(this).balance > 0;
         upkeepNeeded = (isOpen && timeOver && hasBalance && hasPlayers);
@@ -163,7 +178,7 @@ contract CharityRaffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
     ) external override {
         (bool upkeepNeeded, ) = checkUpkeep("");
         if (!upkeepNeeded) {
-            revert Raffle__UpkeepNotNeeded(
+            revert CharityRaffle__UpkeepNotNeeded(
                 address(this).balance,
                 s_players.length,
                 uint256(s_raffleState)
@@ -193,7 +208,7 @@ contract CharityRaffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
         s_raffleState = RaffleState.CLOSED;
         (bool success, ) = payable(recentWinner).call{value: address(this).balance}(""); // should be i_jackpot
         if (!success) {
-            revert Raffle__JackpotTransferFailed();
+            revert CharityRaffle__JackpotTransferFailed();
         }
         // handle if there is charity donations tie
         bool tie = checkForTie();
@@ -352,38 +367,32 @@ contract CharityRaffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
         if (i < right) quickSort(arr, i, right);
     }
 
-    function fundDonationMatch() external payable {
+    function fundDonationMatch() external payable onlyFunder {
         if (s_raffleState != RaffleState.CLOSED) {
-            revert Raffle__RaffleNotClosed();
-        }
-        if (msg.sender != i_fundingWallet) {
-            revert Raffle__MustBeFunder();
+            revert CharityRaffle__RaffleNotClosed();
         }
         uint256 mostDonations = s_highestDonations;
         s_highestDonations = 0;
         (bool fundingSuccess, ) = payable(address(this)).call{value: mostDonations * i_entranceFee}("");
         if (!fundingSuccess) {
-            revert Raffle__FundingToMatchTransferFailed();
+            revert CharityRaffle__FundingToMatchTransferFailed();
         }
         s_matchFunded = true;
     }
 
-    function DonationMatch() external {
+    function DonationMatch() external onlyFunder {
         if (s_raffleState != RaffleState.CLOSED) {
-            revert Raffle__RaffleNotClosed();
-        }
-        if (msg.sender != i_fundingWallet) {
-            revert Raffle__MustBeFunder();
+            revert CharityRaffle__RaffleNotClosed();
         }
         if (!s_matchFunded) {
-            revert Raffle__FundingToMatchTransferFailed();
+            revert CharityRaffle__FundingToMatchTransferFailed();
         }
         address charityWinner = s_charityWinner;
         s_charityWinner = address(0);
         s_matchFunded = false;
         (bool donationMatch, ) = payable(charityWinner).call{value: address(this).balance}("");
         if (!donationMatch) {
-            revert Raffle__DonationMatchFailed();
+            revert CharityRaffle__DonationMatchFailed();
         }
     }
 
@@ -444,7 +453,7 @@ contract CharityRaffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
     }
 
     function getStartTime() external view returns (uint256) {
-        return i_startTime;
+        return s_startTime;
     }
 
     function getDuration() external view returns (uint256) {

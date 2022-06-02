@@ -62,7 +62,6 @@ const deployCharityRaffle: DeployFunction = async function (hre: HardhatRuntimeE
     args: args,
     log: true,
     waitConfirmations: waitBlockConfirmations,
-    gasLimit: 5000000,
   })
 
   // Verify the deployment
