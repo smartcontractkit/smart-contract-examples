@@ -19,15 +19,15 @@ const deployCharityRaffle: DeployFunction = async function (hre: HardhatRuntimeE
   const { deployer } = await getNamedAccounts()
   // const chainId = network.config.chainId
   const chainId = 31337
-  let vrfCoordinatorV2Address, subscriptionId
+  let vrfCoordinatorV2Address, subscriptionId, charity1, charity2, charity3
 
   if (chainId == 31337) {
     // get mock charity contract addresses (for real deployments would load from the hardhat-helper-config)
     // accounts[0] = deployer and accounts[1] = player
     const accounts: SignerWithAddress[] = await ethers.getSigners()
-    const charity1: string = accounts[2].address.toString()
-    const charity2: string = accounts[3].address.toString()
-    const charity3: string = accounts[4].address.toString()
+    charity1 = accounts[2].address.toString()
+    charity2 = accounts[3].address.toString()
+    charity3 = accounts[4].address.toString()
     // create VRFV2 Subscription
     const vrfCoordinatorV2Mock = await ethers.getContract("VRFCoordinatorV2Mock")
     vrfCoordinatorV2Address = vrfCoordinatorV2Mock.address
@@ -40,6 +40,9 @@ const deployCharityRaffle: DeployFunction = async function (hre: HardhatRuntimeE
   } else {
     vrfCoordinatorV2Address = networkConfig[network.config.chainId!]["vrfCoordinatorV2"]
     subscriptionId = networkConfig[network.config.chainId!]["subscriptionId"]
+    charity1 = networkConfig[network.config.chainId!]["charity1"]
+    charity2 = networkConfig[network.config.chainId!]["charity2"]
+    charity3 = networkConfig[network.config.chainId!]["charity3"]
   }
   const waitBlockConfirmations = developmentChains.includes(network.name)
     ? 1
