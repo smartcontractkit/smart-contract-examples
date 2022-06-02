@@ -50,7 +50,6 @@ export interface CharityRaffleInterface extends utils.Interface {
     "getStartTime()": FunctionFragment;
     "performUpkeep(bytes)": FunctionFragment;
     "rawFulfillRandomWords(uint256,uint256[])": FunctionFragment;
-    "startRaffle()": FunctionFragment;
   };
 
   getFunction(
@@ -76,7 +75,6 @@ export interface CharityRaffleInterface extends utils.Interface {
       | "getStartTime"
       | "performUpkeep"
       | "rawFulfillRandomWords"
-      | "startRaffle"
   ): FunctionFragment;
 
   encodeFunctionData(
@@ -163,10 +161,6 @@ export interface CharityRaffleInterface extends utils.Interface {
     functionFragment: "rawFulfillRandomWords",
     values: [BigNumberish, BigNumberish[]]
   ): string;
-  encodeFunctionData(
-    functionFragment: "startRaffle",
-    values?: undefined
-  ): string;
 
   decodeFunctionResult(
     functionFragment: "DonationMatch",
@@ -244,10 +238,6 @@ export interface CharityRaffleInterface extends utils.Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "rawFulfillRandomWords",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "startRaffle",
     data: BytesLike
   ): Result;
 
@@ -390,10 +380,6 @@ export interface CharityRaffle extends BaseContract {
       randomWords: BigNumberish[],
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
-
-    startRaffle(
-      overrides?: PayableOverrides & { from?: string | Promise<string> }
-    ): Promise<ContractTransaction>;
   };
 
   DonationMatch(
@@ -455,10 +441,6 @@ export interface CharityRaffle extends BaseContract {
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
-  startRaffle(
-    overrides?: PayableOverrides & { from?: string | Promise<string> }
-  ): Promise<ContractTransaction>;
-
   callStatic: {
     DonationMatch(overrides?: CallOverrides): Promise<void>;
 
@@ -511,8 +493,6 @@ export interface CharityRaffle extends BaseContract {
       randomWords: BigNumberish[],
       overrides?: CallOverrides
     ): Promise<void>;
-
-    startRaffle(overrides?: CallOverrides): Promise<void>;
   };
 
   filters: {
@@ -596,10 +576,6 @@ export interface CharityRaffle extends BaseContract {
       randomWords: BigNumberish[],
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
-
-    startRaffle(
-      overrides?: PayableOverrides & { from?: string | Promise<string> }
-    ): Promise<BigNumber>;
   };
 
   populateTransaction: {
@@ -669,10 +645,6 @@ export interface CharityRaffle extends BaseContract {
       requestId: BigNumberish,
       randomWords: BigNumberish[],
       overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<PopulatedTransaction>;
-
-    startRaffle(
-      overrides?: PayableOverrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
   };
 }
