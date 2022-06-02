@@ -8,6 +8,9 @@ export interface networkConfigItem {
   jackpot?: string
   callbackGasLimit?: string
   vrfCoordinatorV2?: string
+  charity1?: string
+  charity2?: string
+  charity3?: string
 }
 
 export interface networkConfigInfo {
