@@ -49,7 +49,11 @@ import { CharityRaffle, VRFCoordinatorV2Mock } from "../../typechain-types"
                 assert.equal(charities[1], charity2.address)
                 assert.equal(charities[2], charity3.address)
                 assert.equal((await charityRaffle.getFundingWallet()), deployer.address)
-                assert.equal((await charityRaffle.getJackpot()).toString(), networkConfig[network.config.chainId!]["jackpot"])
+                const jackpot = (await charityRaffle.getJackpot()).toString()
+                assert.equal(jackpot, networkConfig[network.config.chainId!]["jackpot"])
+                // check contract funded with jackpot on initilization
+                const jackpotContractBalance: BigNumber = await ethers.provider.getBalance(charityRaffle.address) 
+                assert.equal(jackpotContractBalance.toString(), jackpot)
             })
         })
 
