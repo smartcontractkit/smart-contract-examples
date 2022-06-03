@@ -1,8 +1,8 @@
+// @ts-ignore
 import { getNamedAccounts, deployments, network, run } from "hardhat"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { DeployFunction } from "hardhat-deploy/types"
 import { HardhatRuntimeEnvironment } from "hardhat/types"
-import { BigNumber } from "ethers"
 
 import {
     networkConfig,
@@ -14,6 +14,7 @@ import verify from "../../utils/verify"
 const FUND_AMOUNT = "1000000000000000000000"
 
 const deployCharityRaffle: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
+    // @ts-ignore
     const { deployments, getNamedAccounts, network, ethers } = hre
     const { deploy, log } = deployments
     const { deployer } = await getNamedAccounts()
@@ -24,11 +25,11 @@ const deployCharityRaffle: DeployFunction = async function (hre: HardhatRuntimeE
 
     if (chainId == 31337) {
         // get mock charity contract addresses (for real deployments would load from the hardhat-helper-config)
-        // accounts[0] = deployer and accounts[1] = player
+        // accounts[0] = deployer, accounts[1] = player1, accounts[2] = player2
         const accounts: SignerWithAddress[] = await ethers.getSigners()
-        charity1 = accounts[2].address.toString()
-        charity2 = accounts[3].address.toString()
-        charity3 = accounts[4].address.toString()
+        charity1 = accounts[3].address.toString()
+        charity2 = accounts[4].address.toString()
+        charity3 = accounts[5].address.toString()
         // create VRFV2 Subscription
         const vrfCoordinatorV2Mock = await ethers.getContract("VRFCoordinatorV2Mock")
         vrfCoordinatorV2Address = vrfCoordinatorV2Mock.address

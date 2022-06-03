@@ -337,9 +337,7 @@ export interface CharityRaffle extends BaseContract {
 
     getAllPlayers(overrides?: CallOverrides): Promise<[string[]]>;
 
-    getCharities(
-      overrides?: CallOverrides
-    ): Promise<[string[]] & { charities: string[] }>;
+    getCharities(overrides?: CallOverrides): Promise<[string[]]>;
 
     getCharityWinner(overrides?: CallOverrides): Promise<[string]>;
 
