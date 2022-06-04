@@ -276,6 +276,8 @@ import { CharityRaffle, VRFCoordinatorV2Mock } from "../../typechain-types"
             })
             it("picks a winner if two-way tie", async () => {
                 await charityRaffleContract.connect(player1).enterRaffle(2, { value: raffleEntranceFee })
+                assert.equal((await charityRaffle.getDonations(charity1.address)).toString(), "1" )
+                assert.equal(( await charityRaffle.getDonations(charity2.address)).toString(), "1" )
                 await new Promise<void>(async (resolve, reject) => {
                     charityRaffle.once("CharityWinnerPicked", async () => {
                         console.log("CharityWinnerPicked event fired!")
@@ -307,6 +309,9 @@ import { CharityRaffle, VRFCoordinatorV2Mock } from "../../typechain-types"
             it("picks a winner if three-way tie", async () => {
                 await charityRaffleContract.connect(player1).enterRaffle(2, { value: raffleEntranceFee })
                 await charityRaffleContract.connect(player1).enterRaffle(3, { value: raffleEntranceFee })
+                assert.equal((await charityRaffle.getDonations(charity1.address)).toString(), "1")
+                assert.equal((await charityRaffle.getDonations(charity2.address)).toString(), "1")
+                assert.equal((await charityRaffle.getDonations(charity3.address)).toString(), "1")
                 await new Promise<void>(async (resolve, reject) => {
                     charityRaffle.once("CharityWinnerPicked", async () => {
                         console.log("CharityWinnerPicked event fired!")
@@ -323,6 +328,35 @@ import { CharityRaffle, VRFCoordinatorV2Mock } from "../../typechain-types"
                                 (await charityRaffle.getHighestDonations()).toString(),
                                 "1"
                             )
+                            resolve()
+                        } catch (e) {
+                            reject(e)
+                        }
+                    })
+                    const tx = await charityRaffle.performUpkeep("0x")
+                    const txReceipt = await tx.wait(1)
+                    await vrfCoordinatorV2Mock.fulfillRandomWords(
+                        txReceipt!.events![1].args!.requestId,
+                        charityRaffle.address
+                    )
+                })
+            })
+            it("resets the donation mapping", async () => {
+                await charityRaffleContract.connect(player1).enterRaffle(2, { value: raffleEntranceFee })
+                await charityRaffleContract.connect(player1).enterRaffle(3, { value: raffleEntranceFee })
+                assert.equal((await charityRaffle.getDonations(charity1.address)).toString(), "1")
+                assert.equal((await charityRaffle.getDonations(charity2.address)).toString(), "1")
+                assert.equal((await charityRaffle.getDonations(charity3.address)).toString(), "1")
+                await new Promise<void>(async (resolve, reject) => {
+                    charityRaffle.once("CharityWinnerPicked", async () => {
+                        console.log("CharityWinnerPicked event fired!")
+                        try {
+                            const raffleState = await charityRaffle.getRaffleState()
+                            assert.equal(raffleState, 2)
+                            assert.equal((await charityRaffle.getHighestDonations()).toString(), "1")
+                            assert.equal((await charityRaffle.getDonations(charity1.address)).toString(), "0")
+                            assert.equal((await charityRaffle.getDonations(charity2.address)).toString(), "0")
+                            assert.equal((await charityRaffle.getDonations(charity3.address)).toString(), "0")
                             resolve()
                         } catch (e) {
                             reject(e)
