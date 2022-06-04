@@ -233,10 +233,38 @@ import { CharityRaffle, VRFCoordinatorV2Mock } from "../../typechain-types"
                             reject(e)
                         }
                     })
-
                     const tx = await charityRaffle.performUpkeep("0x")
                     const txReceipt = await tx.wait(1)
                     const startingBalance = await player2.getBalance()
+                    await vrfCoordinatorV2Mock.fulfillRandomWords(
+                        txReceipt!.events![1].args!.requestId,
+                        charityRaffle.address
+                    )
+                })
+            })
+            it("picks a charity winner without tie", async () => {
+                await new Promise<void>(async (resolve, reject) => {
+                    charityRaffle.once("CharityWinnerPicked", async () => {
+                        console.log("CharityWinnerPicked event fired!")
+                        try {
+                            const charityWinner = await charityRaffle.getCharityWinner()
+                            const raffleState = await charityRaffle.getRaffleState()
+                            const charityWinnerBalance = await charity1.getBalance()
+                            assert.equal(charityWinner.toString(), charity1.address)
+                            assert.equal(raffleState, 2)
+                            assert.equal(
+                                charityWinnerBalance.toString(),
+                                startingBalance.add(raffleEntranceFee).toString()
+                            )
+                            assert.equal((await charityRaffle.getHighestDonations()).toString(), "1")
+                            resolve()
+                        } catch (e) {
+                            reject(e)
+                        }
+                    })
+                    const tx = await charityRaffle.performUpkeep("0x")
+                    const txReceipt = await tx.wait(1)
+                    const startingBalance = await charity1.getBalance()
                     await vrfCoordinatorV2Mock.fulfillRandomWords(
                         txReceipt!.events![1].args!.requestId,
                         charityRaffle.address
