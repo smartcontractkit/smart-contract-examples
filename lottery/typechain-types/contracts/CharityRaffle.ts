@@ -36,6 +36,7 @@ export interface CharityRaffleInterface extends utils.Interface {
     "getAllPlayers()": FunctionFragment;
     "getCharities()": FunctionFragment;
     "getCharityWinner()": FunctionFragment;
+    "getDonations(address)": FunctionFragment;
     "getDuration()": FunctionFragment;
     "getEntranceFee()": FunctionFragment;
     "getFundingWallet()": FunctionFragment;
@@ -61,6 +62,7 @@ export interface CharityRaffleInterface extends utils.Interface {
       | "getAllPlayers"
       | "getCharities"
       | "getCharityWinner"
+      | "getDonations"
       | "getDuration"
       | "getEntranceFee"
       | "getFundingWallet"
@@ -104,6 +106,10 @@ export interface CharityRaffleInterface extends utils.Interface {
   encodeFunctionData(
     functionFragment: "getCharityWinner",
     values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getDonations",
+    values: [string]
   ): string;
   encodeFunctionData(
     functionFragment: "getDuration",
@@ -188,6 +194,10 @@ export interface CharityRaffleInterface extends utils.Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "getCharityWinner",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "getDonations",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -341,6 +351,11 @@ export interface CharityRaffle extends BaseContract {
 
     getCharityWinner(overrides?: CallOverrides): Promise<[string]>;
 
+    getDonations(
+      charity: string,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber]>;
+
     getDuration(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     getEntranceFee(overrides?: CallOverrides): Promise<[BigNumber]>;
@@ -404,6 +419,8 @@ export interface CharityRaffle extends BaseContract {
 
   getCharityWinner(overrides?: CallOverrides): Promise<string>;
 
+  getDonations(charity: string, overrides?: CallOverrides): Promise<BigNumber>;
+
   getDuration(overrides?: CallOverrides): Promise<BigNumber>;
 
   getEntranceFee(overrides?: CallOverrides): Promise<BigNumber>;
@@ -459,6 +476,11 @@ export interface CharityRaffle extends BaseContract {
     getCharities(overrides?: CallOverrides): Promise<string[]>;
 
     getCharityWinner(overrides?: CallOverrides): Promise<string>;
+
+    getDonations(
+      charity: string,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
 
     getDuration(overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -537,6 +559,11 @@ export interface CharityRaffle extends BaseContract {
 
     getCharityWinner(overrides?: CallOverrides): Promise<BigNumber>;
 
+    getDonations(
+      charity: string,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
     getDuration(overrides?: CallOverrides): Promise<BigNumber>;
 
     getEntranceFee(overrides?: CallOverrides): Promise<BigNumber>;
@@ -600,6 +627,11 @@ export interface CharityRaffle extends BaseContract {
     getCharities(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     getCharityWinner(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    getDonations(
+      charity: string,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
 
     getDuration(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 

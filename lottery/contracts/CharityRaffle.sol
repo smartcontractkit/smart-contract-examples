@@ -432,6 +432,10 @@ contract CharityRaffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
         return charities;
     }
 
+    function getDonations(address charity) external view returns (uint256) {
+        return donations[charity];
+    }
+
     function getEntranceFee() external view returns (uint256) {
         return i_entranceFee;
     }
