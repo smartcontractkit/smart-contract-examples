@@ -1,16 +1,15 @@
-import{ assert, expect } from "chai"
-import { getNamedAccounts, deployments, ethers, network } from "hardhat"
-import { developmentChains, networkConfig } from "../../helper-hardhat-config"
+const { assert, expect } = require("chai")
+const { getNamedAccounts, deployments, ethers, network } = require("hardhat")
+const { developmentChains, networkConfig } = require("../../helper-hardhat-config")
 import { BigNumber } from "ethers"
 import { Raffle } from "../../typechain-types"
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 
 developmentChains.includes(network.name)
     ? describe.skip
-    : describe("Raffle Unit Tests", function () {
+    : describe("Raffle Staging Tests", function () {
       let raffle: Raffle
       let raffleEntranceFee: BigNumber
-      let deployer: SignerWithAddress
+      let deployer: string
 
           beforeEach(async function () {
               deployer = (await getNamedAccounts()).deployer

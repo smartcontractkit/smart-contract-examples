@@ -8,7 +8,7 @@ import { CharityRaffle, VRFCoordinatorV2Mock } from "../../typechain-types"
 
 !developmentChains.includes(network.name)
 ? describe.skip
-: describe("Charity Raffle Unit Tests", function () {
+: describe("CharityRaffle Unit Tests", function () {
         let charityRaffle: CharityRaffle
         let charityRaffleContract: CharityRaffle
         let vrfCoordinatorV2Mock: VRFCoordinatorV2Mock
