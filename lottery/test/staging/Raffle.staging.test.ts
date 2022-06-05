@@ -1,6 +1,7 @@
-const { assert, expect } = require("chai")
-const { getNamedAccounts, ethers, network } = require("hardhat")
-const { developmentChains } = require("../../helper-hardhat-config")
+import { assert, expect } from "chai"
+// @ts-ignore
+import { getNamedAccounts, ethers, network } from "hardhat"
+import { developmentChains } from "../../helper-hardhat-config"
 import { BigNumber } from "ethers"
 import { Raffle } from "../../typechain-types"
 
