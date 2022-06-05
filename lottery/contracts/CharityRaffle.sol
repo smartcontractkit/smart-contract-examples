@@ -17,11 +17,17 @@ error CharityRaffle__UpkeepNotNeeded(
 error CharityRaffle__CharityTransferFailed(address charity);
 error CharityRaffle__SendMoreToEnterRaffle();
 error CharityRaffle__RaffleNotOpen();
-error CharityRaffle__RaffleNotClosed();
+error CharityRaffle__NotValidCharityChoice();
 error CharityRaffle__JackpotTransferFailed();
 error CharityRaffle__MustBeFunder();
+error CharityRaffle__NoCharityWinner();
+error CharityRaffle__RaffleNotClosed();
+error CharityRaffle__MatchAlreadyFunded();
+error CharityRaffle__IncorrectMatchValue();
 error CharityRaffle__FundingToMatchTransferFailed();
+error CharityRaffle__ContractNotFunded();
 error CharityRaffle__DonationMatchFailed();
+
 
 /**@title A sample Charity Raffle Contract originally @author Patrick Collins
  * @notice This contract creates a lottery in which players enter by donating to 1 of 3 charities
@@ -69,10 +75,17 @@ contract CharityRaffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
     event WinnerPicked(address indexed player);
     event CharityWinnerPicked(address indexed charity);
 
-    /* Modifier */
+    /* Modifiers */
     modifier onlyFunder() {
         if (msg.sender != i_fundingWallet) {
             revert CharityRaffle__MustBeFunder();
+        }
+        _;
+    }
+
+    modifier charityWinnerPicked() {
+        if (s_charityWinner == address(0)) {
+            revert CharityRaffle__NoCharityWinner();
         }
         _;
     }
@@ -110,12 +123,17 @@ contract CharityRaffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
         }
     }
 
+    receive() external payable {}
+
     function enterRaffle(uint256 charityChoice) external payable {
         if (msg.value < i_entranceFee) {
             revert CharityRaffle__SendMoreToEnterRaffle();
         }
         if (s_raffleState != RaffleState.OPEN) {
             revert CharityRaffle__RaffleNotOpen();
+        }
+        if (charityChoice != 1 && charityChoice != 2 && charityChoice != 3) {
+            revert CharityRaffle__NotValidCharityChoice();
         }
         if (charityChoice == 1) {
             (bool success, ) = i_charity1.call{value: msg.value}("");
@@ -202,10 +220,6 @@ contract CharityRaffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
         s_recentWinner = recentWinner;
         s_players = new address[](0);
         s_raffleState = RaffleState.CLOSED;
-        (bool success, ) = payable(recentWinner).call{value: address(this).balance}(""); // should be i_jackpot
-        if (!success) {
-            revert CharityRaffle__JackpotTransferFailed();
-        }
         // handle if there is charity donations tie
         bool tie = checkForTie();
         uint256 charity1Total = donations[i_charity1];
@@ -235,6 +249,10 @@ contract CharityRaffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
             s_highestDonations = charity3Total;
             s_charityWinner = i_charity3;
             emit CharityWinnerPicked(i_charity3);
+        }
+        (bool success, ) = payable(recentWinner).call{value: address(this).balance}(""); // should be i_jackpot
+        if (!success) {
+            revert CharityRaffle__JackpotTransferFailed();
         }
         emit WinnerPicked(recentWinner);
     }
@@ -362,33 +380,40 @@ contract CharityRaffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
         if (i < right) quickSort(arr, i, right);
     }
 
-    function fundDonationMatch() external payable onlyFunder {
+    function fundDonationMatch() external payable onlyFunder charityWinnerPicked {
         if (s_raffleState != RaffleState.CLOSED) {
             revert CharityRaffle__RaffleNotClosed();
         }
+        if (s_matchFunded) {
+            revert CharityRaffle__MatchAlreadyFunded();
+        }
         uint256 mostDonations = s_highestDonations;
         s_highestDonations = 0;
-        (bool fundingSuccess, ) = payable(address(this)).call{value: mostDonations * i_entranceFee}(
-            ""
-        );
+        if (msg.value != mostDonations * i_entranceFee) {
+            revert CharityRaffle__IncorrectMatchValue();
+        }
+        s_matchFunded = true;
+        (bool fundingSuccess, ) = payable(address(this)).call{value: msg.value}("");
         if (!fundingSuccess) {
             revert CharityRaffle__FundingToMatchTransferFailed();
         }
-        s_matchFunded = true;
     }
 
-    function DonationMatch() external onlyFunder {
+    function donationMatch() external onlyFunder charityWinnerPicked {
         if (s_raffleState != RaffleState.CLOSED) {
             revert CharityRaffle__RaffleNotClosed();
         }
         if (!s_matchFunded) {
             revert CharityRaffle__FundingToMatchTransferFailed();
         }
+        if (address(this).balance <= 0) {
+            revert CharityRaffle__ContractNotFunded();
+        }
         address charityWinner = s_charityWinner;
         s_charityWinner = address(0);
         s_matchFunded = false;
-        (bool donationMatch, ) = payable(charityWinner).call{value: address(this).balance}("");
-        if (!donationMatch) {
+        (bool donationMatched, ) = payable(charityWinner).call{value: address(this).balance}("");
+        if (!donationMatched) {
             revert CharityRaffle__DonationMatchFailed();
         }
     }

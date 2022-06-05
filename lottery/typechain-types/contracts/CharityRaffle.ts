@@ -29,8 +29,8 @@ import type {
 
 export interface CharityRaffleInterface extends utils.Interface {
   functions: {
-    "DonationMatch()": FunctionFragment;
     "checkUpkeep(bytes)": FunctionFragment;
+    "donationMatch()": FunctionFragment;
     "enterRaffle(uint256)": FunctionFragment;
     "fundDonationMatch()": FunctionFragment;
     "getAllPlayers()": FunctionFragment;
@@ -55,8 +55,8 @@ export interface CharityRaffleInterface extends utils.Interface {
 
   getFunction(
     nameOrSignatureOrTopic:
-      | "DonationMatch"
       | "checkUpkeep"
+      | "donationMatch"
       | "enterRaffle"
       | "fundDonationMatch"
       | "getAllPlayers"
@@ -80,12 +80,12 @@ export interface CharityRaffleInterface extends utils.Interface {
   ): FunctionFragment;
 
   encodeFunctionData(
-    functionFragment: "DonationMatch",
-    values?: undefined
-  ): string;
-  encodeFunctionData(
     functionFragment: "checkUpkeep",
     values: [BytesLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "donationMatch",
+    values?: undefined
   ): string;
   encodeFunctionData(
     functionFragment: "enterRaffle",
@@ -169,11 +169,11 @@ export interface CharityRaffleInterface extends utils.Interface {
   ): string;
 
   decodeFunctionResult(
-    functionFragment: "DonationMatch",
+    functionFragment: "checkUpkeep",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "checkUpkeep",
+    functionFragment: "donationMatch",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -327,14 +327,14 @@ export interface CharityRaffle extends BaseContract {
   removeListener: OnEvent<this>;
 
   functions: {
-    DonationMatch(
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<ContractTransaction>;
-
     checkUpkeep(
       arg0: BytesLike,
       overrides?: CallOverrides
     ): Promise<[boolean, string] & { upkeepNeeded: boolean }>;
+
+    donationMatch(
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
 
     enterRaffle(
       charityChoice: BigNumberish,
@@ -395,14 +395,14 @@ export interface CharityRaffle extends BaseContract {
     ): Promise<ContractTransaction>;
   };
 
-  DonationMatch(
-    overrides?: Overrides & { from?: string | Promise<string> }
-  ): Promise<ContractTransaction>;
-
   checkUpkeep(
     arg0: BytesLike,
     overrides?: CallOverrides
   ): Promise<[boolean, string] & { upkeepNeeded: boolean }>;
+
+  donationMatch(
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
 
   enterRaffle(
     charityChoice: BigNumberish,
@@ -457,12 +457,12 @@ export interface CharityRaffle extends BaseContract {
   ): Promise<ContractTransaction>;
 
   callStatic: {
-    DonationMatch(overrides?: CallOverrides): Promise<void>;
-
     checkUpkeep(
       arg0: BytesLike,
       overrides?: CallOverrides
     ): Promise<[boolean, string] & { upkeepNeeded: boolean }>;
+
+    donationMatch(overrides?: CallOverrides): Promise<void>;
 
     enterRaffle(
       charityChoice: BigNumberish,
@@ -538,11 +538,11 @@ export interface CharityRaffle extends BaseContract {
   };
 
   estimateGas: {
-    DonationMatch(
+    checkUpkeep(arg0: BytesLike, overrides?: CallOverrides): Promise<BigNumber>;
+
+    donationMatch(
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
-
-    checkUpkeep(arg0: BytesLike, overrides?: CallOverrides): Promise<BigNumber>;
 
     enterRaffle(
       charityChoice: BigNumberish,
@@ -604,13 +604,13 @@ export interface CharityRaffle extends BaseContract {
   };
 
   populateTransaction: {
-    DonationMatch(
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<PopulatedTransaction>;
-
     checkUpkeep(
       arg0: BytesLike,
       overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    donationMatch(
+      overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
     enterRaffle(
