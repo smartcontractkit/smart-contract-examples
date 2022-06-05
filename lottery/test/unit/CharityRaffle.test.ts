@@ -196,7 +196,7 @@ import { CharityRaffle, VRFCoordinatorV2Mock } from "../../typechain-types"
                 assert(raffleState == 1)
             })
         })
-        // TODO: figure out why passing individually then timing out
+        // TODO: figure out why passing individually then timing out on test suite
         describe("CharityRaffle fulfillRandomWords", function () {
             beforeEach(async () => {
                 await charityRaffle.enterRaffle(1, { value: raffleEntranceFee })
@@ -501,7 +501,7 @@ import { CharityRaffle, VRFCoordinatorV2Mock } from "../../typechain-types"
                     charityRaffle.connect(player1).fundDonationMatch()
                 ).to.be.revertedWith("CharityRaffle__MustBeFunder")
             })
-            it("winner match can only be called when charity winner", async () => {
+            it("winner match can only be called when charity winner picked", async () => {
                 await expect(charityRaffle.fundDonationMatch()).to.be.revertedWith(
                     "CharityRaffle__NoCharityWinner"
                 )
