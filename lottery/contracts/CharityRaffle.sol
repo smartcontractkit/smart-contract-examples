@@ -240,25 +240,25 @@ contract CharityRaffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
             // charity1 wins
             s_highestDonations = charity1Total;
             s_charityWinner = i_charity1;
-            emit CharityWinnerPicked(i_charity1);
         }
         if (charity2Total > charity1Total && charity2Total > charity3Total) {
             // charity2 wins
             s_highestDonations = charity2Total;
             s_charityWinner = i_charity2;
-            emit CharityWinnerPicked(i_charity2);
         }
         if (charity3Total > charity1Total && charity3Total > charity2Total) {
             // charity3 wins
             s_highestDonations = charity3Total;
             s_charityWinner = i_charity3;
-            emit CharityWinnerPicked(i_charity3);
         }
         (bool success, ) = payable(recentWinner).call{value: address(this).balance}(""); // should be i_jackpot
         if (!success) {
             revert CharityRaffle__JackpotTransferFailed();
         }
         emit WinnerPicked(recentWinner);
+        if (s_charityWinner != address(0)) {
+            emit CharityWinnerPicked(s_charityWinner);
+        }
     }
 
     function checkForTie() internal view returns (bool) {
@@ -302,16 +302,13 @@ contract CharityRaffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
             if (newSortedData[2] == charity1Total) {
                 // charity1 wins
                 s_charityWinner = i_charity1;
-                emit CharityWinnerPicked(i_charity1);
             }
             if (newSortedData[2] == charity2Total) {
                 //charity2 wins
                 s_charityWinner = i_charity2;
-                emit CharityWinnerPicked(i_charity2);
             } else {
                 // charity3 wins
                 s_charityWinner = i_charity3;
-                emit CharityWinnerPicked(i_charity3);
             }
         }
         // charity1 and charity2 tie
@@ -321,11 +318,9 @@ contract CharityRaffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
             if (charity1Total > charity2Total) {
                 // charity1 wins
                 s_charityWinner = i_charity1;
-                emit CharityWinnerPicked(i_charity1);
             } else {
                 //charity2 wins
                 s_charityWinner = i_charity2;
-                emit CharityWinnerPicked(i_charity2);
             }
         }
         // charity1 and charity3 tie
@@ -335,11 +330,9 @@ contract CharityRaffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
             if (charity1Total > charity3Total) {
                 // charity1 wins
                 s_charityWinner = i_charity1;
-                emit CharityWinnerPicked(i_charity1);
             } else {
                 //charity3 wins
                 s_charityWinner = i_charity3;
-                emit CharityWinnerPicked(i_charity3);
             }
         }
         // charity2 and charity3 tie
@@ -349,12 +342,13 @@ contract CharityRaffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
             if (charity2Total > charity3Total) {
                 // charity2 wins
                 s_charityWinner = i_charity2;
-                emit CharityWinnerPicked(i_charity2);
             } else {
                 //charity3 wins
                 s_charityWinner = i_charity3;
-                emit CharityWinnerPicked(i_charity3);
             }
+        }
+        if (s_charityWinner != address(0)) {
+            emit CharityWinnerPicked(s_charityWinner);
         }
     }
 
