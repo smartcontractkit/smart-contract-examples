@@ -122,8 +122,6 @@ contract CharityRaffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
         }
     }
 
-    receive() external payable {}
-
     function enterRaffle(uint256 charityChoice) external payable {
         if (msg.value < i_entranceFee) {
             revert CharityRaffle__SendMoreToEnterRaffle();
@@ -403,14 +401,10 @@ contract CharityRaffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
         }
         uint256 mostDonations = s_highestDonations;
         s_highestDonations = 0;
-        if (msg.value != mostDonations * i_entranceFee) {
+        if (msg.value < mostDonations * i_entranceFee) {
             revert CharityRaffle__IncorrectMatchValue();
         }
         s_matchFunded = true;
-        (bool fundingSuccess, ) = payable(address(this)).call{value: msg.value}("");
-        if (!fundingSuccess) {
-            revert CharityRaffle__FundingToMatchTransferFailed();
-        }
     }
 
     /*
