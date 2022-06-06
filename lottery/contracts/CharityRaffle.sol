@@ -28,7 +28,6 @@ error CharityRaffle__FundingToMatchTransferFailed();
 error CharityRaffle__ContractNotFunded();
 error CharityRaffle__DonationMatchFailed();
 
-
 /**@title A sample Charity Raffle Contract originally @author Patrick Collins
  * @notice This contract creates a lottery in which players enter by donating to 1 of 3 charities
  * @dev This implements the Chainlink VRF Version 2
@@ -209,6 +208,13 @@ contract CharityRaffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
         emit RequestedRaffleWinner(requestId);
     }
 
+    /*
+     * @dev function to handle raffle winner
+     * picks player winner
+     * closes raffle
+     * checks if there is a tie in highest charity donations
+     * if tie, handleTie is called, else, winner declared
+     */
     function fulfillRandomWords(
         uint256,
         /* requestId */
@@ -268,10 +274,10 @@ contract CharityRaffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
     }
 
     /*
-     * @dev Instead of requesting 4 random words from Chainlink VRF, 
-     * could get "sudo" random numbers by taking the hash and abi.encode of one random number 
+     * @dev function to use Chainlink VRF to break tie and declare Charity Winner
+     * optional - instead of requesting 4 random words from Chainlink VRF,
+     * could get "sudo" random numbers by taking the hash and abi.encode of one random number
      */
-
     function handleTie(
         uint256[] memory randomWords,
         uint256 charity1Total,
@@ -354,6 +360,9 @@ contract CharityRaffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
         }
     }
 
+    /*
+     * @dev Internal function to find highest scores
+     */
     function sort(uint256[] memory data) internal returns (uint256[] memory) {
         quickSort(data, int256(0), int256(data.length - 1));
         return data;
@@ -381,6 +390,10 @@ contract CharityRaffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
         if (i < right) quickSort(arr, i, right);
     }
 
+    /*
+     * @dev Funding wallet has option to match donations of winning charity
+     * fundDonationMatch must be called before donationMatch to transfer funds into contract
+     */
     function fundDonationMatch() external payable onlyFunder charityWinnerPicked {
         if (s_raffleState != RaffleState.CLOSED) {
             revert CharityRaffle__RaffleNotClosed();
@@ -400,6 +413,9 @@ contract CharityRaffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
         }
     }
 
+    /*
+     * @dev function to transfer donation match from contract to winner
+     */
     function donationMatch() external onlyFunder charityWinnerPicked {
         if (s_raffleState != RaffleState.CLOSED) {
             revert CharityRaffle__RaffleNotClosed();
