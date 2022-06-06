@@ -38,9 +38,9 @@ export const networkConfig: networkConfigInfo = {
         jackpot: "200000000000000000", // 0.2 ETH
         callbackGasLimit: "500000", // 500,000 gas
         vrfCoordinatorV2: "0x6168499c0cFfCaCD319c818142124B7A15E857ab",
-        charity1: "0x8423f6c5f0895914e0C8A4eF523C0A1d5c8632f6", // use extra wallet accounts to test
-        charity2: "0x70185775Ae9767751c218d9baAeffBC9b5fD5b34",
-        charity3: "0xa95224aE036279f0f2A07623D94F44fDb03F1C45",
+        charity1: "", // use extra wallet accounts to test
+        charity2: "",
+        charity3: "",
     },
     1: {
         name: "mainnet",
