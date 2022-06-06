@@ -25,7 +25,7 @@ developmentChains.includes(network.name)
             charity1 = charities[0]
         })
 
-        describe("fulfillRandomWords", function () {
+        describe("CharityRaffle fulfillRandomWords", function () {
             it("works with live Chainlink Keepers and Chainlink VRF, we get a random winner", async function () {
                 // enter the raffle
                 console.log("Setting up test...")
@@ -67,8 +67,8 @@ developmentChains.includes(network.name)
                     console.log("Entering Raffle...")
                     await charityRaffle.enterRaffle(1, { value: raffleEntranceFee })
                     console.log("Ok, time to wait...")
+                    // accounts[0] = deployer
                     const winnerStartingBalance = await accounts[0].getBalance()
-
                     // and this code WONT complete until our listener has finished listening!
                 })
             })

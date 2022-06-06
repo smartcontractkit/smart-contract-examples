@@ -418,16 +418,27 @@ import { CharityRaffle, VRFCoordinatorV2Mock } from "../../typechain-types"
                 await expect(
                     vrfCoordinatorV2Mock.fulfillRandomWords(1, charityRaffle.address)
                 ).to.be.revertedWith("nonexistent request")
+                // only one entered so donationMatch = 1 * raffleEnteranceFee
+                await expect(charityRaffle.fundDonationMatch({ value: raffleEntranceFee })).to.be
+                    .reverted
             })
             it("can only be called by funder", async () => {
+                const tx = await charityRaffle.performUpkeep("0x")
+                const txReceipt = await tx.wait(1)
+                await vrfCoordinatorV2Mock.fulfillRandomWords(
+                    txReceipt!.events![1].args!.requestId,
+                    charityRaffle.address
+                )
                 await expect(
-                    charityRaffle.connect(player1).fundDonationMatch()
+                    charityRaffle.connect(player1).fundDonationMatch({ value: raffleEntranceFee })
                 ).to.be.revertedWith("CharityRaffle__MustBeFunder")
             })
             it("can only be called when charity winner", async () => {
-                await expect(charityRaffle.fundDonationMatch()).to.be.revertedWith(
-                    "CharityRaffle__NoCharityWinner"
-                )
+                const tx = await charityRaffle.performUpkeep("0x")
+                await tx.wait(1)
+                await expect(
+                    charityRaffle.fundDonationMatch({ value: raffleEntranceFee })
+                ).to.be.revertedWith("CharityRaffle__NoCharityWinner")
             })
             it("can only be called with correct match value", async () => {
                 const tx = await charityRaffle.performUpkeep("0x")
@@ -507,13 +518,22 @@ import { CharityRaffle, VRFCoordinatorV2Mock } from "../../typechain-types"
                 await expect(
                     vrfCoordinatorV2Mock.fulfillRandomWords(1, charityRaffle.address)
                 ).to.be.revertedWith("nonexistent request")
+                await expect(charityRaffle.donationMatch()).to.be.reverted
             })
             it("winner match can only be called by funder", async () => {
+                const tx = await charityRaffle.performUpkeep("0x")
+                const txReceipt = await tx.wait(1)
+                await vrfCoordinatorV2Mock.fulfillRandomWords(
+                    txReceipt!.events![1].args!.requestId,
+                    charityRaffle.address
+                )
                 await expect(
                     charityRaffle.connect(player1).fundDonationMatch()
                 ).to.be.revertedWith("CharityRaffle__MustBeFunder")
             })
             it("winner match can only be called when charity winner picked", async () => {
+                const tx = await charityRaffle.performUpkeep("0x")
+                await tx.wait(1)
                 await expect(charityRaffle.fundDonationMatch()).to.be.revertedWith(
                     "CharityRaffle__NoCharityWinner"
                 )

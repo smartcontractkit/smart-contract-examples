@@ -268,7 +268,8 @@ contract CharityRaffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
     }
 
     /*
-     * @dev Instead of requesting 4 random words from Chainlink VRF, could get "sudo" random numbers by taking the hash and abi.encode of one random number (would be more computationally expensive function)
+     * @dev Instead of requesting 4 random words from Chainlink VRF, 
+     * could get "sudo" random numbers by taking the hash and abi.encode of one random number 
      */
 
     function handleTie(
