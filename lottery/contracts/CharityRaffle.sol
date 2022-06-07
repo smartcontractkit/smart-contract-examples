@@ -303,7 +303,7 @@ contract CharityRaffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
                 // charity1 wins
                 s_charityWinner = i_charity1;
             }
-            if (newSortedData[2] == charity2Total) {
+            else if (newSortedData[2] == charity2Total) {
                 //charity2 wins
                 s_charityWinner = i_charity2;
             } else {
@@ -416,6 +416,7 @@ contract CharityRaffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
         }
         address charityWinner = s_charityWinner;
         s_charityWinner = address(0);
+        s_recentWinner = address(0);
         s_matchFunded = false;
         (bool donationMatched, ) = payable(charityWinner).call{value: address(this).balance}("");
         if (!donationMatched) {

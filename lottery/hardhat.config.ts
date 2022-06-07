@@ -102,8 +102,8 @@ const config: HardhatUserConfig = {
             default: 1,
         },
         player2: {
-            default: 2
-        }
+            default: 2,
+        },
     },
     solidity: {
         compilers: [

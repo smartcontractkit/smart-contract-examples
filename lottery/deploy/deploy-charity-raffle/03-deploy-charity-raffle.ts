@@ -24,7 +24,7 @@ const deployCharityRaffle: DeployFunction = async function (hre: HardhatRuntimeE
     let vrfCoordinatorV2Address, subscriptionId, charity1, charity2, charity3
 
     if (chainId == 31337) {
-        // get mock charity contract addresses (for real deployments load from the hardhat-helper-config)
+        // get mock charity contract addresses (for actual deployments load from the hardhat-helper-config)
         // accounts[0] = deployer, accounts[1] = player1, accounts[2] = player2
         const accounts: SignerWithAddress[] = await ethers.getSigners()
         charity1 = accounts[3].address.toString()
@@ -80,7 +80,7 @@ const deployCharityRaffle: DeployFunction = async function (hre: HardhatRuntimeE
 
     log("Run Price Feed contract with command:")
     const networkName = network.name == "hardhat" ? "localhost" : network.name
-    log(`yarn hardhat run scripts/enterCharityRaffle.js --network ${networkName}`)
+    log(`yarn hardhat run scripts/charity-raffle-scripts/enterCharityRaffle.js --network ${networkName}`)
     log("----------------------------------------------------")
 }
 export default deployCharityRaffle

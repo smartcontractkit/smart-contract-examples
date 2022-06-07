@@ -1,6 +1,6 @@
 // @ts-ignore
 import { ethers } from "hardhat"
-import { CharityRaffle } from "../typechain-types"
+import { CharityRaffle } from "../../typechain-types"
 
 async function enterCharityRaffle(): Promise<void> {
     const charityRaffle: CharityRaffle = await ethers.getContract("CharityRaffle")

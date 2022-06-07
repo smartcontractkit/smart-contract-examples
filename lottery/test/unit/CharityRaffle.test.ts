@@ -55,6 +55,7 @@ import { CharityRaffle, VRFCoordinatorV2Mock } from "../../typechain-types"
                 assert.equal(charities[0], charity1.address)
                 assert.equal(charities[1], charity2.address)
                 assert.equal(charities[2], charity3.address)
+                // in our case deployer was passed into constructor as funder
                 assert.equal(fundingWallet, deployer.address)
                 assert.equal(jackpot, networkConfig[network.config.chainId!]["jackpot"])
             })
@@ -132,6 +133,11 @@ import { CharityRaffle, VRFCoordinatorV2Mock } from "../../typechain-types"
                 expect(await charityRaffle.getDonations(charity1.address)).to.equal("1")
                 expect(await charityRaffle.getDonations(charity2.address)).to.equal("1")
                 expect(await charityRaffle.getDonations(charity3.address)).to.equal("1")
+                expect(await charityRaffle.getAllPlayers()).to.eql([
+                    deployer.address,
+                    player1.address,
+                    player2.address,
+                ])
             })
             it("CharityRaffle emits event on enter", async () => {
                 await expect(charityRaffle.enterRaffle(2, { value: raffleEntranceFee })).to.emit(
@@ -528,13 +534,13 @@ import { CharityRaffle, VRFCoordinatorV2Mock } from "../../typechain-types"
                     charityRaffle.address
                 )
                 await expect(
-                    charityRaffle.connect(player1).fundDonationMatch()
+                    charityRaffle.connect(player1).donationMatch()
                 ).to.be.revertedWith("CharityRaffle__MustBeFunder")
             })
             it("winner match can only be called when charity winner picked", async () => {
                 const tx = await charityRaffle.performUpkeep("0x")
                 await tx.wait(1)
-                await expect(charityRaffle.fundDonationMatch()).to.be.revertedWith(
+                await expect(charityRaffle.donationMatch()).to.be.revertedWith(
                     "CharityRaffle__NoCharityWinner"
                 )
             })
@@ -549,7 +555,7 @@ import { CharityRaffle, VRFCoordinatorV2Mock } from "../../typechain-types"
                     "CharityRaffle__FundingToMatchTransferFailed"
                 )
             })
-            it("resets charity winner address", async () => {
+            it("resets winner addresses", async () => {
                 const tx = await charityRaffle.performUpkeep("0x")
                 const txReceipt = await tx.wait(1)
                 await vrfCoordinatorV2Mock.fulfillRandomWords(
@@ -557,12 +563,16 @@ import { CharityRaffle, VRFCoordinatorV2Mock } from "../../typechain-types"
                     charityRaffle.address
                 )
                 const charityWinnerBefore = await charityRaffle.getCharityWinner()
+                const playerWinnerBefore = await charityRaffle.getRecentWinner()
                 assert.equal(charityWinnerBefore, charity1.address)
+                assert.equal(playerWinnerBefore, deployer.address)
                 // only one entered so donationMatch = 1 * raffleEnteranceFee
                 await charityRaffle.fundDonationMatch({ value: raffleEntranceFee })
                 await charityRaffle.donationMatch()
                 const charityWinnerAfter = await charityRaffle.getCharityWinner()
+                const playerWinnerAfter = await charityRaffle.getRecentWinner()
                 assert.equal(charityWinnerAfter, "0x0000000000000000000000000000000000000000")
+                assert.equal(playerWinnerAfter, "0x0000000000000000000000000000000000000000")
             })
             it("transfers donation match to winning charity", async () => {
                 const tx = await charityRaffle.performUpkeep("0x")

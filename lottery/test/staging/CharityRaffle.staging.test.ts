@@ -119,6 +119,10 @@ developmentChains.includes(network.name)
                                 await charityRaffle.getCharityWinner(),
                                 "0x0000000000000000000000000000000000000000"
                             )
+                            assert.equal(
+                                await charityRaffle.getRecentWinner(),
+                                "0x0000000000000000000000000000000000000000"
+                            )
                             console.log("success!")
                             resolve()
                         } catch (error) {
