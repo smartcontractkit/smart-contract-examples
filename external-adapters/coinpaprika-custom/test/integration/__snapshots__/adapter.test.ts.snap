@@ -1,0 +1,5 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`execute ticker-coin api should return success: 0e282888-ddee-4a0c-ba8e-872d51756de2 1`] = `"0e282888-ddee-4a0c-ba8e-872d51756de2"`;
+
+exports[`execute ticker-coin api should return success: 37b1b351-459b-46de-8189-d32d5521a792 1`] = `"37b1b351-459b-46de-8189-d32d5521a792"`;

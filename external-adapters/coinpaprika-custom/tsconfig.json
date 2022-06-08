@@ -1,0 +1,17 @@
+{
+  "extends": "../external-adapters-js/packages/tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src"
+  },
+  "include": ["src/**/*", "src/**/*.json"],
+  "exclude": ["dist", "**/*.spec.ts", "**/*.test.ts"],
+  "references": [
+    {
+      "path": "../external-adapters-js/packages/core/test-helpers"
+    },
+    {
+      "path": "../external-adapters-js/packages/core/bootstrap"
+    }
+  ]
+}

@@ -1,0 +1,3 @@
+[submodule "external-adapters/external-adapters-js"]
+	path = external-adapters/external-adapters-js
+	url = https://github.com/smartcontractkit/external-adapters-js
