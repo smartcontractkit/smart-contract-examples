@@ -112,7 +112,8 @@ developmentChains.includes(network.name)
                             console.log("matched donations!")
                             // Check for resets
                             assert.equal(
-                                (await charityRaffle.getHighestDonations()).toString(),
+const highestDonation: BigNumber = await charityRaffle.getHighestDonations();
+assert(highestDonation.eq(constants.Zero));
                                 "0"
                             )
                             assert.equal(
