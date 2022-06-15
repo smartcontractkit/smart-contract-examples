@@ -17,7 +17,8 @@ contract QuizGame {
         require(keccak256(abi.encodePacked(salt, answer)) == hashedAnswer);
         if (address(this).balance > 0) {
             emit AnswerGuessed();
-            payable(msg.sender).transfer(address(this).balance);
+(bool sent, bytes memory data) = payable(msg.sender).call{value: address(this).balance}("");
+require(sent, "Failed to send");
         }
     }
 
