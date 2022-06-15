@@ -1,0 +1,702 @@
+{
+  "abi": [
+    {
+      "inputs": [],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "contract QuizGame",
+          "name": "quiz",
+          "type": "address"
+        }
+      ],
+      "name": "QuizCreated",
+      "type": "event"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "question",
+          "type": "string"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "answer",
+          "type": "bytes32"
+        }
+      ],
+      "name": "createQuiz",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getQuizzes",
+      "outputs": [
+        {
+          "internalType": "contract QuizGame[]",
+          "name": "",
+          "type": "address[]"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "quizzes",
+      "outputs": [
+        {
+          "internalType": "contract QuizGame",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "bytecode": {
+    "object": "0x608060405234801561001057600080fd5b5061093d806100206000396000f3fe608060405234801561001057600080fd5b50600436106100415760003560e01c80635ecd45b91461004657806388409afa14610064578063fc98a5981461008f575b600080fd5b61004e6100a4565b60405161005b91906101f0565b60405180910390f35b61007761007236600461023d565b610106565b6040516001600160a01b03909116815260200161005b565b6100a261009d36600461026c565b610130565b005b606060008054806020026020016040519081016040528092919081815260200182805480156100fc57602002820191906000526020600020905b81546001600160a01b031681526001909101906020018083116100de575b5050505050905090565b6000818154811061011657600080fd5b6000918252602090912001546001600160a01b0316905081565b60008282604051610140906101e3565b61014b929190610321565b604051809103906000f080158015610167573d6000803e3d6000fd5b50600080546001810182558180527f290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e5630180546001600160a01b0319166001600160a01b038416908117909155604051929350917f0265693c8d95ffd63866cae4d18980d296337fa815a89b42926fc64fda65729c9190a2505050565b6105b28061037f83390190565b6020808252825182820181905260009190848201906040850190845b818110156102315783516001600160a01b03168352928401929184019160010161020c565b50909695505050505050565b60006020828403121561024f57600080fd5b5035919050565b634e487b7160e01b600052604160045260246000fd5b6000806040838503121561027f57600080fd5b823567ffffffffffffffff8082111561029757600080fd5b818501915085601f8301126102ab57600080fd5b8135818111156102bd576102bd610256565b604051601f8201601f19908116603f011681019083821181831017156102e5576102e5610256565b816040528281528860208487010111156102fe57600080fd5b826020860160208301376000602093820184015298969091013596505050505050565b604081526000835180604084015260005b8181101561034f5760208187018101516060868401015201610332565b81811115610361576000606083860101525b50602083019390935250601f91909101601f19160160600191905056fe60806040526831323331323331323360b81b60005534801561002057600080fd5b506040516105b23803806105b283398101604081905261003f9161010b565b815161005290600290602085019061005c565b506001555061021d565b828054610068906101e3565b90600052602060002090601f01602090048101928261008a57600085556100d0565b82601f106100a357805160ff19168380011785556100d0565b828001600101855582156100d0579182015b828111156100d05782518255916020019190600101906100b5565b506100dc9291506100e0565b5090565b5b808211156100dc57600081556001016100e1565b634e487b7160e01b600052604160045260246000fd5b6000806040838503121561011e57600080fd5b82516001600160401b038082111561013557600080fd5b818501915085601f83011261014957600080fd5b81518181111561015b5761015b6100f5565b604051601f8201601f19908116603f01168101908382118183101715610183576101836100f5565b8160405282815260209350888484870101111561019f57600080fd5b600091505b828210156101c157848201840151818301850152908301906101a4565b828211156101d25760008484830101525b969092015195979596505050505050565b600181811c908216806101f757607f821691505b60208210810361021757634e487b7160e01b600052602260045260246000fd5b50919050565b6103868061022c6000396000f3fe6080604052600436106100435760003560e01c80633fad9ae0146100ae5780634eee59b3146100d9578063a597201d146100fb578063bfa0b1331461011f5761007e565b3661007e576040514781527f6163bf8b8285097ba88fb3225378b6ecba49a8c21a5ee8fe42de53f0e06ab727906020015b60405180910390a1005b6040514781527f6163bf8b8285097ba88fb3225378b6ecba49a8c21a5ee8fe42de53f0e06ab72790602001610074565b3480156100ba57600080fd5b506100c3610135565b6040516100d0919061025e565b60405180910390f35b3480156100e557600080fd5b506100f96100f43660046102b3565b6101c3565b005b34801561010757600080fd5b5061011160015481565b6040519081526020016100d0565b34801561012b57600080fd5b5061011160005481565b6002805461014290610325565b80601f016020809104026020016040519081016040528092919081815260200182805461016e90610325565b80156101bb5780601f10610190576101008083540402835291602001916101bb565b820191906000526020600020905b81548152906001019060200180831161019e57829003601f168201915b505050505081565b60015460005483836040516020016101dd9392919061035f565b60405160208183030381529060405280519060200120146101fd57600080fd5b471561025a576040517f2d98f000c881b01994fb29ae677a074705de44ff8360f0dc3e173c9cfa1eb13690600090a160405133904780156108fc02916000818181858888f19350505050158015610258573d6000803e3d6000fd5b505b5050565b600060208083528351808285015260005b8181101561028b5785810183015185820160400152820161026f565b8181111561029d576000604083870101525b50601f01601f1916929092016040019392505050565b600080602083850312156102c657600080fd5b823567ffffffffffffffff808211156102de57600080fd5b818501915085601f8301126102f257600080fd5b81358181111561030157600080fd5b86602082850101111561031357600080fd5b60209290920196919550909350505050565b600181811c9082168061033957607f821691505b60208210810361035957634e487b7160e01b600052602260045260246000fd5b50919050565b83815281836020830137600091016020019081529291505056fea164736f6c634300080d000aa164736f6c634300080d000a",
+    "sourceMap": "91:418:1:-:0;;;196:16;;;;;;;;;;91:418;;;;;;",
+    "linkReferences": {}
+  },
+  "deployedBytecode": {
+    "object": "0x608060405234801561001057600080fd5b50600436106100415760003560e01c80635ecd45b91461004657806388409afa14610064578063fc98a5981461008f575b600080fd5b61004e6100a4565b60405161005b91906101f0565b60405180910390f35b61007761007236600461023d565b610106565b6040516001600160a01b03909116815260200161005b565b6100a261009d36600461026c565b610130565b005b606060008054806020026020016040519081016040528092919081815260200182805480156100fc57602002820191906000526020600020905b81546001600160a01b031681526001909101906020018083116100de575b5050505050905090565b6000818154811061011657600080fd5b6000918252602090912001546001600160a01b0316905081565b60008282604051610140906101e3565b61014b929190610321565b604051809103906000f080158015610167573d6000803e3d6000fd5b50600080546001810182558180527f290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e5630180546001600160a01b0319166001600160a01b038416908117909155604051929350917f0265693c8d95ffd63866cae4d18980d296337fa815a89b42926fc64fda65729c9190a2505050565b6105b28061037f83390190565b6020808252825182820181905260009190848201906040850190845b818110156102315783516001600160a01b03168352928401929184019160010161020c565b50909695505050505050565b60006020828403121561024f57600080fd5b5035919050565b634e487b7160e01b600052604160045260246000fd5b6000806040838503121561027f57600080fd5b823567ffffffffffffffff8082111561029757600080fd5b818501915085601f8301126102ab57600080fd5b8135818111156102bd576102bd610256565b604051601f8201601f19908116603f011681019083821181831017156102e5576102e5610256565b816040528281528860208487010111156102fe57600080fd5b826020860160208301376000602093820184015298969091013596505050505050565b604081526000835180604084015260005b8181101561034f5760208187018101516060868401015201610332565b81811115610361576000606083860101525b50602083019390935250601f91909101601f19160160600191905056fe60806040526831323331323331323360b81b60005534801561002057600080fd5b506040516105b23803806105b283398101604081905261003f9161010b565b815161005290600290602085019061005c565b506001555061021d565b828054610068906101e3565b90600052602060002090601f01602090048101928261008a57600085556100d0565b82601f106100a357805160ff19168380011785556100d0565b828001600101855582156100d0579182015b828111156100d05782518255916020019190600101906100b5565b506100dc9291506100e0565b5090565b5b808211156100dc57600081556001016100e1565b634e487b7160e01b600052604160045260246000fd5b6000806040838503121561011e57600080fd5b82516001600160401b038082111561013557600080fd5b818501915085601f83011261014957600080fd5b81518181111561015b5761015b6100f5565b604051601f8201601f19908116603f01168101908382118183101715610183576101836100f5565b8160405282815260209350888484870101111561019f57600080fd5b600091505b828210156101c157848201840151818301850152908301906101a4565b828211156101d25760008484830101525b969092015195979596505050505050565b600181811c908216806101f757607f821691505b60208210810361021757634e487b7160e01b600052602260045260246000fd5b50919050565b6103868061022c6000396000f3fe6080604052600436106100435760003560e01c80633fad9ae0146100ae5780634eee59b3146100d9578063a597201d146100fb578063bfa0b1331461011f5761007e565b3661007e576040514781527f6163bf8b8285097ba88fb3225378b6ecba49a8c21a5ee8fe42de53f0e06ab727906020015b60405180910390a1005b6040514781527f6163bf8b8285097ba88fb3225378b6ecba49a8c21a5ee8fe42de53f0e06ab72790602001610074565b3480156100ba57600080fd5b506100c3610135565b6040516100d0919061025e565b60405180910390f35b3480156100e557600080fd5b506100f96100f43660046102b3565b6101c3565b005b34801561010757600080fd5b5061011160015481565b6040519081526020016100d0565b34801561012b57600080fd5b5061011160005481565b6002805461014290610325565b80601f016020809104026020016040519081016040528092919081815260200182805461016e90610325565b80156101bb5780601f10610190576101008083540402835291602001916101bb565b820191906000526020600020905b81548152906001019060200180831161019e57829003601f168201915b505050505081565b60015460005483836040516020016101dd9392919061035f565b60405160208183030381529060405280519060200120146101fd57600080fd5b471561025a576040517f2d98f000c881b01994fb29ae677a074705de44ff8360f0dc3e173c9cfa1eb13690600090a160405133904780156108fc02916000818181858888f19350505050158015610258573d6000803e3d6000fd5b505b5050565b600060208083528351808285015260005b8181101561028b5785810183015185820160400152820161026f565b8181111561029d576000604083870101525b50601f01601f1916929092016040019392505050565b600080602083850312156102c657600080fd5b823567ffffffffffffffff808211156102de57600080fd5b818501915085601f8301126102f257600080fd5b81358181111561030157600080fd5b86602082850101111561031357600080fd5b60209290920196919550909350505050565b600181811c9082168061033957607f821691505b60208210810361035957634e487b7160e01b600052602260045260246000fd5b50919050565b83815281836020830137600091016020019081529291505056fea164736f6c634300080d000aa164736f6c634300080d000a",
+    "sourceMap": "91:418:1:-:0;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;414:93;;;:::i;:::-;;;;;;;:::i;:::-;;;;;;;;118:25;;;;;;:::i;:::-;;:::i;:::-;;;-1:-1:-1;;;;;1076:32:4;;;1058:51;;1046:2;1031:18;118:25:1;887:228:4;218:190:1;;;;;;:::i;:::-;;:::i;:::-;;414:93;457:17;493:7;486:14;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;-1:-1:-1;;;;;486:14:1;;;;;;;;;;;;;;;;;;;;;;;414:93;:::o;118:25::-;;;;;;;;;;;;;;;;;;;;;;;-1:-1:-1;;;;;118:25:1;;-1:-1:-1;118:25:1;:::o;218:190::-;295:13;324:8;334:6;311:30;;;;;:::i;:::-;;;;;;:::i;:::-;;;;;;;;;;;;;;;;;;;;;;;-1:-1:-1;351:7:1;:18;;;;;;;;;;;;;;-1:-1:-1;;;;;;351:18:1;-1:-1:-1;;;;;351:18:1;;;;;;;;384:17;;351:18;;-1:-1:-1;351:18:1;384:17;;351:7;384:17;285:123;218:190;;:::o;-1:-1:-1:-;;;;;;;;:::o;14:683:4:-;210:2;262:21;;;332:13;;235:18;;;354:22;;;181:4;;210:2;433:15;;;;407:2;392:18;;;181:4;476:195;490:6;487:1;484:13;476:195;;;555:13;;-1:-1:-1;;;;;551:39:4;539:52;;646:15;;;;611:12;;;;587:1;505:9;476:195;;;-1:-1:-1;688:3:4;;14:683;-1:-1:-1;;;;;;14:683:4:o;702:180::-;761:6;814:2;802:9;793:7;789:23;785:32;782:52;;;830:1;827;820:12;782:52;-1:-1:-1;853:23:4;;702:180;-1:-1:-1;702:180:4:o;1120:127::-;1181:10;1176:3;1172:20;1169:1;1162:31;1212:4;1209:1;1202:15;1236:4;1233:1;1226:15;1252:1000;1330:6;1338;1391:2;1379:9;1370:7;1366:23;1362:32;1359:52;;;1407:1;1404;1397:12;1359:52;1447:9;1434:23;1476:18;1517:2;1509:6;1506:14;1503:34;;;1533:1;1530;1523:12;1503:34;1571:6;1560:9;1556:22;1546:32;;1616:7;1609:4;1605:2;1601:13;1597:27;1587:55;;1638:1;1635;1628:12;1587:55;1674:2;1661:16;1696:2;1692;1689:10;1686:36;;;1702:18;;:::i;:::-;1777:2;1771:9;1745:2;1831:13;;-1:-1:-1;;1827:22:4;;;1851:2;1823:31;1819:40;1807:53;;;1875:18;;;1895:22;;;1872:46;1869:72;;;1921:18;;:::i;:::-;1961:10;1957:2;1950:22;1996:2;1988:6;1981:18;2038:7;2031:4;2026:2;2022;2018:11;2014:22;2011:35;2008:55;;;2059:1;2056;2049:12;2008:55;2119:2;2112:4;2108:2;2104:13;2097:4;2089:6;2085:17;2072:50;2166:1;2159:4;2142:15;;;2138:26;;2131:37;2142:15;2225:20;;;;2212:34;;-1:-1:-1;;;;;;1252:1000:4:o;2257:653::-;2434:2;2423:9;2416:21;2397:4;2466:6;2460:13;2509:6;2504:2;2493:9;2489:18;2482:34;2534:1;2544:144;2558:6;2555:1;2552:13;2544:144;;;2671:4;2655:14;;;2651:25;;2645:32;2640:2;2621:17;;;2617:26;2610:68;2573:12;2544:144;;;2706:6;2703:1;2700:13;2697:91;;;2776:1;2771:2;2762:6;2751:9;2747:22;2743:31;2736:42;2697:91;-1:-1:-1;2890:4:4;2875:20;;2868:36;;;;-1:-1:-1;2849:2:4;2828:15;;;;-1:-1:-1;;2824:29:4;2809:45;2856:2;2805:54;;2257:653;-1:-1:-1;2257:653:4:o",
+    "linkReferences": {}
+  },
+  "ast": {
+    "absolutePath": "/Users/rg/Development/quiz-game/foundry/src/QuizFactory.sol",
+    "exportedSymbols": {
+      "QuizFactory": [
+        1841
+      ],
+      "QuizGame": [
+        1943
+      ]
+    },
+    "id": 1842,
+    "license": "UNLICENSED",
+    "nodeType": "SourceUnit",
+    "nodes": [
+      {
+        "id": 1788,
+        "literals": [
+          "solidity",
+          "^",
+          "0.8",
+          ".13"
+        ],
+        "nodeType": "PragmaDirective",
+        "src": "39:24:1"
+      },
+      {
+        "absolutePath": "/Users/rg/Development/quiz-game/foundry/src/QuizGame.sol",
+        "file": "./QuizGame.sol",
+        "id": 1789,
+        "nameLocation": "-1:-1:-1",
+        "nodeType": "ImportDirective",
+        "scope": 1842,
+        "sourceUnit": 1944,
+        "src": "65:24:1",
+        "symbolAliases": [],
+        "unitAlias": ""
+      },
+      {
+        "abstract": false,
+        "baseContracts": [],
+        "canonicalName": "QuizFactory",
+        "contractDependencies": [
+          1943
+        ],
+        "contractKind": "contract",
+        "fullyImplemented": true,
+        "id": 1841,
+        "linearizedBaseContracts": [
+          1841
+        ],
+        "name": "QuizFactory",
+        "nameLocation": "100:11:1",
+        "nodeType": "ContractDefinition",
+        "nodes": [
+          {
+            "constant": false,
+            "functionSelector": "88409afa",
+            "id": 1793,
+            "mutability": "mutable",
+            "name": "quizzes",
+            "nameLocation": "136:7:1",
+            "nodeType": "VariableDeclaration",
+            "scope": 1841,
+            "src": "118:25:1",
+            "stateVariable": true,
+            "storageLocation": "default",
+            "typeDescriptions": {
+              "typeIdentifier": "t_array$_t_contract$_QuizGame_$1943_$dyn_storage",
+              "typeString": "contract QuizGame[]"
+            },
+            "typeName": {
+              "baseType": {
+                "id": 1791,
+                "nodeType": "UserDefinedTypeName",
+                "pathNode": {
+                  "id": 1790,
+                  "name": "QuizGame",
+                  "nodeType": "IdentifierPath",
+                  "referencedDeclaration": 1943,
+                  "src": "118:8:1"
+                },
+                "referencedDeclaration": 1943,
+                "src": "118:8:1",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_contract$_QuizGame_$1943",
+                  "typeString": "contract QuizGame"
+                }
+              },
+              "id": 1792,
+              "nodeType": "ArrayTypeName",
+              "src": "118:10:1",
+              "typeDescriptions": {
+                "typeIdentifier": "t_array$_t_contract$_QuizGame_$1943_$dyn_storage_ptr",
+                "typeString": "contract QuizGame[]"
+              }
+            },
+            "visibility": "public"
+          },
+          {
+            "anonymous": false,
+            "eventSelector": "0265693c8d95ffd63866cae4d18980d296337fa815a89b42926fc64fda65729c",
+            "id": 1798,
+            "name": "QuizCreated",
+            "nameLocation": "155:11:1",
+            "nodeType": "EventDefinition",
+            "parameters": {
+              "id": 1797,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 1796,
+                  "indexed": true,
+                  "mutability": "mutable",
+                  "name": "quiz",
+                  "nameLocation": "184:4:1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 1798,
+                  "src": "167:21:1",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_contract$_QuizGame_$1943",
+                    "typeString": "contract QuizGame"
+                  },
+                  "typeName": {
+                    "id": 1795,
+                    "nodeType": "UserDefinedTypeName",
+                    "pathNode": {
+                      "id": 1794,
+                      "name": "QuizGame",
+                      "nodeType": "IdentifierPath",
+                      "referencedDeclaration": 1943,
+                      "src": "167:8:1"
+                    },
+                    "referencedDeclaration": 1943,
+                    "src": "167:8:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_contract$_QuizGame_$1943",
+                      "typeString": "contract QuizGame"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "166:23:1"
+            },
+            "src": "149:41:1"
+          },
+          {
+            "body": {
+              "id": 1801,
+              "nodeType": "Block",
+              "src": "210:2:1",
+              "statements": []
+            },
+            "id": 1802,
+            "implemented": true,
+            "kind": "constructor",
+            "modifiers": [],
+            "name": "",
+            "nameLocation": "-1:-1:-1",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 1799,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "207:2:1"
+            },
+            "returnParameters": {
+              "id": 1800,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "210:0:1"
+            },
+            "scope": 1841,
+            "src": "196:16:1",
+            "stateMutability": "nonpayable",
+            "virtual": false,
+            "visibility": "public"
+          },
+          {
+            "body": {
+              "id": 1829,
+              "nodeType": "Block",
+              "src": "285:123:1",
+              "statements": [
+                {
+                  "assignments": [
+                    1811
+                  ],
+                  "declarations": [
+                    {
+                      "constant": false,
+                      "id": 1811,
+                      "mutability": "mutable",
+                      "name": "quiz",
+                      "nameLocation": "304:4:1",
+                      "nodeType": "VariableDeclaration",
+                      "scope": 1829,
+                      "src": "295:13:1",
+                      "stateVariable": false,
+                      "storageLocation": "default",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_contract$_QuizGame_$1943",
+                        "typeString": "contract QuizGame"
+                      },
+                      "typeName": {
+                        "id": 1810,
+                        "nodeType": "UserDefinedTypeName",
+                        "pathNode": {
+                          "id": 1809,
+                          "name": "QuizGame",
+                          "nodeType": "IdentifierPath",
+                          "referencedDeclaration": 1943,
+                          "src": "295:8:1"
+                        },
+                        "referencedDeclaration": 1943,
+                        "src": "295:8:1",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_contract$_QuizGame_$1943",
+                          "typeString": "contract QuizGame"
+                        }
+                      },
+                      "visibility": "internal"
+                    }
+                  ],
+                  "id": 1818,
+                  "initialValue": {
+                    "arguments": [
+                      {
+                        "id": 1815,
+                        "name": "question",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 1804,
+                        "src": "324:8:1",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_string_memory_ptr",
+                          "typeString": "string memory"
+                        }
+                      },
+                      {
+                        "id": 1816,
+                        "name": "answer",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 1806,
+                        "src": "334:6:1",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_bytes32",
+                          "typeString": "bytes32"
+                        }
+                      }
+                    ],
+                    "expression": {
+                      "argumentTypes": [
+                        {
+                          "typeIdentifier": "t_string_memory_ptr",
+                          "typeString": "string memory"
+                        },
+                        {
+                          "typeIdentifier": "t_bytes32",
+                          "typeString": "bytes32"
+                        }
+                      ],
+                      "id": 1814,
+                      "isConstant": false,
+                      "isLValue": false,
+                      "isPure": false,
+                      "lValueRequested": false,
+                      "nodeType": "NewExpression",
+                      "src": "311:12:1",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_function_creation_nonpayable$_t_string_memory_ptr_$_t_bytes32_$returns$_t_contract$_QuizGame_$1943_$",
+                        "typeString": "function (string memory,bytes32) returns (contract QuizGame)"
+                      },
+                      "typeName": {
+                        "id": 1813,
+                        "nodeType": "UserDefinedTypeName",
+                        "pathNode": {
+                          "id": 1812,
+                          "name": "QuizGame",
+                          "nodeType": "IdentifierPath",
+                          "referencedDeclaration": 1943,
+                          "src": "315:8:1"
+                        },
+                        "referencedDeclaration": 1943,
+                        "src": "315:8:1",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_contract$_QuizGame_$1943",
+                          "typeString": "contract QuizGame"
+                        }
+                      }
+                    },
+                    "id": 1817,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "kind": "functionCall",
+                    "lValueRequested": false,
+                    "names": [],
+                    "nodeType": "FunctionCall",
+                    "src": "311:30:1",
+                    "tryCall": false,
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_contract$_QuizGame_$1943",
+                      "typeString": "contract QuizGame"
+                    }
+                  },
+                  "nodeType": "VariableDeclarationStatement",
+                  "src": "295:46:1"
+                },
+                {
+                  "expression": {
+                    "arguments": [
+                      {
+                        "id": 1822,
+                        "name": "quiz",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 1811,
+                        "src": "364:4:1",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_contract$_QuizGame_$1943",
+                          "typeString": "contract QuizGame"
+                        }
+                      }
+                    ],
+                    "expression": {
+                      "argumentTypes": [
+                        {
+                          "typeIdentifier": "t_contract$_QuizGame_$1943",
+                          "typeString": "contract QuizGame"
+                        }
+                      ],
+                      "expression": {
+                        "id": 1819,
+                        "name": "quizzes",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 1793,
+                        "src": "351:7:1",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_array$_t_contract$_QuizGame_$1943_$dyn_storage",
+                          "typeString": "contract QuizGame[] storage ref"
+                        }
+                      },
+                      "id": 1821,
+                      "isConstant": false,
+                      "isLValue": false,
+                      "isPure": false,
+                      "lValueRequested": false,
+                      "memberName": "push",
+                      "nodeType": "MemberAccess",
+                      "src": "351:12:1",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_function_arraypush_nonpayable$_t_array$_t_contract$_QuizGame_$1943_$dyn_storage_ptr_$_t_contract$_QuizGame_$1943_$returns$__$bound_to$_t_array$_t_contract$_QuizGame_$1943_$dyn_storage_ptr_$",
+                        "typeString": "function (contract QuizGame[] storage pointer,contract QuizGame)"
+                      }
+                    },
+                    "id": 1823,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "kind": "functionCall",
+                    "lValueRequested": false,
+                    "names": [],
+                    "nodeType": "FunctionCall",
+                    "src": "351:18:1",
+                    "tryCall": false,
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_tuple$__$",
+                      "typeString": "tuple()"
+                    }
+                  },
+                  "id": 1824,
+                  "nodeType": "ExpressionStatement",
+                  "src": "351:18:1"
+                },
+                {
+                  "eventCall": {
+                    "arguments": [
+                      {
+                        "id": 1826,
+                        "name": "quiz",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 1811,
+                        "src": "396:4:1",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_contract$_QuizGame_$1943",
+                          "typeString": "contract QuizGame"
+                        }
+                      }
+                    ],
+                    "expression": {
+                      "argumentTypes": [
+                        {
+                          "typeIdentifier": "t_contract$_QuizGame_$1943",
+                          "typeString": "contract QuizGame"
+                        }
+                      ],
+                      "id": 1825,
+                      "name": "QuizCreated",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 1798,
+                      "src": "384:11:1",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_function_event_nonpayable$_t_contract$_QuizGame_$1943_$returns$__$",
+                        "typeString": "function (contract QuizGame)"
+                      }
+                    },
+                    "id": 1827,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "kind": "functionCall",
+                    "lValueRequested": false,
+                    "names": [],
+                    "nodeType": "FunctionCall",
+                    "src": "384:17:1",
+                    "tryCall": false,
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_tuple$__$",
+                      "typeString": "tuple()"
+                    }
+                  },
+                  "id": 1828,
+                  "nodeType": "EmitStatement",
+                  "src": "379:22:1"
+                }
+              ]
+            },
+            "functionSelector": "fc98a598",
+            "id": 1830,
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [],
+            "name": "createQuiz",
+            "nameLocation": "227:10:1",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 1807,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 1804,
+                  "mutability": "mutable",
+                  "name": "question",
+                  "nameLocation": "252:8:1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 1830,
+                  "src": "238:22:1",
+                  "stateVariable": false,
+                  "storageLocation": "memory",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_string_memory_ptr",
+                    "typeString": "string"
+                  },
+                  "typeName": {
+                    "id": 1803,
+                    "name": "string",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "238:6:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_string_storage_ptr",
+                      "typeString": "string"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 1806,
+                  "mutability": "mutable",
+                  "name": "answer",
+                  "nameLocation": "270:6:1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 1830,
+                  "src": "262:14:1",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_bytes32",
+                    "typeString": "bytes32"
+                  },
+                  "typeName": {
+                    "id": 1805,
+                    "name": "bytes32",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "262:7:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bytes32",
+                      "typeString": "bytes32"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "237:40:1"
+            },
+            "returnParameters": {
+              "id": 1808,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "285:0:1"
+            },
+            "scope": 1841,
+            "src": "218:190:1",
+            "stateMutability": "nonpayable",
+            "virtual": false,
+            "visibility": "public"
+          },
+          {
+            "body": {
+              "id": 1839,
+              "nodeType": "Block",
+              "src": "476:31:1",
+              "statements": [
+                {
+                  "expression": {
+                    "id": 1837,
+                    "name": "quizzes",
+                    "nodeType": "Identifier",
+                    "overloadedDeclarations": [],
+                    "referencedDeclaration": 1793,
+                    "src": "493:7:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_array$_t_contract$_QuizGame_$1943_$dyn_storage",
+                      "typeString": "contract QuizGame[] storage ref"
+                    }
+                  },
+                  "functionReturnParameters": 1836,
+                  "id": 1838,
+                  "nodeType": "Return",
+                  "src": "486:14:1"
+                }
+              ]
+            },
+            "functionSelector": "5ecd45b9",
+            "id": 1840,
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [],
+            "name": "getQuizzes",
+            "nameLocation": "423:10:1",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 1831,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "433:2:1"
+            },
+            "returnParameters": {
+              "id": 1836,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 1835,
+                  "mutability": "mutable",
+                  "name": "",
+                  "nameLocation": "-1:-1:-1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 1840,
+                  "src": "457:17:1",
+                  "stateVariable": false,
+                  "storageLocation": "memory",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_array$_t_contract$_QuizGame_$1943_$dyn_memory_ptr",
+                    "typeString": "contract QuizGame[]"
+                  },
+                  "typeName": {
+                    "baseType": {
+                      "id": 1833,
+                      "nodeType": "UserDefinedTypeName",
+                      "pathNode": {
+                        "id": 1832,
+                        "name": "QuizGame",
+                        "nodeType": "IdentifierPath",
+                        "referencedDeclaration": 1943,
+                        "src": "457:8:1"
+                      },
+                      "referencedDeclaration": 1943,
+                      "src": "457:8:1",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_contract$_QuizGame_$1943",
+                        "typeString": "contract QuizGame"
+                      }
+                    },
+                    "id": 1834,
+                    "nodeType": "ArrayTypeName",
+                    "src": "457:10:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_array$_t_contract$_QuizGame_$1943_$dyn_storage_ptr",
+                      "typeString": "contract QuizGame[]"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "456:19:1"
+            },
+            "scope": 1841,
+            "src": "414:93:1",
+            "stateMutability": "view",
+            "virtual": false,
+            "visibility": "public"
+          }
+        ],
+        "scope": 1842,
+        "src": "91:418:1",
+        "usedErrors": []
+      }
+    ],
+    "src": "39:471:1"
+  }
+}
