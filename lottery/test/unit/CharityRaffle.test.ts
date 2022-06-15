@@ -571,8 +571,8 @@ import { CharityRaffle, VRFCoordinatorV2Mock } from "../../typechain-types"
                 await charityRaffle.donationMatch()
                 const charityWinnerAfter = await charityRaffle.getCharityWinner()
                 const playerWinnerAfter = await charityRaffle.getRecentWinner()
-                assert.equal(charityWinnerAfter, "0x0000000000000000000000000000000000000000")
-                assert.equal(playerWinnerAfter, "0x0000000000000000000000000000000000000000")
+                assert.equal(charityWinnerAfter, ethers.constants.AddressZero)
+                assert.equal(playerWinnerAfter, ethers.constants.AddressZero)
             })
             it("transfers donation match to winning charity", async () => {
                 const tx = await charityRaffle.performUpkeep("0x")

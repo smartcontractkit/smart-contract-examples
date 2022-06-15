@@ -117,11 +117,11 @@ developmentChains.includes(network.name)
                             )
                             assert.equal(
                                 await charityRaffle.getCharityWinner(),
-                                "0x0000000000000000000000000000000000000000"
+                                ethers.constants.AddressZero
                             )
                             assert.equal(
                                 await charityRaffle.getRecentWinner(),
-                                "0x0000000000000000000000000000000000000000"
+                                ethers.constants.AddressZero
                             )
                             console.log("success!")
                             resolve()
