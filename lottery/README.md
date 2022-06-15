@@ -1,29 +1,22 @@
-# Hardhat Smartcontract Lottery (Raffle) FCC
+# Hardhat Smartcontract Lottery (Raffle)
 
 This is a section of the Javascript Blockchain/Smart Contract FreeCodeCamp Course.
 
-Video Coming soon...
-
-[Full Repo](https://github.com/smartcontractkit/full-blockchain-solidity-course-js)
-
-- [Hardhat Smartcontract Lottery (Raffle) FCC](#hardhat-smartcontract-lottery-raffle-fcc)
+- [Hardhat Smartcontract Lottery (Raffle)](#hardhat-smartcontract-lottery-raffle)
 - [Getting Started](#getting-started)
   - [Requirements](#requirements)
   - [Quickstart](#quickstart)
-  - [Typescript](#typescript)
-- [Useage](#useage)
+- [Usage](#usage)
   - [Testing](#testing)
     - [Test Coverage](#test-coverage)
 - [Deployment to a testnet or mainnet](#deployment-to-a-testnet-or-mainnet)
     - [Estimate gas cost in USD](#estimate-gas-cost-in-usd)
   - [Verify on etherscan](#verify-on-etherscan)
-    - [Typescript differences](#typescript-differences)
+    - [Optional Charity Raffle](#optional-charity-raffle)
 - [Linting](#linting)
 - [Thank you!](#thank-you)
 
 This project is apart of the Hardhat FreeCodeCamp video.
-
-Video coming soon...
 
 # Getting Started
 
@@ -48,14 +41,6 @@ yarn
 yarn typechain
 ```
 
-## Typescript
-
-If you want to get to typescript and you cloned the javascript version, just run:
-
-```
-git checkout typescript
-```
-
 # Usage
 
 Deploy:
@@ -75,8 +60,6 @@ yarn hardhat test
 ```
 yarn hardhat coverage
 ```
-
-
 
 # Deployment to a testnet or mainnet
 
@@ -120,11 +103,9 @@ Go back to [vrf.chain.link](https://vrf.chain.link) and under your subscription 
 
 [You can follow the documentation if you get lost.](https://docs.chain.link/docs/chainlink-keepers/compatible-contracts/)
 
-Go to [keepers.chain.link](https://keepers.chain.link/new) and register a new upkeep. Your UI will look something like this once completed:
+Go to [keepers.chain.link](https://keepers.chain.link/new) and register a new upkeep.
 
-![Keepers](./img/keepers.png)
-
-6. Enter your raffle!
+1. Enter your raffle!
 
 You're contract is now setup to be a tamper proof autonomous verifiably random lottery. Enter the lottery by running:
 
@@ -138,8 +119,6 @@ To get a USD estimation of gas cost, you'll need a `COINMARKETCAP_API_KEY` envir
 
 Then, uncomment the line `coinmarketcap: COINMARKETCAP_API_KEY,` in `hardhat.config.ts` to get the USD estimation. Just note, everytime you run your tests it will use an API call, so it might make sense to have using coinmarketcap disabled until you need it. You can disable it by just commenting the line back out. 
 
-
-
 ## Verify on etherscan
 
 If you deploy to a testnet or mainnet, you can verify it if you get an [API Key](https://etherscan.io/myapikey) from Etherscan and set it as an environemnt variable named `ETHERSCAN_API_KEY`. You can pop it into your `.env` file as seen in the `.env.example`.
@@ -152,15 +131,8 @@ However, you can manual verify with:
 yarn hardhat verify --constructor-args arguments.ts DEPLOYED_CONTRACT_ADDRESS
 ```
 
-### Typescript differences
-1. `.js` files are now `.ts`
-2. We added a bunch of typescript and typing packages to our `package.json`. They can be installed with:
-   1. `yarn add @typechain/ethers-v5 @typechain/hardhat @types/chai @types/node ts-node typechain typescript`
-3. The biggest one being [typechain](https://github.com/dethcrypto/TypeChain)
-   1. This gives your contracts static typing, meaning you'll always know exactly what functions a contract can call. 
-   2. This gives us `factories` that are specific to the contracts they are factories of. See the tests folder for a version of how this is implemented. 
-4. We use `imports` instead of `require`. Confusing to you? [Watch this video](https://www.youtube.com/watch?v=mK54Cn4ceac)
-5. Add `tsconfig.json`
+### Optional Charity Raffle
+  This repo also includes the option to deploy a raffle where players enter by donating to their choice of one of three charities. On deployment, the charity raffle contract is funded with the jackpot for the player winner. The Chainlink keepers end the charity raffle and the VRF picks a player winner. Once the lottery ends, the contract funder has the option to match the donation value of the charity that recieved the highest number of player donations. If there is a tie between charities with the highest donations, the VRF and keepers will settle the tie and declare the winner.
 
 # Linting
 
@@ -174,12 +146,3 @@ yarn lint:fix
 ```
 
 # Thank you!
-
-If you appreciated this, feel free to follow me or donate!
-
-ETH/Polygon/Avalanche/etc Address: 0x9680201d9c93d65a3603d2088d125e955c73BD65
-
-[![Patrick Collins Twitter](https://img.shields.io/badge/Twitter-1DA1F2?style=for-the-badge&logo=twitter&logoColor=white)](https://twitter.com/PatrickAlphaC)
-[![Patrick Collins YouTube](https://img.shields.io/badge/YouTube-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://www.youtube.com/channel/UCn-3f8tw_E1jZvhuHatROwA)
-[![Patrick Collins Linkedin](https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/patrickalphac/)
-[![Patrick Collins Medium](https://img.shields.io/badge/Medium-000000?style=for-the-badge&logo=medium&logoColor=white)](https://medium.com/@patrick.collins_58673/)

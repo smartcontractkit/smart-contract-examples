@@ -65,7 +65,7 @@ developmentChains.includes(network.name)
                     })
                     // Then entering the raffle
                     console.log("Entering Raffle...")
-                    await charityRaffle.enterRaffle(1, { value: raffleEntranceFee })
+                    await charityRaffle.enterRaffle(0, { value: raffleEntranceFee })
                     console.log("Ok, time to wait...")
                     // accounts[0] = deployer
                     const winnerStartingBalance = await accounts[0].getBalance()
@@ -111,11 +111,9 @@ developmentChains.includes(network.name)
                             assert.equal(contractBalance.toString(), "0")
                             console.log("matched donations!")
                             // Check for resets
-                            assert.equal(
-const highestDonation: BigNumber = await charityRaffle.getHighestDonations();
-assert(highestDonation.eq(constants.Zero));
-                                "0"
-                            )
+                            const highestDonation: BigNumber =
+                                await charityRaffle.getHighestDonations()
+                            assert(highestDonation.eq(ethers.constants.Zero))
                             assert.equal(
                                 await charityRaffle.getCharityWinner(),
                                 ethers.constants.AddressZero

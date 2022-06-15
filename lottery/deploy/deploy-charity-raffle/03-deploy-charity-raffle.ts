@@ -1,5 +1,3 @@
-// @ts-ignore
-import { getNamedAccounts, deployments, network, run } from "hardhat"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { DeployFunction } from "hardhat-deploy/types"
 import { HardhatRuntimeEnvironment } from "hardhat/types"
@@ -80,7 +78,9 @@ const deployCharityRaffle: DeployFunction = async function (hre: HardhatRuntimeE
 
     log("Run Price Feed contract with command:")
     const networkName = network.name == "hardhat" ? "localhost" : network.name
-    log(`yarn hardhat run scripts/charity-raffle-scripts/enterCharityRaffle.js --network ${networkName}`)
+    log(
+        `yarn hardhat run scripts/charity-raffle-scripts/enterCharityRaffle.js --network ${networkName}`
+    )
     log("----------------------------------------------------")
 }
 export default deployCharityRaffle

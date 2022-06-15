@@ -5,7 +5,7 @@ import { CharityRaffle } from "../../typechain-types"
 async function enterCharityRaffle(): Promise<void> {
     const charityRaffle: CharityRaffle = await ethers.getContract("CharityRaffle")
     const entranceFee: number = (await charityRaffle.getEntranceFee()).toNumber()
-    await charityRaffle.enterRaffle(1, { value: entranceFee + 1 })
+    await charityRaffle.enterRaffle(0, { value: entranceFee + 1 })
     console.log("Entered Charity Raffle!")
 }
 

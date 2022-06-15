@@ -38,7 +38,7 @@ import { Raffle, VRFCoordinatorV2Mock } from "../../typechain-types"
                 assert.equal(raffleState, "0")
                 assert.equal(
                     interval.toString(),
-                    networkConfig[network.config.chainId!]["keepersUpdateInterval"]
+                    networkConfig[network.config.chainId!]["keepersUpdateInterval"].toString()
                 )
             })
         })

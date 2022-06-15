@@ -39,6 +39,11 @@ contract CharityRaffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
         CALCULATING,
         CLOSED
     }
+    enum CharityChoice {
+        CHARITY1,
+        CHARITY2,
+        CHARITY3
+    }
     /* State variables */
     // Chainlink VRF Variables
     VRFCoordinatorV2Interface private immutable i_vrfCoordinator;
@@ -121,6 +126,11 @@ contract CharityRaffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
         }
     }
 
+    /*
+     * @dev function to enter raffle
+     * @param charityChoice - should be 0,1,2 to represent CharityChoice enum
+     */
+
     function enterRaffle(uint256 charityChoice) external payable {
         if (msg.value < i_entranceFee) {
             revert CharityRaffle__SendMoreToEnterRaffle();
@@ -128,24 +138,24 @@ contract CharityRaffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
         if (s_raffleState != RaffleState.OPEN) {
             revert CharityRaffle__RaffleNotOpen();
         }
-        if (charityChoice != 1 && charityChoice != 2 && charityChoice != 3) {
+        if (charityChoice != 0 && charityChoice != 1 && charityChoice != 2) {
             revert CharityRaffle__NotValidCharityChoice();
         }
-        if (charityChoice == 1) {
+        if (charityChoice == uint256(CharityChoice.CHARITY1)) {
             (bool success, ) = i_charity1.call{value: msg.value}("");
             if (!success) {
                 revert CharityRaffle__CharityTransferFailed(i_charity1);
             }
             donations[i_charity1]++;
         }
-        if (charityChoice == 2) {
+        if (charityChoice == uint256(CharityChoice.CHARITY2)) {
             (bool success, ) = i_charity2.call{value: msg.value}("");
             if (!success) {
                 revert CharityRaffle__CharityTransferFailed(i_charity2);
             }
             donations[i_charity2]++;
         }
-        if (charityChoice == 3) {
+        if (charityChoice == uint256(CharityChoice.CHARITY3)) {
             (bool success, ) = i_charity3.call{value: msg.value}("");
             if (!success) {
                 revert CharityRaffle__CharityTransferFailed(i_charity3);
@@ -261,13 +271,11 @@ contract CharityRaffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
     }
 
     function checkForTie() internal view returns (bool) {
-        if (
+        return (
             donations[i_charity1] == donations[i_charity2] ||
             donations[i_charity1] == donations[i_charity3] ||
             donations[i_charity2] == donations[i_charity3]
-        ) {
-            return true;
-        }
+        );
     }
 
     /*
@@ -393,10 +401,10 @@ contract CharityRaffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
             revert CharityRaffle__MatchAlreadyFunded();
         }
         uint256 mostDonations = s_highestDonations;
-        s_highestDonations = 0;
         if (msg.value < mostDonations * i_entranceFee) {
             revert CharityRaffle__IncorrectMatchValue();
         }
+        s_highestDonations = 0;
         s_matchFunded = true;
     }
 

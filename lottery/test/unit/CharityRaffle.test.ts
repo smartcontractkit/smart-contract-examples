@@ -44,12 +44,11 @@ import { CharityRaffle, VRFCoordinatorV2Mock } from "../../typechain-types"
 
         describe("CharityRaffle constructor", function () {
             it("intitiallizes the charity raffle correctly", async () => {
-                console.log(network.config.chainId)
                 const raffleState = (await charityRaffle.getRaffleState()).toString()
                 assert.equal(raffleState, "0")
                 assert.equal(
-                    duration.toString(),
-                    networkConfig[network.config.chainId!]["charityRaffleDuration"]
+                    duration,
+                    networkConfig[network.config.chainId!]["charityRaffleDuration"].toNumber()
                 )
                 const charities: string[] = await charityRaffle.getCharities()
                 assert.equal(charities[0], charity1.address)
@@ -57,7 +56,7 @@ import { CharityRaffle, VRFCoordinatorV2Mock } from "../../typechain-types"
                 assert.equal(charities[2], charity3.address)
                 // in our case deployer was passed into constructor as funder
                 assert.equal(fundingWallet, deployer.address)
-                assert.equal(jackpot, networkConfig[network.config.chainId!]["jackpot"])
+                assert.equal(jackpot, networkConfig[network.config.chainId!]["jackpot"].toString())
             })
             it("funds the contract with the jackpot", async () => {
                 const contractBalance: BigNumber = await ethers.provider.getBalance(
@@ -68,35 +67,35 @@ import { CharityRaffle, VRFCoordinatorV2Mock } from "../../typechain-types"
         })
         describe("CharityRaffle enterRaffle", function () {
             it("CharityRaffle reverts when you don't pay enough", async () => {
-                await expect(charityRaffle.enterRaffle(1)).to.be.revertedWith(
+                await expect(charityRaffle.enterRaffle(0)).to.be.revertedWith(
                     "CharityRaffle__SendMoreToEnterRaffle"
                 )
             })
             it("CharityRaffle doesn't allow entrance when raffle is not open", async () => {
-                await charityRaffle.enterRaffle(3, { value: raffleEntranceFee })
+                await charityRaffle.enterRaffle(2, { value: raffleEntranceFee })
                 await network.provider.send("evm_increaseTime", [duration + 1])
                 await network.provider.request({ method: "evm_mine", params: [] })
                 // we pretend to be a keeper for a second
                 await charityRaffle.performUpkeep([])
                 await expect(
-                    charityRaffle.enterRaffle(3, { value: raffleEntranceFee })
+                    charityRaffle.enterRaffle(2, { value: raffleEntranceFee })
                 ).to.be.revertedWith("CharityRaffle__RaffleNotOpen")
             })
             it("does not allow entrance with invalid charity number", async () => {
                 await expect(
-                    charityRaffle.enterRaffle(4, { value: raffleEntranceFee })
+                    charityRaffle.enterRaffle(3, { value: raffleEntranceFee })
                 ).to.be.revertedWith("CharityRaffle__NotValidCharityChoice")
             })
             it("records new charity raffle player when they enter", async () => {
                 charityRaffle = charityRaffleContract.connect(player1)
-                await charityRaffle.enterRaffle(1, { value: raffleEntranceFee })
+                await charityRaffle.enterRaffle(0, { value: raffleEntranceFee })
                 const contractPlayer = await charityRaffle.getPlayer(0)
                 assert.equal(player1.address, contractPlayer)
             })
             it("donates to charity and increases donation count", async () => {
                 const charity1StartingBalance = await charity1.getBalance()
                 charityRaffle = charityRaffleContract.connect(player1)
-                await charityRaffle.enterRaffle(1, { value: raffleEntranceFee })
+                await charityRaffle.enterRaffle(0, { value: raffleEntranceFee })
                 assert.equal(
                     charity1StartingBalance.add(raffleEntranceFee).toString(),
                     (await charity1.getBalance()).toString()
@@ -108,13 +107,13 @@ import { CharityRaffle, VRFCoordinatorV2Mock } from "../../typechain-types"
                 const charity1StartingBalance: BigNumber = await charity1.getBalance()
                 const charity2StartingBalance: BigNumber = await charity2.getBalance()
                 const charity3StartingBalance: BigNumber = await charity3.getBalance()
-                await charityRaffleContract.enterRaffle(1, { value: raffleEntranceFee })
+                await charityRaffleContract.enterRaffle(0, { value: raffleEntranceFee })
                 await charityRaffleContract
                     .connect(player1)
-                    .enterRaffle(2, { value: raffleEntranceFee })
+                    .enterRaffle(1, { value: raffleEntranceFee })
                 await charityRaffleContract
                     .connect(player2)
-                    .enterRaffle(3, { value: raffleEntranceFee })
+                    .enterRaffle(2, { value: raffleEntranceFee })
                 const charity1EndingBalance: BigNumber = await charity1.getBalance()
                 const charity2EndingBalance: BigNumber = await charity2.getBalance()
                 const charity3EndingBalance: BigNumber = await charity3.getBalance()
@@ -154,7 +153,7 @@ import { CharityRaffle, VRFCoordinatorV2Mock } from "../../typechain-types"
                 assert(!upkeepNeeded)
             })
             it("CharityRaffle checkUpKeep returns false if raffle isn't open", async () => {
-                await charityRaffle.enterRaffle(1, { value: raffleEntranceFee })
+                await charityRaffle.enterRaffle(0, { value: raffleEntranceFee })
                 await network.provider.send("evm_increaseTime", [duration + 1])
                 await network.provider.request({ method: "evm_mine", params: [] })
                 await charityRaffle.performUpkeep([])
@@ -163,14 +162,14 @@ import { CharityRaffle, VRFCoordinatorV2Mock } from "../../typechain-types"
                 assert.equal(raffleState.toString() == "1", upkeepNeeded == false)
             })
             it("CharityRaffle checkUpKeep returns false if enough time hasn't passed", async () => {
-                await charityRaffle.enterRaffle(1, { value: raffleEntranceFee })
+                await charityRaffle.enterRaffle(0, { value: raffleEntranceFee })
                 await network.provider.send("evm_increaseTime", [duration - 10])
                 await network.provider.request({ method: "evm_mine", params: [] })
                 const { upkeepNeeded } = await charityRaffle.callStatic.checkUpkeep("0x")
                 assert(!upkeepNeeded)
             })
             it("CharityRaffle checkUpKeep returns true if enough time has passed, has players, eth, and is open", async () => {
-                await charityRaffle.enterRaffle(1, { value: raffleEntranceFee })
+                await charityRaffle.enterRaffle(0, { value: raffleEntranceFee })
                 await network.provider.send("evm_increaseTime", [duration + 1])
                 await network.provider.request({ method: "evm_mine", params: [] })
                 const { upkeepNeeded } = await charityRaffle.callStatic.checkUpkeep("0x")
@@ -179,7 +178,7 @@ import { CharityRaffle, VRFCoordinatorV2Mock } from "../../typechain-types"
         })
         describe("CharityRaffle performUpkeep", function () {
             it("can only run if checkupkeep is true", async () => {
-                await charityRaffle.enterRaffle(1, { value: raffleEntranceFee })
+                await charityRaffle.enterRaffle(0, { value: raffleEntranceFee })
                 await network.provider.send("evm_increaseTime", [duration + 1])
                 await network.provider.request({ method: "evm_mine", params: [] })
                 const tx = await charityRaffle.performUpkeep("0x")
@@ -191,7 +190,7 @@ import { CharityRaffle, VRFCoordinatorV2Mock } from "../../typechain-types"
                 )
             })
             it("updates the raffle state and emits a requestId", async () => {
-                await charityRaffle.enterRaffle(1, { value: raffleEntranceFee })
+                await charityRaffle.enterRaffle(0, { value: raffleEntranceFee })
                 await network.provider.send("evm_increaseTime", [duration + 1])
                 await network.provider.request({ method: "evm_mine", params: [] })
                 const txResponse = await charityRaffle.performUpkeep("0x")
@@ -204,7 +203,7 @@ import { CharityRaffle, VRFCoordinatorV2Mock } from "../../typechain-types"
         })
         describe("CharityRaffle fulfillRandomWords", function () {
             beforeEach(async () => {
-                await charityRaffle.enterRaffle(1, { value: raffleEntranceFee })
+                await charityRaffle.enterRaffle(0, { value: raffleEntranceFee })
                 await network.provider.send("evm_increaseTime", [duration + 1])
                 await network.provider.request({ method: "evm_mine", params: [] })
             })
@@ -219,20 +218,16 @@ import { CharityRaffle, VRFCoordinatorV2Mock } from "../../typechain-types"
             it("picks a winner, resets, and sends money", async () => {
                 await charityRaffleContract
                     .connect(player1)
-                    .enterRaffle(2, { value: raffleEntranceFee })
+                    .enterRaffle(1, { value: raffleEntranceFee })
                 await charityRaffleContract
                     .connect(player2)
-                    .enterRaffle(3, { value: raffleEntranceFee })
+                    .enterRaffle(2, { value: raffleEntranceFee })
                 const startingTimeStamp = await charityRaffle.getStartTime()
                 await new Promise<void>(async (resolve, reject) => {
                     charityRaffle.once("WinnerPicked", async () => {
                         console.log("WinnerPicked event fired!")
                         try {
                             const recentWinner = await charityRaffle.getRecentWinner()
-                            // console.log(recentWinner)
-                            // console.log(deployer.address)
-                            // console.log(player1.address)
-                            // console.log(player2.address) -> winner
                             const raffleState = await charityRaffle.getRaffleState()
                             const winnerBalance = await player2.getBalance()
                             await expect(charityRaffle.getPlayer(0)).to.be.reverted
@@ -268,152 +263,159 @@ import { CharityRaffle, VRFCoordinatorV2Mock } from "../../typechain-types"
             })
             it("picks a charity winner without tie", async () => {
                 const tx = await charityRaffle.performUpkeep("0x")
-                const txReceipt = await tx.wait(1)
-                await vrfCoordinatorV2Mock.fulfillRandomWords(
-                    txReceipt!.events![1].args!.requestId,
-                    charityRaffle.address
-                )
-                await new Promise<void>(async (resolve, reject) => {
-                    charityRaffle.once("CharityWinnerPicked", async () => {
-                        console.log("CharityWinnerPicked event fired!")
-                        try {
-                            const charityWinner = await charityRaffle.getCharityWinner()
-                            const raffleState = await charityRaffle.getRaffleState()
-                            assert.equal(charityWinner.toString(), charity1.address)
-                            assert.equal(raffleState, 2)
-                            assert.equal(
-                                (await charityRaffle.getHighestDonations()).toString(),
-                                "1"
-                            )
-                            resolve()
-                        } catch (e) {
-                            reject(e)
-                        }
+                if (tx) {
+                    const txReceipt = await tx.wait(1)
+                    await vrfCoordinatorV2Mock.fulfillRandomWords(
+                        txReceipt!.events![1].args!.requestId,
+                        charityRaffle.address
+                    )
+                    await new Promise<void>(async (resolve, reject) => {
+                        charityRaffle.once("CharityWinnerPicked", async () => {
+                            console.log("CharityWinnerPicked event fired!")
+                            try {
+                                const charityWinner = await charityRaffle.getCharityWinner()
+                                const raffleState = await charityRaffle.getRaffleState()
+                                assert.equal(charityWinner.toString(), charity1.address)
+                                assert.equal(raffleState, 2)
+                                assert.equal(
+                                    (await charityRaffle.getHighestDonations()).toString(),
+                                    "1"
+                                )
+                                resolve()
+                            } catch (e) {
+                                reject(e)
+                            }
+                        })
                     })
-                })
+                }
             })
             it("picks a winner if two-way tie", async () => {
                 await charityRaffleContract
                     .connect(player1)
-                    .enterRaffle(2, { value: raffleEntranceFee })
+                    .enterRaffle(1, { value: raffleEntranceFee })
                 assert.equal((await charityRaffle.getDonations(charity1.address)).toString(), "1")
                 assert.equal((await charityRaffle.getDonations(charity2.address)).toString(), "1")
                 const tx = await charityRaffle.performUpkeep("0x")
-                const txReceipt = await tx.wait(1)
-                await vrfCoordinatorV2Mock.fulfillRandomWords(
-                    txReceipt!.events![1].args!.requestId,
-                    charityRaffle.address
-                )
-                await new Promise<void>(async (resolve, reject) => {
-                    charityRaffle.once("CharityWinnerPicked", async () => {
-                        console.log("CharityWinnerPicked event fired!")
-                        try {
-                            const charityWinner = await charityRaffle.getCharityWinner()
-                            // console.log(charityWinner)
-                            // console.log(charity1.address)
-                            // console.log(charity2.address) --> winner
-                            const raffleState = await charityRaffle.getRaffleState()
-                            assert.equal(charityWinner.toString(), charity2.address)
-                            assert.equal(raffleState, 2)
-                            assert.equal(
-                                (await charityRaffle.getHighestDonations()).toString(),
-                                "1"
-                            )
-                            resolve()
-                        } catch (e) {
-                            reject(e)
-                        }
+                if (tx) {
+                    const txReceipt = await tx.wait(1)
+                    await vrfCoordinatorV2Mock.fulfillRandomWords(
+                        txReceipt!.events![1].args!.requestId,
+                        charityRaffle.address
+                    )
+                    await new Promise<void>(async (resolve, reject) => {
+                        charityRaffle.once("CharityWinnerPicked", async () => {
+                            console.log("CharityWinnerPicked event fired!")
+                            try {
+                                const charityWinner = await charityRaffle.getCharityWinner()
+                                const raffleState = await charityRaffle.getRaffleState()
+                                assert.equal(charityWinner.toString(), charity2.address)
+                                assert.equal(raffleState, 2)
+                                assert.equal(
+                                    (await charityRaffle.getHighestDonations()).toString(),
+                                    "1"
+                                )
+                                resolve()
+                            } catch (e) {
+                                reject(e)
+                            }
+                        })
                     })
-                })
+                }
             })
             it("picks a winner if three-way tie", async () => {
                 await charityRaffleContract
                     .connect(player1)
-                    .enterRaffle(2, { value: raffleEntranceFee })
+                    .enterRaffle(1, { value: raffleEntranceFee })
                 await charityRaffleContract
                     .connect(player1)
-                    .enterRaffle(3, { value: raffleEntranceFee })
+                    .enterRaffle(2, { value: raffleEntranceFee })
                 assert.equal((await charityRaffle.getDonations(charity1.address)).toString(), "1")
                 assert.equal((await charityRaffle.getDonations(charity2.address)).toString(), "1")
                 assert.equal((await charityRaffle.getDonations(charity3.address)).toString(), "1")
                 const tx = await charityRaffle.performUpkeep("0x")
-                const txReceipt = await tx.wait(1)
-                await vrfCoordinatorV2Mock.fulfillRandomWords(
-                    txReceipt!.events![1].args!.requestId,
-                    charityRaffle.address
-                )
-                await new Promise<void>(async (resolve, reject) => {
-                    charityRaffle.once("CharityWinnerPicked", async () => {
-                        console.log("CharityWinnerPicked event fired!")
-                        try {
-                            const charityWinner = await charityRaffle.getCharityWinner()
-                            // console.log(charityWinner)
-                            // console.log(charity1.address)
-                            // console.log(charity2.address) --> winner
-                            // console.log(charity3.address)
-                            const raffleState = await charityRaffle.getRaffleState()
-                            assert.equal(charityWinner.toString(), charity2.address)
-                            assert.equal(raffleState, 2)
-                            assert.equal(
-                                (await charityRaffle.getHighestDonations()).toString(),
-                                "1"
-                            )
-                            resolve()
-                        } catch (e) {
-                            reject(e)
-                        }
+                if (tx) {
+                    const txReceipt = await tx.wait(1)
+                    await vrfCoordinatorV2Mock.fulfillRandomWords(
+                        txReceipt!.events![1].args!.requestId,
+                        charityRaffle.address
+                    )
+                    await new Promise<void>(async (resolve, reject) => {
+                        charityRaffle.once("CharityWinnerPicked", async () => {
+                            console.log("CharityWinnerPicked event fired!")
+                            try {
+                                const charityWinner = await charityRaffle.getCharityWinner()
+                                const raffleState = await charityRaffle.getRaffleState()
+                                assert.equal(charityWinner.toString(), charity2.address)
+                                assert.equal(raffleState, 2)
+                                assert.equal(
+                                    (await charityRaffle.getHighestDonations()).toString(),
+                                    "1"
+                                )
+                                resolve()
+                            } catch (e) {
+                                reject(e)
+                            }
+                        })
                     })
-                })
+                }
             })
             it("resets the donation mapping", async () => {
                 await charityRaffleContract
                     .connect(player1)
-                    .enterRaffle(2, { value: raffleEntranceFee })
+                    .enterRaffle(1, { value: raffleEntranceFee })
                 await charityRaffleContract
                     .connect(player1)
-                    .enterRaffle(3, { value: raffleEntranceFee })
+                    .enterRaffle(2, { value: raffleEntranceFee })
                 assert.equal((await charityRaffle.getDonations(charity1.address)).toString(), "1")
                 assert.equal((await charityRaffle.getDonations(charity2.address)).toString(), "1")
                 assert.equal((await charityRaffle.getDonations(charity3.address)).toString(), "1")
                 const tx = await charityRaffle.performUpkeep("0x")
-                const txReceipt = await tx.wait(1)
-                await vrfCoordinatorV2Mock.fulfillRandomWords(
-                    txReceipt!.events![1].args!.requestId,
-                    charityRaffle.address
-                )
-                await new Promise<void>(async (resolve, reject) => {
-                    charityRaffle.once("CharityWinnerPicked", async () => {
-                        console.log("CharityWinnerPicked event fired!")
-                        try {
-                            const raffleState = await charityRaffle.getRaffleState()
-                            assert.equal(raffleState, 2)
-                            assert.equal(
-                                (await charityRaffle.getHighestDonations()).toString(),
-                                "1"
-                            )
-                            assert.equal(
-                                (await charityRaffle.getDonations(charity1.address)).toString(),
-                                "0"
-                            )
-                            assert.equal(
-                                (await charityRaffle.getDonations(charity2.address)).toString(),
-                                "0"
-                            )
-                            assert.equal(
-                                (await charityRaffle.getDonations(charity3.address)).toString(),
-                                "0"
-                            )
-                            resolve()
-                        } catch (e) {
-                            reject(e)
-                        }
+                if (tx) {
+                    const txReceipt = await tx.wait(1)
+                    await vrfCoordinatorV2Mock.fulfillRandomWords(
+                        txReceipt!.events![1].args!.requestId,
+                        charityRaffle.address
+                    )
+                    await new Promise<void>(async (resolve, reject) => {
+                        charityRaffle.once("CharityWinnerPicked", async () => {
+                            console.log("CharityWinnerPicked event fired!")
+                            try {
+                                const raffleState = await charityRaffle.getRaffleState()
+                                assert.equal(raffleState, 2)
+                                assert.equal(
+                                    (await charityRaffle.getHighestDonations()).toString(),
+                                    "1"
+                                )
+                                assert.equal(
+                                    (
+                                        await charityRaffle.getDonations(charity1.address)
+                                    ).toString(),
+                                    "0"
+                                )
+                                assert.equal(
+                                    (
+                                        await charityRaffle.getDonations(charity2.address)
+                                    ).toString(),
+                                    "0"
+                                )
+                                assert.equal(
+                                    (
+                                        await charityRaffle.getDonations(charity3.address)
+                                    ).toString(),
+                                    "0"
+                                )
+                                resolve()
+                            } catch (e) {
+                                reject(e)
+                            }
+                        })
                     })
-                })
+                }
             })
         })
         describe("CharityRaffle fundDonationMatch", function () {
             beforeEach(async () => {
-                await charityRaffle.enterRaffle(1, { value: raffleEntranceFee })
+                await charityRaffle.enterRaffle(0, { value: raffleEntranceFee })
                 await network.provider.send("evm_increaseTime", [duration + 1])
                 await network.provider.request({ method: "evm_mine", params: [] })
             })
@@ -513,7 +515,7 @@ import { CharityRaffle, VRFCoordinatorV2Mock } from "../../typechain-types"
         })
         describe("CharityRaffle donationMatch", function () {
             beforeEach(async () => {
-                await charityRaffle.enterRaffle(1, { value: raffleEntranceFee })
+                await charityRaffle.enterRaffle(0, { value: raffleEntranceFee })
                 await network.provider.send("evm_increaseTime", [duration + 1])
                 await network.provider.request({ method: "evm_mine", params: [] })
             })
@@ -533,9 +535,9 @@ import { CharityRaffle, VRFCoordinatorV2Mock } from "../../typechain-types"
                     txReceipt!.events![1].args!.requestId,
                     charityRaffle.address
                 )
-                await expect(
-                    charityRaffle.connect(player1).donationMatch()
-                ).to.be.revertedWith("CharityRaffle__MustBeFunder")
+                await expect(charityRaffle.connect(player1).donationMatch()).to.be.revertedWith(
+                    "CharityRaffle__MustBeFunder"
+                )
             })
             it("winner match can only be called when charity winner picked", async () => {
                 const tx = await charityRaffle.performUpkeep("0x")
