@@ -42,8 +42,8 @@ Video coming soon...
 ## Quickstart
 
 ```
-git clone --branch typescript https://github.com/PatrickAlphaC/hardhat-fund-me-fcc
-cd hardhat-fund-me-fcc
+git clone https://github.com/smartcontractkit/smart-contract-examples
+cd lottery
 yarn
 yarn typechain
 ```
