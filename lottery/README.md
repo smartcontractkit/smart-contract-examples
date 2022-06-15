@@ -56,7 +56,7 @@ If you want to get to typescript and you cloned the javascript version, just run
 git checkout typescript
 ```
 
-# Useage
+# Usage
 
 Deploy:
 
