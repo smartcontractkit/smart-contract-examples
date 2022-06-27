@@ -11,6 +11,7 @@ contract dynNFT is ERC721, ERC721URIStorage, Ownable {
 
     Counters.Counter private _tokenIdCounter;
 
+    // Metadata information for each stage of the NFT on IPFS.
     string[] IpfsUri = [
         "https://ipfs.io/ipfs/QmYaTsyxTDnrG4toc8721w62rL4ZBKXQTGj9c9Rpdrntou/seed.json",
         "https://ipfs.io/ipfs/QmYaTsyxTDnrG4toc8721w62rL4ZBKXQTGj9c9Rpdrntou/purple-sprout.json",
@@ -18,8 +19,6 @@ contract dynNFT is ERC721, ERC721URIStorage, Ownable {
     ];
 
     constructor() ERC721("dNFTs", "dNFT") {}
-
-    // Metadata information for each stage of the NFT on IPFS.
 
     function safeMint(address to) public onlyOwner {
         uint256 tokenId = _tokenIdCounter.current();
