@@ -88,7 +88,7 @@ contract dynNFT is ERC721, ERC721URIStorage, Ownable {
 
     /*
      ********************
-     * HELPER FUNCITONS *
+     * HELPER FUNCTIONS *
      ********************
      */
     // helper function to compare strings
