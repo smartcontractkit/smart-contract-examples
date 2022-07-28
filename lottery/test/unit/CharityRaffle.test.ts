@@ -81,11 +81,6 @@ import { CharityRaffle, VRFCoordinatorV2Mock } from "../../typechain-types"
                     charityRaffle.enterRaffle(2, { value: raffleEntranceFee })
                 ).to.be.revertedWith("CharityRaffle__RaffleNotOpen")
             })
-            it("does not allow entrance with invalid charity number", async () => {
-                await expect(
-                    charityRaffle.enterRaffle(3, { value: raffleEntranceFee })
-                ).to.be.revertedWith("CharityRaffle__NotValidCharityChoice")
-            })
             it("records new charity raffle player when they enter", async () => {
                 charityRaffle = charityRaffleContract.connect(player1)
                 await charityRaffle.enterRaffle(0, { value: raffleEntranceFee })

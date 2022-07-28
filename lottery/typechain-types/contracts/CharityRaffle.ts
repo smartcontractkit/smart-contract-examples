@@ -31,7 +31,7 @@ export interface CharityRaffleInterface extends utils.Interface {
   functions: {
     "checkUpkeep(bytes)": FunctionFragment;
     "donationMatch()": FunctionFragment;
-    "enterRaffle(uint256)": FunctionFragment;
+    "enterRaffle(uint8)": FunctionFragment;
     "fundDonationMatch()": FunctionFragment;
     "getAllPlayers()": FunctionFragment;
     "getCharities()": FunctionFragment;
