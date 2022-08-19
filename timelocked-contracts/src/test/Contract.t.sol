@@ -22,7 +22,7 @@ contract ContractTest is DSTest {
         );
     }
 
-    // Ensure we can't double queue
+    // Ensure you can't double queue
     function testFailDoubleQueue() public {
         c.queueMint(
             0x1234567890123456789012345678901234567890,
@@ -31,7 +31,7 @@ contract ContractTest is DSTest {
         );
     }
 
-    // Ensure we can't queue in the past
+    // Ensure you can't queue in the past
     function testFailPastQueue() public {
         c.queueMint(
             0x1234567890123456789012345678901234567890,
@@ -51,7 +51,7 @@ contract ContractTest is DSTest {
         );
     }
 
-    // Minting should fail if we mint too soon
+    // Minting should fail if you mint too soon
     function testFailMintNow() public {
         c.executeMint(
             0x1234567890123456789012345678901234567890,
@@ -60,7 +60,7 @@ contract ContractTest is DSTest {
         );
     }
 
-    // Minting should fail if we didn't queue
+    // Minting should fail if you didn't queue
     function testFailMintNonQueued() public {
         c.executeMint(
             0x1234567890123456789012345678901234567890,
@@ -85,7 +85,7 @@ contract ContractTest is DSTest {
         );
     }
 
-    // Minting should fail if we try to mint too late
+    // Minting should fail if you try to mint too late
     function testFailLateMint() public {
         uint256 targetTime = block.timestamp + 600;
         cheats.warp(block.timestamp + 600 + 1801);
@@ -97,7 +97,7 @@ contract ContractTest is DSTest {
         );
     }
 
-    // We should be able to cancel a mint
+    // You should be able to cancel a mint
     function testCancelMint() public {
         bytes32 txnHash = c.generateTxnHash(
             0x1234567890123456789012345678901234567890,
@@ -107,7 +107,7 @@ contract ContractTest is DSTest {
         c.cancelMint(txnHash);
     }
 
-    // We should be able to cancel a mint once but not twice
+    // You should be able to cancel a mint once but not twice
     function testFailCancelMint() public {
         bytes32 txnHash = c.generateTxnHash(
             0x1234567890123456789012345678901234567890,
@@ -118,7 +118,7 @@ contract ContractTest is DSTest {
         c.cancelMint(txnHash);
     }
 
-    // We shouldn't be able to cancel a mint that doesn't exist
+    // You shouldn't be able to cancel a mint that doesn't exist
     function testFailCancelMintNonQueued() public {
         bytes32 txnHash = c.generateTxnHash(
             0x1234567890123456789012345678901234567890,
