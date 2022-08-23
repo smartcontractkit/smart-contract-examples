@@ -7,6 +7,9 @@
 # Icon must end with two \r
 Icon
 
+# Compiler files
+cache/
+out/
 
 # Thumbnails
 ._*
