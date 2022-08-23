@@ -240,8 +240,8 @@
       }
     },
     "/Users/rg/Documents/GitHub/smart-contract-examples/timelocked-contracts/src/Contract.sol": {
-      "lastModificationDate": 1660848901774,
-      "contentHash": "3f2f961db616d3140cad60113d085dd5",
+      "lastModificationDate": 1660919233462,
+      "contentHash": "b82dc4b77c03dfd95582e68e6b5bd47d",
       "sourceName": "src/Contract.sol",
       "solcConfig": {
         "settings": {
@@ -283,8 +283,8 @@
       }
     },
     "/Users/rg/Documents/GitHub/smart-contract-examples/timelocked-contracts/src/test/Contract.t.sol": {
-      "lastModificationDate": 1660848926436,
-      "contentHash": "02875472c3e0379e5c5328de84fdc783",
+      "lastModificationDate": 1661265078066,
+      "contentHash": "d60807d5d4fc132519f4e67b55c42e47",
       "sourceName": "src/test/Contract.t.sol",
       "solcConfig": {
         "settings": {

@@ -9,80 +9,50 @@ interface CheatCodes {
 }
 
 contract ContractTest is DSTest {
+    // HEVM_ADDRESS is the pre-defined contract that contains the cheatcodes
     CheatCodes constant cheats = CheatCodes(HEVM_ADDRESS);
 
     Contract public c;
+    address toAddr = 0x1234567890123456789012345678901234567890;
 
     function setUp() public {
         c = new Contract();
-        c.queueMint(
-            0x1234567890123456789012345678901234567890,
-            100,
-            block.timestamp + 600
-        );
+        c.queueMint(toAddr, 100, block.timestamp + 600);
     }
 
     // Ensure you can't double queue
     function testFailDoubleQueue() public {
-        c.queueMint(
-            0x1234567890123456789012345678901234567890,
-            100,
-            block.timestamp + 600
-        );
+        c.queueMint(toAddr, 100, block.timestamp + 600);
     }
 
     // Ensure you can't queue in the past
     function testFailPastQueue() public {
-        c.queueMint(
-            0x1234567890123456789012345678901234567890,
-            100,
-            block.timestamp - 600
-        );
+        c.queueMint(toAddr, 100, block.timestamp - 600);
     }
 
     // Minting should work after the time has passed
     function testMintAfterTen() public {
         uint256 targetTime = block.timestamp + 600;
-        cheats.warp(block.timestamp + 600);
-        c.executeMint(
-            0x1234567890123456789012345678901234567890,
-            100,
-            targetTime
-        );
+        cheats.warp(targetTime);
+        c.executeMint(toAddr, 100, targetTime);
     }
 
     // Minting should fail if you mint too soon
     function testFailMintNow() public {
-        c.executeMint(
-            0x1234567890123456789012345678901234567890,
-            100,
-            block.timestamp + 600
-        );
+        c.executeMint(toAddr, 100, block.timestamp + 600);
     }
 
     // Minting should fail if you didn't queue
     function testFailMintNonQueued() public {
-        c.executeMint(
-            0x1234567890123456789012345678901234567890,
-            999,
-            block.timestamp + 600
-        );
+        c.executeMint(toAddr, 999, block.timestamp + 600);
     }
 
-    // Minitng should fail if try to mint twice
+    // Minting should fail if try to mint twice
     function testFailDoubleMint() public {
         uint256 targetTime = block.timestamp + 600;
         cheats.warp(block.timestamp + 600);
-        c.executeMint(
-            0x1234567890123456789012345678901234567890,
-            100,
-            targetTime
-        );
-        c.executeMint(
-            0x1234567890123456789012345678901234567890,
-            100,
-            block.timestamp + 600
-        );
+        c.executeMint(toAddr, 100, targetTime);
+        c.executeMint(toAddr, 100, block.timestamp + 600);
     }
 
     // Minting should fail if you try to mint too late
@@ -90,41 +60,25 @@ contract ContractTest is DSTest {
         uint256 targetTime = block.timestamp + 600;
         cheats.warp(block.timestamp + 600 + 1801);
         emit log_uint(block.timestamp);
-        c.executeMint(
-            0x1234567890123456789012345678901234567890,
-            100,
-            targetTime
-        );
+        c.executeMint(toAddr, 100, targetTime);
     }
 
-    // You should be able to cancel a mint
+    // you should be able to cancel a mint
     function testCancelMint() public {
-        bytes32 txnHash = c.generateTxnHash(
-            0x1234567890123456789012345678901234567890,
-            100,
-            block.timestamp + 600
-        );
+        bytes32 txnHash = c.generateTxnHash(toAddr, 100, block.timestamp + 600);
         c.cancelMint(txnHash);
     }
 
-    // You should be able to cancel a mint once but not twice
+    // you should be able to cancel a mint once but not twice
     function testFailCancelMint() public {
-        bytes32 txnHash = c.generateTxnHash(
-            0x1234567890123456789012345678901234567890,
-            999,
-            block.timestamp + 600
-        );
+        bytes32 txnHash = c.generateTxnHash(toAddr, 999, block.timestamp + 600);
         c.cancelMint(txnHash);
         c.cancelMint(txnHash);
     }
 
-    // You shouldn't be able to cancel a mint that doesn't exist
+    // you shouldn't be able to cancel a mint that doesn't exist
     function testFailCancelMintNonQueued() public {
-        bytes32 txnHash = c.generateTxnHash(
-            0x1234567890123456789012345678901234567890,
-            999,
-            block.timestamp + 600
-        );
+        bytes32 txnHash = c.generateTxnHash(toAddr, 999, block.timestamp + 600);
         c.cancelMint(txnHash);
     }
 }
