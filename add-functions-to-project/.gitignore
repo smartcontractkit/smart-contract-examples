@@ -1,0 +1,6 @@
+.vscode
+artifacts
+cache
+deployments
+node_modules
+.env
