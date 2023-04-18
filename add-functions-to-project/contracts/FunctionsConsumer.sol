@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
 
-import {Functions, FunctionsClient} from "./dev/functions/FunctionsClient.sol";
+import "./dev/functions/FunctionsClient.sol";
 // import "@chainlink/contracts/src/v0.8/dev/functions/FunctionsClient.sol"; // Once published
-import {ConfirmedOwner} from "@chainlink/contracts/src/v0.8/ConfirmedOwner.sol";
+import "@chainlink/contracts/src/v0.8/ConfirmedOwner.sol";
 
 /**
  * @title Functions Consumer contract
@@ -24,23 +24,20 @@ contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
    *
    * @param oracle - The FunctionsOracle contract
    */
-  // https://github.com/protofire/solhint/issues/242
-  // solhint-disable-next-line no-empty-blocks
   constructor(address oracle) FunctionsClient(oracle) ConfirmedOwner(msg.sender) {}
 
   /**
    * @notice Send a simple request
-   *
+   * 
    * @param source JavaScript source code
    * @param secrets Encrypted secrets payload
    * @param args List of arguments accessible from within the source code
-   * @param subscriptionId Funtions billing subscription ID
-   * @param gasLimit Maximum amount of gas used to call the client contract's `handleOracleFulfillment` function
-   * @return Functions request ID
+   * @param subscriptionId Billing ID
    */
   function executeRequest(
     string calldata source,
     bytes calldata secrets,
+    Functions.Location secretsLocation,
     string[] calldata args,
     uint64 subscriptionId,
     uint32 gasLimit
@@ -48,7 +45,11 @@ contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
     Functions.Request memory req;
     req.initializeRequest(Functions.Location.Inline, Functions.CodeLanguage.JavaScript, source);
     if (secrets.length > 0) {
-      req.addRemoteSecrets(secrets);
+      if (secretsLocation == Functions.Location.Inline) {
+        req.addInlineSecrets(secrets);
+      } else {
+        req.addRemoteSecrets(secrets);
+      }
     }
     if (args.length > 0) req.addArgs(args);
 
@@ -65,7 +66,11 @@ contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
    * @param err Aggregated error from the user code or from the execution pipeline
    * Either response or error parameter will be set, but never both
    */
-  function fulfillRequest(bytes32 requestId, bytes memory response, bytes memory err) internal override {
+  function fulfillRequest(
+    bytes32 requestId,
+    bytes memory response,
+    bytes memory err
+  ) internal override {
     latestResponse = response;
     latestError = err;
     emit OCRResponse(requestId, response, err);

@@ -28,12 +28,12 @@ contract FunctionsOracle is
   event OracleResponse(bytes32 indexed requestId);
   event UserCallbackError(bytes32 indexed requestId, string reason);
   event UserCallbackRawError(bytes32 indexed requestId, bytes lowLevelData);
-  event InvalidRequestID(bytes32 indexed requestId);
 
   error EmptyRequestData();
   error InconsistentReportData();
   error EmptyPublicKey();
   error EmptyBillingRegistry();
+  error InvalidRequestID();
   error UnauthorizedPublicKeyChange();
 
   bytes private s_donPublicKey;
@@ -141,7 +141,7 @@ contract FunctionsOracle is
    * @inheritdoc FunctionsOracleInterface
    */
   function getRequiredFee(
-    bytes calldata /* data */,
+    bytes calldata, /* data */
     FunctionsBillingRegistryInterface.RequestBilling memory /* billing */
   ) public pure override returns (uint96) {
     // NOTE: Optionally, compute additional fee split between nodes of the DON here
@@ -164,9 +164,9 @@ contract FunctionsOracle is
       gasLimit,
       gasPrice
     );
-    uint96 donFee = getRequiredFee(data, billing);
-    uint96 registryFee = s_registry.getRequiredFee(data, billing);
-    return s_registry.estimateCost(gasLimit, gasPrice, donFee, registryFee);
+    uint96 requiredFee = getRequiredFee(data, billing);
+    uint96 registryFee = getRequiredFee(data, billing);
+    return s_registry.estimateCost(gasLimit, gasPrice, requiredFee, registryFee);
   }
 
   /**
@@ -200,8 +200,8 @@ contract FunctionsOracle is
   function _afterSetConfig(uint8 _f, bytes memory _onchainConfig) internal override {}
 
   function _validateReport(
-    bytes32 /* configDigest */,
-    uint40 /* epochAndRound */,
+    bytes32, /* configDigest */
+    uint40, /* epochAndRound */
     bytes memory /* report */
   ) internal pure override returns (bool) {
     // validate within _report to save gas
@@ -237,13 +237,11 @@ contract FunctionsOracle is
           reportValidationGasShare,
           gasleft()
         )
-      returns (FunctionsBillingRegistryInterface.FulfillResult result) {
-        if (result == FunctionsBillingRegistryInterface.FulfillResult.USER_SUCCESS) {
+      returns (bool success) {
+        if (success) {
           emit OracleResponse(requestIds[i]);
-        } else if (result == FunctionsBillingRegistryInterface.FulfillResult.USER_ERROR) {
+        } else {
           emit UserCallbackError(requestIds[i], "error in callback");
-        } else if (result == FunctionsBillingRegistryInterface.FulfillResult.INVALID_REQUEST_ID) {
-          emit InvalidRequestID(requestIds[i]);
         }
       } catch (bytes memory reason) {
         emit UserCallbackRawError(requestIds[i], reason);
