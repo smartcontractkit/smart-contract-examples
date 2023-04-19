@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "../functions/ConfirmedOwnerUpgradeable.sol";
+import "@chainlink/contracts/src/v0.8/ConfirmedOwner.sol";
 import "@chainlink/contracts/src/v0.8/dev/ocr2/OCR2Abstract.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 /**
  * @notice Onchain verification of reports from the offchain reporting protocol
@@ -15,16 +14,12 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
  * will be folded directly into the application contract. Inheritance prevents us from doing lots
  * of juicy storage layout optimizations, leading to a substantial increase in gas cost.
  */
-abstract contract OCR2BaseUpgradeable is Initializable, ConfirmedOwnerUpgradeable, OCR2Abstract {
+abstract contract OCR2Base is ConfirmedOwner, OCR2Abstract {
   error ReportInvalid();
 
-  bool internal i_uniqueReports;
+  bool internal immutable i_uniqueReports;
 
-  /**
-   * @dev Initializes the contract.
-   */
-  function __OCR2Base_initialize(bool uniqueReports) internal onlyInitializing {
-    __ConfirmedOwner_initialize(msg.sender, address(0));
+  constructor(bool uniqueReports) ConfirmedOwner(msg.sender) {
     i_uniqueReports = uniqueReports;
   }
 

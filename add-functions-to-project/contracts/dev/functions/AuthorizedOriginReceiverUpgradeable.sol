@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.6;
 
-import "../vendor/openzeppelin-solidity/v.4.8.0/contracts/utils/structs/EnumerableSet.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {EnumerableSet} from "../vendor/openzeppelin-solidity/v.4.8.0/contracts/utils/structs/EnumerableSet.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 /**
  * @notice Modified AuthorizedReciever abstract for use on the FunctionsOracle contract to limit usage
@@ -23,7 +23,6 @@ abstract contract AuthorizedOriginReceiverUpgradeable is Initializable {
 
   bool private s_active;
   EnumerableSet.AddressSet private s_authorizedSenders;
-  address[] private s_authorizedSendersList;
 
   /**
    * @dev Initializes the contract in active state.
@@ -78,10 +77,7 @@ abstract contract AuthorizedOriginReceiverUpgradeable is Initializable {
       revert EmptySendersList();
     }
     for (uint256 i = 0; i < senders.length; i++) {
-      bool success = s_authorizedSenders.add(senders[i]);
-      if (success) {
-        s_authorizedSendersList.push(senders[i]);
-      }
+      s_authorizedSenders.add(senders[i]);
     }
     emit AuthorizedSendersChanged(senders, msg.sender);
   }
@@ -95,18 +91,7 @@ abstract contract AuthorizedOriginReceiverUpgradeable is Initializable {
       revert EmptySendersList();
     }
     for (uint256 i = 0; i < senders.length; i++) {
-      bool success = s_authorizedSenders.remove(senders[i]);
-      if (success) {
-        // Remove from s_authorizedSendersList
-        for (uint256 j = 0; j < s_authorizedSendersList.length; j++) {
-          if (s_authorizedSendersList[j] == senders[i]) {
-            address last = s_authorizedSendersList[s_authorizedSendersList.length - 1];
-            // Copy last element and overwrite senders[i] to be deleted with it
-            s_authorizedSendersList[i] = last;
-            s_authorizedSendersList.pop();
-          }
-        }
-      }
+      s_authorizedSenders.remove(senders[i]);
     }
     emit AuthorizedSendersChanged(senders, msg.sender);
   }
@@ -116,7 +101,7 @@ abstract contract AuthorizedOriginReceiverUpgradeable is Initializable {
    * @return array of addresses
    */
   function getAuthorizedSenders() public view returns (address[] memory) {
-    return s_authorizedSendersList;
+    return EnumerableSet.values(s_authorizedSenders);
   }
 
   /**
