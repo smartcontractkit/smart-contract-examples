@@ -29,7 +29,7 @@ async function main() {
   const signer = new ethers.Wallet(signerPrivateKey, provider);
 
   // Consumer contract
-  const consumerAddress = "your-deployed-functions-consumer-address";
+  const consumerAddress = "your_consumer_address";
   const consumerAbiPath =
     "./artifacts/contracts/FunctionsConsumer.sol/FunctionsConsumer.json";
   const contractAbi = JSON.parse(
@@ -47,7 +47,7 @@ async function main() {
 
   // Chainlink Functions request config
   // Chainlink Functions subscription ID
-  const subscriptionId = "your-subscription-id";
+  const subscriptionId = "your_subscription_id";
   // Gas limit for the Chainlink Functions request
   const requestGas = 5500000;
 
@@ -56,16 +56,22 @@ async function main() {
   const args = ["ETH", "USD"];
 
   // Tutorial 6
-  //const source = await fs.readFile('./examples/Functions-source-inline-secrets.js', 'utf8')
-  //const args = ["1", "bitcoin", "btc-bitcoin"]
-  //const secretsLocation = 0
-  //const secrets = { apiKey: process.env.COINMARKETCAP_API_KEY }
+  // const source = await fs.readFile(
+  //   "./examples/Functions-source-inline-secrets.js",
+  //   "utf8"
+  // );
+  // const args = ["1", "bitcoin", "btc-bitcoin"];
+  // const secrets = { apiKey: process.env.COINMARKETCAP_API_KEY };
 
   // Tutorial 7
-  //const source = await fs.readFile('./examples/Functions-source-inline-secrets.js', 'utf8')
-  //const args = ["1", "bitcoin", "btc-bitcoin"]
-  //const secretsLocation = 1
-  //const secrets = ['https://gist.github.com/dwightjl/0c8b62fc0bc33a6743d3085379ef0ac9/raw/']
+  // const source = await fs.readFile(
+  //   "./examples/Functions-source-inline-secrets.js",
+  //   "utf8"
+  // );
+  // const args = ["1", "bitcoin", "btc-bitcoin"];
+  // const secrets = [
+  //   "https://clfunctions.s3.eu-north-1.amazonaws.com/offchain-secrets.json",
+  // ];
 
   // Create an oracle contract object.
   // Used in this script only to encrypt secrets.
@@ -76,27 +82,21 @@ async function main() {
   const oracle = new ethers.Contract(oracleAddress, oracleAbi, signer);
 
   let encryptedSecrets;
-  if (
-    typeof secrets !== "undefined" &&
-    typeof secretsLocation !== "undefined"
-  ) {
-    encryptedSecrets = await getEncryptedSecrets(
-      secrets,
-      secretsLocation,
-      oracle,
-      signerPrivateKey
-    );
+  let doGistCleanup;
+  let gistUrl;
+  if (typeof secrets !== "undefined") {
+    const result = await getEncryptedSecrets(secrets, oracle, signerPrivateKey);
+    if (isObject(secrets)) {
+      // inline secrets are uploaded to gist by the script so they must be cleanup at the end of the script
+      doGistCleanup = true;
+      encryptedSecrets = result.encrypted;
+      gistUrl = result.gistUrl;
+    } else {
+      doGistCleanup = false;
+      encryptedSecrets = result;
+    }
   } else {
     encryptedSecrets = "0x";
-    secretsLocation = 0;
-  }
-
-  // Confirm request
-  console.log("Request generated without errors");
-  let proceed = prompt("Send request? (y/N) ");
-  if (proceed != "y" && proceed != "Y") {
-    console.log("Exiting without sending a request.");
-    process.exit(0);
   }
 
   // Submit the request
@@ -169,6 +169,10 @@ async function main() {
     latestResponse = BigInt(await latestResponse).toString();
     console.log("Stored value is: " + latestResponse);
   }
+
+  if (doGistCleanup) {
+    await deleteGist(process.env["GITHUB_API_TOKEN"], gistUrl);
+  }
 }
 
 // Encrypt the secrets as defined in requestConfig
@@ -177,43 +181,49 @@ async function main() {
 // Expects one of the following:
 //   - A JSON object with { apiKey: 'your_secret_here' }
 //   - An array of secretsURLs
-async function getEncryptedSecrets(
-  secrets,
-  secretsLocation,
-  oracle,
-  signerPrivateKey = null
-) {
+async function getEncryptedSecrets(secrets, oracle, signerPrivateKey = null) {
   // Fetch the DON public key from on-chain
   let DONPublicKey = await oracle.getDONPublicKey();
   // Remove the preceding 0x from the DON public key
   DONPublicKey = DONPublicKey.slice(2);
 
   // If the secrets object is empty, do nothing, else encrypt secrets
-  if (secretsLocation == 0 && Object.keys(secrets).length > 0) {
+  if (isObject(secrets) && secrets) {
     if (!signerPrivateKey) {
       throw Error("signerPrivateKey is required to encrypt inline secrets");
     }
-    if (typeof secrets !== "object") {
-      throw Error(
-        "Unsupported inline secrets format. Inline secrets must be an object"
-      );
-    }
-    return (
-      "0x" +
-      (await (0, encryptWithSignature)(
+
+    const offchainSecrets = {};
+    offchainSecrets["0x0"] = Buffer.from(
+      await (0, encryptWithSignature)(
         signerPrivateKey,
         DONPublicKey,
         JSON.stringify(secrets)
-      ))
-    );
-  }
-  if (secretsLocation == 1 && secrets.length > 0) {
-    if (secretsLocation !== 1) {
-      throw Error(
-        "secretsLocation is not correctly set for off-chain secrets. " +
-          "Set secretsLocation to 1 to encrypt inline secrets."
-      );
+      ),
+      "hex"
+    ).toString("base64");
+
+    if (
+      !process.env["GITHUB_API_TOKEN"] ||
+      process.env["GITHUB_API_TOKEN"] === ""
+    ) {
+      throw Error("GITHUB_API_TOKEN environment variable not set");
     }
+
+    const secretsURL = await createGist(
+      process.env["GITHUB_API_TOKEN"],
+      offchainSecrets
+    );
+    console.log(`Successfully created encrypted secrets Gist: ${secretsURL}`);
+    return {
+      gistUrl: secretsURL,
+      encrypted: "0x" + (await (0, encrypt)(DONPublicKey, `${secretsURL}/raw`)),
+    };
+
+    //  return [`${secretsURL}/raw`];
+  }
+  if (secrets.length > 0) {
+    // Remote secrets managed by the user
     if (!Array.isArray(secrets)) {
       throw Error(
         "Unsupported remote secrets format.  Remote secrets must be an array."
@@ -274,10 +284,6 @@ async function verifyOffchainSecrets(secretsURLs, oracle) {
               `no default secrets found.`
           );
         }
-        console.log(
-          `WARNING: No secrets found for node ${nodeAddress.toLowerCase()}. ` +
-            `That node will use default secrets specified by the "0x0" entry.`
-        );
       }
     }
   }
@@ -310,6 +316,104 @@ async function encrypt(readerPublicKey, message) {
     message
   );
   return ethcrypto.default.cipher.stringify(encrypted);
+}
+
+// create gist
+// code from ./tasks/utils
+const createGist = async (githubApiToken, encryptedOffchainSecrets) => {
+  await checkTokenGistScope(githubApiToken);
+
+  const content = JSON.stringify(encryptedOffchainSecrets);
+
+  const headers = {
+    Authorization: `token ${githubApiToken}`,
+  };
+
+  // construct the API endpoint for creating a Gist
+  const url = "https://api.github.com/gists";
+  const body = {
+    public: false,
+    files: {
+      [`encrypted-functions-request-data-${Date.now()}.json`]: {
+        content,
+      },
+    },
+  };
+
+  try {
+    const response = await axios.post(url, body, { headers });
+    const gistUrl = response.data.html_url;
+    return gistUrl;
+  } catch (error) {
+    console.error("Failed to create Gist", error);
+    throw new Error("Failed to create Gist");
+  }
+};
+
+// code from ./tasks/utils
+const checkTokenGistScope = async (githubApiToken) => {
+  const headers = {
+    Authorization: `Bearer ${githubApiToken}`,
+  };
+
+  const response = await axios.get("https://api.github.com/user", { headers });
+
+  if (response.status !== 200) {
+    throw new Error(
+      `Failed to get user data: ${response.status} ${response.statusText}`
+    );
+  }
+  // Github's newly-added fine-grained token do not currently allow for verifying that the token scope is restricted to Gists.
+  // This verification feature only works with classic Github tokens and is otherwise ignored
+  const scopes = response.headers["x-oauth-scopes"]?.split(", ");
+
+  if (scopes && scopes?.[0] !== "gist") {
+    throw Error(
+      "The provided Github API token does not have permissions to read and write Gists"
+    );
+  }
+
+  if (scopes && scopes.length > 1) {
+    console.log(
+      "WARNING: The provided Github API token has additional permissions beyond reading and writing to Gists"
+    );
+  }
+
+  return true;
+};
+
+// code from ./tasks/utils
+const deleteGist = async (githubApiToken, gistURL) => {
+  const headers = {
+    Authorization: `Bearer ${githubApiToken}`,
+  };
+
+  const gistId = gistURL.match(/\/([a-fA-F0-9]+)$/)[1];
+
+  try {
+    const response = await axios.delete(
+      `https://api.github.com/gists/${gistId}`,
+      { headers }
+    );
+
+    if (response.status !== 204) {
+      throw new Error(
+        `Failed to delete Gist: ${response.status} ${response.statusText}`
+      );
+    }
+
+    console.log(`Off-chain secrets Gist ${gistURL} deleted successfully`);
+    return true;
+  } catch (error) {
+    console.error(`Error deleting Gist ${gistURL}`, error.response);
+    return false;
+  }
+};
+
+function isObject(value) {
+  return (
+    value !== null && typeof value === "object" && value.constructor === Object
+  );
 }
 
 main()
