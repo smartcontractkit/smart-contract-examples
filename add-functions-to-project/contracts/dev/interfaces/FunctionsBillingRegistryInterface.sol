@@ -17,6 +17,12 @@ interface FunctionsBillingRegistryInterface {
     uint256 gasPrice;
   }
 
+  enum FulfillResult {
+    USER_SUCCESS,
+    USER_ERROR,
+    INVALID_REQUEST_ID
+  }
+
   /**
    * @notice Get configuration relevant for making requests
    * @return uint32 global max for request gas limit
@@ -30,10 +36,10 @@ interface FunctionsBillingRegistryInterface {
    * @param billing The request's billing configuration
    * @return fee Cost in Juels (1e18) of LINK
    */
-  function getRequiredFee(bytes calldata data, FunctionsBillingRegistryInterface.RequestBilling memory billing)
-    external
-    view
-    returns (uint96);
+  function getRequiredFee(
+    bytes calldata data,
+    FunctionsBillingRegistryInterface.RequestBilling memory billing
+  ) external view returns (uint96);
 
   /**
    * @notice Estimate the total cost to make a request: gas re-imbursement, plus DON fee, plus Registry fee
@@ -69,7 +75,7 @@ interface FunctionsBillingRegistryInterface {
    * @param signerCount the number of signers on the report
    * @param reportValidationGas the amount of gas used for the report validation. Cost is split by all fulfillments on the report.
    * @param initialGas the initial amount of gas that should be used as a baseline to charge the single fulfillment for execution cost
-   * @return success whether the callback was successsful
+   * @return result fulfillment result
    * @dev Only callable by a node that has been approved on the Registry
    * @dev simulated offchain to determine if sufficient balance is present to fulfill the request
    */
@@ -82,7 +88,7 @@ interface FunctionsBillingRegistryInterface {
     uint8 signerCount,
     uint256 reportValidationGas,
     uint256 initialGas
-  ) external returns (bool success);
+  ) external returns (FulfillResult);
 
   /**
    * @notice Gets subscription owner.
