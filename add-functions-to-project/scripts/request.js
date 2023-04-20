@@ -137,8 +137,8 @@ async function main() {
     console.log(`\nRequest ${requestId} initiated`);
   } catch (e) {
     if (e instanceof TypeError) {
-      // Try ethers v5 events
-      requestId = requestTxReceipt.events[2].args.id;
+      // Try ethers v5 events and print full output.
+      requestId = requestTxReceipt.events;
       console.log(requestId);
     } else {
       console.log(e);
