@@ -1,28 +1,13 @@
 const ethcrypto = require("eth-crypto");
 const axios = require("axios");
 const fs = require("fs").promises;
-const prompt = require("prompt-sync")();
 
 async function main() {
   // Provider config currently set for Polygon Mumbai
-  // Optionally use one of the other ethers providers
-  // https://docs.ethers.org/v6/api/providers/
 
-  let provider;
-  try {
-    // Try Ethers v6 provider
-    provider = new ethers.JsonRpcProvider(process.env.MUMBAI_RPC_URL);
-  } catch (e) {
-    if (e instanceof TypeError) {
-      // Try Ethers v5 provider
-      console.log("Using Ethers v5 provider format.");
-      provider = new ethers.providers.JsonRpcProvider(
-        process.env.MUMBAI_RPC_URL
-      );
-    } else {
-      console.log(e);
-    }
-  }
+  const provider = new ethers.providers.JsonRpcProvider(
+    process.env.MUMBAI_RPC_URL
+  );
 
   // Get private wallet key from the .env file
   const signerPrivateKey = process.env.PRIVATE_KEY;
@@ -32,6 +17,7 @@ async function main() {
   const consumerAddress = "your_consumer_address";
   const consumerAbiPath =
     "./artifacts/contracts/FunctionsConsumer.sol/FunctionsConsumer.json";
+
   const contractAbi = JSON.parse(
     await fs.readFile(consumerAbiPath, "utf8")
   ).abi;
@@ -56,22 +42,22 @@ async function main() {
   const args = ["ETH", "USD"];
 
   // Tutorial 6
-  // const source = await fs.readFile(
-  //   "./examples/Functions-source-inline-secrets.js",
-  //   "utf8"
-  // );
-  // const args = ["1", "bitcoin", "btc-bitcoin"];
-  // const secrets = { apiKey: process.env.COINMARKETCAP_API_KEY };
+  //   const source = await fs.readFile(
+  //     "./examples/Functions-source-inline-secrets.js",
+  //     "utf8"
+  //   );
+  //   const args = ["1", "bitcoin", "btc-bitcoin"];
+  //   const secrets = { apiKey: process.env.COINMARKETCAP_API_KEY };
 
   // Tutorial 7
-  // const source = await fs.readFile(
-  //   "./examples/Functions-source-inline-secrets.js",
-  //   "utf8"
-  // );
-  // const args = ["1", "bitcoin", "btc-bitcoin"];
-  // const secrets = [
-  //   "https://clfunctions.s3.eu-north-1.amazonaws.com/offchain-secrets.json",
-  // ];
+  //   const source = await fs.readFile(
+  //     "./examples/Functions-source-inline-secrets.js",
+  //     "utf8"
+  //   );
+  //   const args = ["1", "bitcoin", "btc-bitcoin"];
+  //   const secrets = [
+  //     "https://clfunctions.s3.eu-north-1.amazonaws.com/offchain-secrets.json",
+  //   ];
 
   // Create an oracle contract object.
   // Used in this script only to encrypt secrets.
@@ -99,80 +85,109 @@ async function main() {
     encryptedSecrets = "0x";
   }
 
-  // Submit the request
-  // Order of the parameters is critical
-  const requestTx = await consumerContract.executeRequest(
-    source,
-    encryptedSecrets ?? "0x",
-    args ?? [], // Chainlink Functions request args
-    subscriptionId, // Subscription ID
-    gasLimit, // Gas limit for the transaction
-    (overrides = {
-      //Gas limit for the Chainlink Functions request
-      gasLimit: requestGas,
-    })
-  );
+  await new Promise(async (resolve, reject) => {
+    let cleanupInProgress = false;
+    const cleanup = async () => {
+      if (doGistCleanup) {
+        if (!cleanupInProgress) {
+          cleanupInProgress = true;
+          await deleteGist(process.env["GITHUB_API_TOKEN"], gistUrl);
+          return resolve();
+        }
+        return;
+      }
+      return resolve();
+    };
 
-  // If a response is not received within 5 minutes, the request has failed
-  setTimeout(
-    () =>
-      reject(
-        "A response not received within 5 minutes of the request " +
-          "being initiated and has been canceled. Your subscription " +
-          "was not charged. Please make a new request."
-      ),
-    300_000
-  );
-  console.log(
-    `Waiting ${verificationBlocks} blocks for transaction ` +
-      `${requestTx.hash} to be confirmed...`
-  );
+    oracle.on("UserCallbackError", async (eventRequestId, msg) => {
+      if (requestId == eventRequestId) {
+        console.error(
+          "Error encountered when calling fulfillRequest in client contract.\n" +
+            "Ensure the fulfillRequest function in the client contract is correct and the --gaslimit is sufficient."
+        );
+        console.log(`${msg}\n`);
+        await cleanup();
+      }
+    });
+    oracle.on("UserCallbackRawError", async (eventRequestId, msg) => {
+      if (requestId == eventRequestId) {
+        console.error(
+          "Raw error in contract request fulfillment. Please contact Chainlink support."
+        );
+        console.log(Buffer.from(msg, "hex").toString());
+        await cleanup();
+      }
+    });
 
-  // TODO: Need a better way to print this. Works on some requests and not others
-  // Doesn't handle subscription balance errors correctly
-  const requestTxReceipt = await requestTx.wait(verificationBlocks);
-  try {
-    // Try ethers v6 logs
-    requestId = requestTxReceipt.logs[2].args.id;
-    console.log(`\nRequest ${requestId} initiated`);
-  } catch (e) {
-    if (e instanceof TypeError) {
-      // Try ethers v5 events and print full output.
-      requestId = requestTxReceipt.events;
-      console.log(requestId);
-    } else {
-      console.log(e);
-      console.log("Could not read tx receipt. Skipping...");
-    }
-  }
-
-  console.log(`Waiting for fulfillment...\n`);
-
-  // TODO: Detect when the fulfillment is done rather than pausing
-  await new Promise((r) => setTimeout(r, 30000));
-
-  // Check for errors
-  let latestError = await consumerContract.latestError();
-  if (latestError.length > 0 && latestError !== "0x") {
-    const errorString = Buffer.from(latestError.slice(2), "hex").toString();
-    console.log(
-      `\nOn-chain error message: ${Buffer.from(
-        latestError.slice(2),
-        "hex"
-      ).toString()}`
+    // Submit the request
+    // Order of the parameters is critical
+    const requestTx = await consumerContract.executeRequest(
+      source,
+      encryptedSecrets ?? "0x",
+      args ?? [], // Chainlink Functions request args
+      subscriptionId, // Subscription ID
+      gasLimit, // Gas limit for the transaction
+      (overrides = {
+        //Gas limit for the Chainlink Functions request
+        gasLimit: requestGas,
+      })
     );
-  }
 
-  // Decode and print the latest response
-  let latestResponse = await consumerContract.latestResponse();
-  if (latestResponse.length > 0 && latestResponse !== "0x") {
-    latestResponse = BigInt(await latestResponse).toString();
-    console.log("Stored value is: " + latestResponse);
-  }
+    let requestId;
+    consumerContract.on(
+      "OCRResponse",
+      async (eventRequestId, response, err) => {
+        if (requestId === eventRequestId) {
+          if (response !== "0x") {
+            console.log(
+              `Response returned to client contract represented as a hex string: ${BigInt(
+                response
+              ).toString()}`
+            );
+          }
+          if (err !== "0x") {
+            console.log(
+              `Error message returned to client contract: "${Buffer.from(
+                err.slice(2),
+                "hex"
+              )}"\n`
+            );
+          }
 
-  if (doGistCleanup) {
-    await deleteGist(process.env["GITHUB_API_TOKEN"], gistUrl);
-  }
+          await cleanup();
+        }
+      }
+    );
+
+    console.log(
+      `Waiting ${verificationBlocks} blocks for transaction ` +
+        `${requestTx.hash} to be confirmed...`
+    );
+
+    // TODO: Need a better way to print this. Works on some requests and not others
+    // Doesn't handle subscription balance errors correctly
+    const requestTxReceipt = await requestTx.wait(verificationBlocks);
+
+    const requestEvent = requestTxReceipt.events.filter(
+      (event) => event.event === "RequestSent"
+    )[0];
+
+    requestId = requestEvent.args.id;
+    console.log(`\nRequest ${requestId} initiated`);
+
+    console.log(`Waiting for fulfillment...\n`);
+
+    // If a response is not received within 5 minutes, the request has failed
+    setTimeout(
+      () =>
+        reject(
+          "A response not received within 5 minutes of the request " +
+            "being initiated and has been canceled. Your subscription " +
+            "was not charged. Please make a new request."
+        ),
+      300_000
+    );
+  });
 }
 
 // Encrypt the secrets as defined in requestConfig
