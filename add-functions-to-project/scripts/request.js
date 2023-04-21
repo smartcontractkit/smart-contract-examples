@@ -42,22 +42,22 @@ async function main() {
   const args = ["ETH", "USD"];
 
   // Tutorial 6
-  //   const source = await fs.readFile(
-  //     "./examples/Functions-source-inline-secrets.js",
-  //     "utf8"
-  //   );
-  //   const args = ["1", "bitcoin", "btc-bitcoin"];
-  //   const secrets = { apiKey: process.env.COINMARKETCAP_API_KEY };
+  // const source = await fs.readFile(
+  //   "./examples/Functions-source-inline-secrets.js",
+  //   "utf8"
+  // );
+  // const args = ["1", "bitcoin", "btc-bitcoin"];
+  // const secrets = { apiKey: process.env.COINMARKETCAP_API_KEY };
 
   // Tutorial 7
-  //   const source = await fs.readFile(
-  //     "./examples/Functions-source-inline-secrets.js",
-  //     "utf8"
-  //   );
-  //   const args = ["1", "bitcoin", "btc-bitcoin"];
-  //   const secrets = [
-  //     "https://clfunctions.s3.eu-north-1.amazonaws.com/offchain-secrets.json",
-  //   ];
+  // const source = await fs.readFile(
+  //   "./examples/Functions-source-inline-secrets.js",
+  //   "utf8"
+  // );
+  // const args = ["1", "bitcoin", "btc-bitcoin"];
+  // const secrets = [
+  //   "https://clfunctions.s3.eu-north-1.amazonaws.com/offchain-secrets.json",
+  // ];
 
   // Create an oracle contract object.
   // Used in this script only to encrypt secrets.
@@ -85,6 +85,17 @@ async function main() {
     encryptedSecrets = "0x";
   }
 
+  let store = {};
+  oracle.on("UserCallbackError", (eventRequestId, msg) => {
+    store[eventRequestId] = { userCallbackError: true, msg: msg };
+  });
+  oracle.on("UserCallbackRawError", (eventRequestId, msg) => {
+    store[eventRequestId] = { userCallbackRawError: true, msg: msg };
+  });
+  consumerContract.on("OCRResponse", (eventRequestId, response, err) => {
+    store[eventRequestId] = { response: response, err: err };
+  });
+
   await new Promise(async (resolve, reject) => {
     let cleanupInProgress = false;
     const cleanup = async () => {
@@ -98,26 +109,6 @@ async function main() {
       }
       return resolve();
     };
-
-    oracle.on("UserCallbackError", async (eventRequestId, msg) => {
-      if (requestId == eventRequestId) {
-        console.error(
-          "Error encountered when calling fulfillRequest in client contract.\n" +
-            "Ensure the fulfillRequest function in the client contract is correct and the --gaslimit is sufficient."
-        );
-        console.log(`${msg}\n`);
-        await cleanup();
-      }
-    });
-    oracle.on("UserCallbackRawError", async (eventRequestId, msg) => {
-      if (requestId == eventRequestId) {
-        console.error(
-          "Raw error in contract request fulfillment. Please contact Chainlink support."
-        );
-        console.log(Buffer.from(msg, "hex").toString());
-        await cleanup();
-      }
-    });
 
     // Submit the request
     // Order of the parameters is critical
@@ -134,30 +125,6 @@ async function main() {
     );
 
     let requestId;
-    consumerContract.on(
-      "OCRResponse",
-      async (eventRequestId, response, err) => {
-        if (requestId === eventRequestId) {
-          if (response !== "0x") {
-            console.log(
-              `Response returned to client contract represented as a hex string: ${BigInt(
-                response
-              ).toString()}`
-            );
-          }
-          if (err !== "0x") {
-            console.log(
-              `Error message returned to client contract: "${Buffer.from(
-                err.slice(2),
-                "hex"
-              )}"\n`
-            );
-          }
-
-          await cleanup();
-        }
-      }
-    );
 
     console.log(
       `Waiting ${verificationBlocks} blocks for transaction ` +
@@ -176,6 +143,49 @@ async function main() {
     console.log(`\nRequest ${requestId} initiated`);
 
     console.log(`Waiting for fulfillment...\n`);
+
+    // poll
+    let polling;
+    async function checkStore() {
+      const result = store[requestId];
+      if (result) {
+        console.log(`\nRequest ${requestId} fulfilled!`);
+        if (result.userCallbackError) {
+          console.error(
+            "Error encountered when calling fulfillRequest in client contract.\n" +
+              "Ensure the fulfillRequest function in the client contract is correct and the --gaslimit is sufficient."
+          );
+          console.error(`${msg}\n`);
+        } else if (result.userCallbackRawError) {
+          console.error(
+            "Raw error in contract request fulfillment. Please contact Chainlink support."
+          );
+          console.error(Buffer.from(msg, "hex").toString());
+        } else {
+          const { response, err } = result;
+          if (response !== "0x") {
+            console.log(
+              `Response returned to client contract represented as a hex string: ${BigInt(
+                response
+              ).toString()}`
+            );
+          }
+          if (err !== "0x") {
+            console.error(
+              `Error message returned to client contract: "${Buffer.from(
+                err.slice(2),
+                "hex"
+              )}"\n`
+            );
+          }
+        }
+
+        clearInterval(polling);
+        await cleanup();
+      }
+    }
+
+    polling = setInterval(checkStore, 1000); // poll every second to see if an event once received
 
     // If a response is not received within 5 minutes, the request has failed
     setTimeout(
