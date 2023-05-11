@@ -6,7 +6,7 @@ async function main() {
   // Provider config currently set for Polygon Mumbai
 
   const provider = new ethers.providers.JsonRpcProvider(
-    process.env.MUMBAI_RPC_URL
+    process.env.POLYGON_MUMBAI_RPC_URL
   );
 
   // Get private wallet key from the .env file

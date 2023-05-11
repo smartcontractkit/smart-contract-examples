@@ -5,7 +5,7 @@ require("@nomicfoundation/hardhat-toolbox");
  * @type import('hardhat/config').HardhatUserConfig
  */
 module.exports = {
-  defaultNetwork: "mumbai",
+  defaultNetwork: "polygonMumbai",
   networks: {
     hardhat: {
       // // If you want to do some forking, uncomment this
@@ -14,13 +14,18 @@ module.exports = {
       // }
     },
     localhost: {},
-    mumbai: {
-      url: process.env.MUMBAI_RPC_URL,
+    polygonMumbai: {
+      url: process.env.POLYGON_MUMBAI_RPC_URL,
       accounts: [process.env.PRIVATE_KEY],
       saveDeployments: true,
     },
-    sepolia: {
-      url: process.env.SEPOLIA_RPC_URL,
+    ethereumSepolia: {
+      url: process.env.ETHEREUM_SEPOLIA_RPC_URL || "",
+      accounts: [process.env.PRIVATE_KEY],
+      saveDeployments: true,
+    },
+    avalancheFuji: {
+      url: process.env.AVALANCHE_FUJI_RPC_URL || "",
       accounts: [process.env.PRIVATE_KEY],
       saveDeployments: true,
     },
