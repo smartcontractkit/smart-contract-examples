@@ -1,0 +1,15 @@
+{
+  "name": "ccip-offchain-examples-js",
+  "version": "1.0.0",
+  "description": "provide typescript examples of interacting with Chainlink CCIP from your EOA",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@chainlink/env-enc": "^1.0.5",
+    "ethers": "^5.7.2"
+  }
+}
