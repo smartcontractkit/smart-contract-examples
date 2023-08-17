@@ -36,21 +36,12 @@ We go through creating 3 different kinds of NFTs.
 ## Quickstart
 
 ```
-git clone https://github.com/PatrickAlphaC/hardhat-nft-fcc
-cd hardhat-nft-fcc
+git clone https://github.com/smartcontractkit/smart-contract-examples
+cd smart-contract-examples/ultimate-nft-repo
 yarn
 ```
 
-## Typescript
-
-If you want to get to typescript and you cloned the javascript version, just run:
-
-```
-git checkout typescript
-```
-
-
-# Useage
+# Usage
 
 Deploy:
 
@@ -76,11 +67,11 @@ yarn hardhat coverage
 
 1. Setup environment variabltes
 
-You'll want to set your `RINKEBY_RPC_URL` and `PRIVATE_KEY` as environment variables. You can add them to a `.env` file, similar to what you see in `.env.example`.
+You'll want to set your `SEPOLIA_RPC_URL` and `PRIVATE_KEY` as environment variables. You can add them to a `.env` file, similar to what you see in `.env.example`.
 
 - `PRIVATE_KEY`: The private key of your account (like from [metamask](https://metamask.io/)). **NOTE:** FOR DEVELOPMENT, PLEASE USE A KEY THAT DOESN'T HAVE ANY REAL FUNDS ASSOCIATED WITH IT.
   - You can [learn how to export it here](https://metamask.zendesk.com/hc/en-us/articles/360015289632-How-to-Export-an-Account-Private-Key).
-- `RINKEBY_RPC_URL`: This is url of the rinkeby testnet node you're working with. You can get setup with one for free from [Alchemy](https://alchemy.com/?a=673c802981)
+- `SEPOLIA_RPC_URL`: This is url of the Sepolia testnet node you're working with. You can get setup with one for free from [Alchemy](https://alchemy.com/?a=673c802981)
 
 2. Get testnet ETH
 
@@ -97,11 +88,11 @@ Head over to [vrf.chain.link](https://vrf.chain.link/) and setup a new subscript
 
 3. Deploy
 
-In your `helper-hardhat-config.ts` add your `subscriptionId` under the section of the chainId you're using (aka, if you're deploying to rinkeby, add your `subscriptionId` in the `subscriptionId` field under the `4` section.)
+In your `helper-hardhat-config.ts` add your `subscriptionId` under the section of the chainId you're using (aka, if you're deploying to Sepolia, add your `subscriptionId` in the `subscriptionId` field under the `11155111` section.)
 
 Then run:
 ```
-yarn hardhat deploy --network rinkeby --tags main
+yarn hardhat deploy --network sepolia --tags main
 ```
 
 We only deploy the `main` tags, since we need to add our `RandomIpfsNft` contract as a consumer. 
@@ -115,7 +106,7 @@ Go back to [vrf.chain.link](https://vrf.chain.link) and under your subscription 
 Then run:
 
 ```
-yarn hardhat deploy --network rinkeby --tags mint
+yarn hardhat deploy --network sepolia --tags mint
 ```
 
 
@@ -139,15 +130,6 @@ However, you can manual verify with:
 yarn hardhat verify --constructor-args arguments.ts DEPLOYED_CONTRACT_ADDRESS
 ```
 
-### Typescript differences
-1. `.js` files are now `.ts`
-2. We added a bunch of typescript and typing packages to our `package.json`. They can be installed with:
-   1. `yarn add @typechain/ethers-v5 @typechain/hardhat @types/chai @types/node ts-node typechain typescript`
-3. The biggest one being [typechain](https://github.com/dethcrypto/TypeChain)
-   1. This gives your contracts static typing, meaning you'll always know exactly what functions a contract can call. 
-   2. This gives us `factories` that are specific to the contracts they are factories of. See the tests folder for a version of how this is implemented. 
-4. We use `imports` instead of `require`. Confusing to you? [Watch this video](https://www.youtube.com/watch?v=mK54Cn4ceac)
-5. Add `tsconfig.json`
 
 # Linting
 
