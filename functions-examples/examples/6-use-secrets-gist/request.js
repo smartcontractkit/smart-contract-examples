@@ -31,7 +31,7 @@ const makeRequestMumbai = async () => {
 
   const args = ["1", "USD"];
   const secrets = { apiKey: process.env.COINMARKETCAP_API_KEY };
-  const gasLimit = 70000;
+  const gasLimit = 100000;
 
   // Initialize ethers signer and provider to interact with the contracts onchain
   const privateKey = process.env.PRIVATE_KEY; // fetch PRIVATE_KEY
