@@ -35,7 +35,7 @@ const updateRequestMumbai = async () => {
   const secrets = { apiKey: process.env.COINMARKETCAP_API_KEY };
   const slotIdNumber = 0; // slot ID where to upload the secrets
   const expirationTimeMinutes = 150; // expiration time in minutes of the secrets
-  const gasLimit = 70000;
+  const gasLimit = 100000;
 
   // Initialize ethers signer and provider to interact with the contracts onchain
   const privateKey = process.env.PRIVATE_KEY; // fetch PRIVATE_KEY

@@ -38,7 +38,7 @@ const makeRequestMumbai = async () => {
   `;
 
   const args = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
-  const gasLimit = 70000;
+  const gasLimit = 100000;
 
   //////// MAKE REQUEST ////////
 

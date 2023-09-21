@@ -27,7 +27,7 @@ const makeRequestMumbai = async () => {
     .toString();
 
   const args = ["JP"];
-  const gasLimit = 70000;
+  const gasLimit = 100000;
 
   // Initialize ethers signer and provider to interact with the contracts onchain
   const privateKey = process.env.PRIVATE_KEY; // fetch PRIVATE_KEY
