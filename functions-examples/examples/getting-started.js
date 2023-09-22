@@ -122,7 +122,7 @@ const makeRequestMumbai = async () => {
           response.fulfillmentCode
         }. Cost is ${ethers.utils.formatEther(
           response.totalCostInJuels
-        )} LINK.Complete reponse: `,
+        )} LINK. Complete response: `,
         response
       );
 
