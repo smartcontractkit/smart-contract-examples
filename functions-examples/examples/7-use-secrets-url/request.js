@@ -101,7 +101,7 @@ const makeRequestMumbai = async () => {
     });
 
   console.log(
-    `Fulfillement cost estimated to ${ethers.utils.formatEther(
+    `Fulfillment cost estimated to ${ethers.utils.formatEther(
       estimatedCostInJuels
     )} LINK`
   );
@@ -188,7 +188,7 @@ const makeRequestMumbai = async () => {
           response.fulfillmentCode
         }. Cost is ${ethers.utils.formatEther(
           response.totalCostInJuels
-        )} LINK.Complete reponse: `,
+        )} LINK. Complete response: `,
         response
       );
 
