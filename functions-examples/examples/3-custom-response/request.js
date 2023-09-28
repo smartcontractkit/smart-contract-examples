@@ -6,6 +6,7 @@ const {
   ResponseListener,
   ReturnType,
   decodeResult,
+  FulfillmentCode,
 } = require("@chainlink/functions-toolkit");
 const functionsConsumerAbi = require("../../abi/functionsClient.json");
 const ethers = require("ethers");
@@ -27,7 +28,7 @@ const makeRequestMumbai = async () => {
     .toString();
 
   const args = ["ETH", "USD"];
-  const gasLimit = 100000;
+  const gasLimit = 300000;
 
   // Initialize ethers signer and provider to interact with the contracts onchain
   const privateKey = process.env.PRIVATE_KEY; // fetch PRIVATE_KEY
@@ -163,14 +164,30 @@ const makeRequestMumbai = async () => {
           });
       });
 
-      console.log(
-        `\n✅ Request ${requestId} fulfilled with code: ${
-          response.fulfillmentCode
-        }. Cost is ${ethers.utils.formatEther(
-          response.totalCostInJuels
-        )} LINK. Complete response: `,
-        response
-      );
+      const fulfillmentCode = response.fulfillmentCode;
+
+      if (fulfillmentCode === FulfillmentCode.FULFILLED) {
+        console.log(
+          `\n✅ Request ${requestId} successfully fulfilled. Cost is ${ethers.utils.formatEther(
+            response.totalCostInJuels
+          )} LINK.Complete reponse: `,
+          response
+        );
+      } else if (fulfillmentCode === FulfillmentCode.USER_CALLBACK_ERROR) {
+        console.log(
+          `\n⚠️ Request ${requestId} fulfilled. However, the consumer contract callback failed. Cost is ${ethers.utils.formatEther(
+            response.totalCostInJuels
+          )} LINK.Complete reponse: `,
+          response
+        );
+      } else {
+        console.log(
+          `\n❌ Request ${requestId} not fulfilled. Code: ${fulfillmentCode}. Cost is ${ethers.utils.formatEther(
+            response.totalCostInJuels
+          )} LINK.Complete reponse: `,
+          response
+        );
+      }
 
       const errorString = response.errorString;
       if (errorString) {

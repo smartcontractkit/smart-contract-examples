@@ -1,9 +1,6 @@
 const automatedFunctionsConsumerAbi = require("../../abi/automatedFunctions.json");
 const ethers = require("ethers");
-const {
-  ReturnType,
-  decodeResult,
-} = require("@chainlink/functions-toolkit");
+const { ReturnType, decodeResult } = require("@chainlink/functions-toolkit");
 require("@chainlink/env-enc").config();
 
 const consumerAddress = "0x5abE77Ba2aE8918bfD96e2e382d5f213f10D39fA"; // REPLACE this with your Functions consumer address
@@ -32,17 +29,16 @@ const readLatest = async () => {
   const lastRequestId = await automatedFunctionsConsumer.s_lastRequestId();
   const lastResponse = await automatedFunctionsConsumer.s_lastResponse();
   const lastError = await automatedFunctionsConsumer.s_lastError();
-  const lastResponseLength =
-    await automatedFunctionsConsumer.s_lastResponseLength();
-  const lastErrorLength = await automatedFunctionsConsumer.s_lastErrorLength();
+  const isResponse = lastResponse !== "0x"; // empty bytes array is '0x'
+  const isError = lastError !== "0x"; // empty bytes array is '0x'
 
   console.log("Last request ID is", lastRequestId);
-  if (lastErrorLength > 0) {
+  if (isError) {
     console.log(lastError);
-    const bytes = ethers.utils.arrayify(lastError); // converts a hexadecimal string into a byte array 
+    const bytes = ethers.utils.arrayify(lastError); // converts a hexadecimal string into a byte array
     const decodedString = ethers.utils.toUtf8String(bytes); // takes a byte array and converts it to a UTF-8 string
     console.log(`❌ Error : `, decodedString);
-  } else if (lastResponseLength > 0) {
+  } else if (isResponse) {
     const returnType = ReturnType.uint256;
     const decodedResponse = decodeResult(lastResponse, returnType);
     console.log(`✅ Decoded response to ${returnType}: `, decodedResponse);

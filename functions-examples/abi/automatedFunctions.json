@@ -122,15 +122,15 @@
       },
       {
         "indexed": false,
-        "internalType": "bytes32",
+        "internalType": "bytes",
         "name": "response",
-        "type": "bytes32"
+        "type": "bytes"
       },
       {
         "indexed": false,
-        "internalType": "bytes32",
+        "internalType": "bytes",
         "name": "err",
-        "type": "bytes32"
+        "type": "bytes"
       }
     ],
     "name": "Response",
@@ -223,22 +223,9 @@
     "name": "s_lastError",
     "outputs": [
       {
-        "internalType": "bytes32",
+        "internalType": "bytes",
         "name": "",
-        "type": "bytes32"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "s_lastErrorLength",
-    "outputs": [
-      {
-        "internalType": "uint32",
-        "name": "",
-        "type": "uint32"
+        "type": "bytes"
       }
     ],
     "stateMutability": "view",
@@ -262,22 +249,9 @@
     "name": "s_lastResponse",
     "outputs": [
       {
-        "internalType": "bytes32",
+        "internalType": "bytes",
         "name": "",
-        "type": "bytes32"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "s_lastResponseLength",
-    "outputs": [
-      {
-        "internalType": "uint32",
-        "name": "",
-        "type": "uint32"
+        "type": "bytes"
       }
     ],
     "stateMutability": "view",

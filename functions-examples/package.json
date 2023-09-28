@@ -10,7 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "@chainlink/env-enc": "^1.0.5",
-    "@chainlink/functions-toolkit": "^0.2.0",
+    "@chainlink/functions-toolkit": "^0.2.5",
     "ethers": "^5.7.2"
   }
 }
