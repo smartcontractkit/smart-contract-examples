@@ -1,0 +1,19 @@
+{
+  "name": "sports-data-demo",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@chainlink/contracts": "^0.7.1",
+    "@chainlink/functions-toolkit": "^0.2.5",
+    "hardhat": "^2.17.4"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^3.0.0"
+  }
+}
