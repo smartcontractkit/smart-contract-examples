@@ -9,11 +9,9 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@chainlink/contracts": "^0.7.1",
+    "@chainlink/contracts": "^0.8.0",
+    "@chainlink/env-enc": "^1.0.5",
     "@chainlink/functions-toolkit": "^0.2.5",
-    "hardhat": "^2.17.4"
-  },
-  "devDependencies": {
-    "@nomicfoundation/hardhat-toolbox": "^3.0.0"
+    "ethers": "^5.7.2"
   }
 }
