@@ -1,9 +1,0 @@
-.vscode
-artifacts
-cache
-deployments
-node_modules
-.env
-
-# These environment variables are encrypted, but should not be pushed unless a secure password is used
-.env.enc
