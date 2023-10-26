@@ -152,19 +152,6 @@ const makeRequestMumbai = async () => {
     signer
   );
 
-  // To simulate the call and get the requestId.
-  const requestId = await functionsConsumer.callStatic.sendRequest(
-    source, // source
-    "0x", // user hosted secrets - encryptedSecretsUrls - empty in this example
-    slotIdNumber, // slot ID of the encrypted secrets
-    donHostedSecretsVersion, // version of the encrypted secrets
-    args,
-    [], // bytesArgs - arguments can be encoded off-chain to bytes.
-    subscriptionId,
-    gasLimit,
-    ethers.utils.formatBytes32String(donId) // jobId is bytes32 representation of donId
-  );
-
   // Actual transaction call
   const transaction = await functionsConsumer.sendRequest(
     source, // source
@@ -180,7 +167,7 @@ const makeRequestMumbai = async () => {
 
   // Log transaction details
   console.log(
-    `\n✅ Functions request sent! Transaction hash ${transaction.hash} -  Request id is ${requestId}. Waiting for a response...`
+    `\n✅ Functions request sent! Transaction hash ${transaction.hash}. Waiting for a response...`
   );
 
   console.log(
@@ -195,7 +182,7 @@ const makeRequestMumbai = async () => {
     try {
       const response = await new Promise((resolve, reject) => {
         responseListener
-          .listenForResponse(requestId)
+          .listenForResponseFromTransaction(transaction.hash)
           .then((response) => {
             resolve(response); // Resolves once the request has been fulfilled.
           })
@@ -208,21 +195,27 @@ const makeRequestMumbai = async () => {
 
       if (fulfillmentCode === FulfillmentCode.FULFILLED) {
         console.log(
-          `\n✅ Request ${requestId} successfully fulfilled. Cost is ${ethers.utils.formatEther(
+          `\n✅ Request ${
+            response.requestId
+          } successfully fulfilled. Cost is ${ethers.utils.formatEther(
             response.totalCostInJuels
           )} LINK.Complete reponse: `,
           response
         );
       } else if (fulfillmentCode === FulfillmentCode.USER_CALLBACK_ERROR) {
         console.log(
-          `\n⚠️ Request ${requestId} fulfilled. However, the consumer contract callback failed. Cost is ${ethers.utils.formatEther(
+          `\n⚠️ Request ${
+            response.requestId
+          } fulfilled. However, the consumer contract callback failed. Cost is ${ethers.utils.formatEther(
             response.totalCostInJuels
           )} LINK.Complete reponse: `,
           response
         );
       } else {
         console.log(
-          `\n❌ Request ${requestId} not fulfilled. Code: ${fulfillmentCode}. Cost is ${ethers.utils.formatEther(
+          `\n❌ Request ${
+            response.requestId
+          } not fulfilled. Code: ${fulfillmentCode}. Cost is ${ethers.utils.formatEther(
             response.totalCostInJuels
           )} LINK.Complete reponse: `,
           response
