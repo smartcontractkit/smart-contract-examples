@@ -64,7 +64,7 @@ const makeRequestMumbai = async () => {
   if (errorString) {
     console.log(`❌ Error during simulation: `, errorString);
   } else {
-    const returnType = ReturnType.uint256;
+    const returnType = ReturnType.int256;
     const responseBytesHexstring = response.responseBytesHexstring;
     if (ethers.utils.arrayify(responseBytesHexstring).length > 0) {
       const decodedResponse = decodeResult(
@@ -191,10 +191,10 @@ const makeRequestMumbai = async () => {
         if (ethers.utils.arrayify(responseBytesHexstring).length > 0) {
           const decodedResponse = decodeResult(
             response.responseBytesHexstring,
-            ReturnType.uint256
+            ReturnType.int256
           );
           console.log(
-            `\n✅ Decoded response to ${ReturnType.uint256}: `,
+            `\n✅ Decoded response to ${ReturnType.int256}: `,
             decodedResponse
           );
         }

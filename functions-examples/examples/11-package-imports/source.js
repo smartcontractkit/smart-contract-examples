@@ -1,26 +1,86 @@
 // calculate geometric mean off-chain by a DON then return the result
 // valures provided in args array
 
-// imports
-const { escape } = await import("https://deno.land/std/regexp/mod.ts");
-const path = await import("node:path");
-const lodash = await import("http://cdn.skypack.dev/lodash"); 
+// Imports
+const ethers = await import("npm:ethers")
 
-// create string arrays
-const array1 = ["Hello", " "]
-const array2 = ["World", "!"]
+// Constants
+const RPC_URL = "https://ethereum.publicnode.com"
+const CONTRACT_ADDRESS = "0xF4030086522a5bEEa4988F8cA5B36dbC97BeE88c"
 
-// concatenate arrays
-const concatenatedArray = (lodash.concat(array1, array2));
-console.log(`Concatenated array: ` + concatenatedArray);
+// Data Feeds ABI
+const abi  = [
+  {
+    inputs: [],
+    name: "decimals",
+    outputs: [{ internalType: "uint8", name: "", type: "uint8" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "description",
+    outputs: [{ internalType: "string", name: "", type: "string" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "uint80", name: "_roundId", type: "uint80" }],
+    name: "getRoundData",
+    outputs: [
+      { internalType: "uint80", name: "roundId", type: "uint80" },
+      { internalType: "int256", name: "answer", type: "int256" },
+      { internalType: "uint256", name: "startedAt", type: "uint256" },
+      { internalType: "uint256", name: "updatedAt", type: "uint256" },
+      { internalType: "uint80", name: "answeredInRound", type: "uint80" },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "latestRoundData",
+    outputs: [
+      { internalType: "uint80", name: "roundId", type: "uint80" },
+      { internalType: "int256", name: "answer", type: "int256" },
+      { internalType: "uint256", name: "startedAt", type: "uint256" },
+      { internalType: "uint256", name: "updatedAt", type: "uint256" },
+      { internalType: "uint80", name: "answeredInRound", type: "uint80" },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "version",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+]
 
-// join arrays into a string
-const joinedString = path.join(concatenatedArray[0], concatenatedArray[1], concatenatedArray[2], concatenatedArray[3]);
-console.log(`Joined string: ` + concatenatedArray);
+// Chainlink Functions compatible Ethers JSON RPC provider class
+// (this is required for making Ethers RPC calls with Chainlink Functions)
+class FunctionsJsonRpcProvider extends ethers.JsonRpcProvider {
+  constructor(url) {
+    super(url)
+    this.url = url
+  }
+  async _send(payload: ethers.JsonRpcPayload | Array<ethers.JsonRpcPayload>): Promise<Array<ethers.JsonRpcResult>> {
+    let resp = await fetch(this.url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    })
+    return resp.json()
+  }
+}
 
-// escape string
-const escapedString = escape(joinedString);
-console.log(`Escaped string: ` + escapedString);
+const provider = new FunctionsJsonRpcProvider(RPC_URL)
+const dataFeedContract = new ethers.Contract(CONTRACT_ADDRESS, abi, provider)
+const dataFeedResponse = await dataFeedContract.latestRoundData()
+
+console.log(`Fetched BTC / USD price: ` + dataFeedResponse.answer);
 
 // return result
-return Functions.encodeString(escapedString);
+return Functions.encodeInt256(dataFeedResponse.answer);
