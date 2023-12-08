@@ -78,7 +78,9 @@ const getLanesAndTokens = async () => {
               decimals
             )} USD/seconds`
           );
-          const supportedTokens = await onRampContract.getSupportedTokens();
+          const supportedTokens = await onRampContract.getSupportedTokens(
+            targetChainSelector
+          );
           // For each supported token, print its name, symbol, and decimal precision
           for (const supportedToken of supportedTokens) {
             // Create a contract instance for the token using its ABI and address
@@ -99,6 +101,7 @@ const getLanesAndTokens = async () => {
             );
 
             const pool = await onRampContract.getPoolBySourceToken(
+              targetChainSelector,
               supportedToken
             );
             console.log(`   pool ${pool}`);
