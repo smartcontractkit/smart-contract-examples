@@ -47,7 +47,18 @@
     "type": "error"
   },
   {
-    "inputs": [],
+    "inputs": [
+      {
+        "internalType": "uint64",
+        "name": "chainSelector",
+        "type": "uint64"
+      },
+      {
+        "internalType": "address",
+        "name": "offRamp",
+        "type": "address"
+      }
+    ],
     "name": "OffRampMismatch",
     "type": "error"
   },
@@ -509,6 +520,11 @@
   {
     "inputs": [
       {
+        "internalType": "uint64",
+        "name": "sourceChainSelector",
+        "type": "uint64"
+      },
+      {
         "internalType": "address",
         "name": "offRamp",
         "type": "address"
@@ -520,11 +536,6 @@
         "internalType": "bool",
         "name": "",
         "type": "bool"
-      },
-      {
-        "internalType": "uint64",
-        "name": "",
-        "type": "uint64"
       }
     ],
     "stateMutability": "view",
@@ -639,6 +650,11 @@
         "internalType": "bytes",
         "name": "retData",
         "type": "bytes"
+      },
+      {
+        "internalType": "uint256",
+        "name": "gasUsed",
+        "type": "uint256"
       }
     ],
     "stateMutability": "nonpayable",

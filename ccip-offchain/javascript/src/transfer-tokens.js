@@ -121,14 +121,11 @@ const transferTokens = async () => {
   // Encoding the data
 
   const functionSelector = ethers.utils.id("CCIP EVMExtraArgsV1").slice(0, 10);
-  //  "extraArgs" is a structure that can be represented as [ 'uint256', 'bool' ]
-  // extraArgs are { gasLimit: 0, strict: false }
+  //  "extraArgs" is a structure that can be represented as [ 'uint256']
+  // extraArgs are { gasLimit: 0 }
   // we set gasLimit specifically to 0 because we are not sending any data so we are not expecting a receiving contract to handle data
 
-  const extraArgs = ethers.utils.defaultAbiCoder.encode(
-    ["uint256", "bool"],
-    [0, false]
-  );
+  const extraArgs = ethers.utils.defaultAbiCoder.encode(["uint256"], [0]);
 
   const encodedExtraArgs = functionSelector + extraArgs.slice(2);
 

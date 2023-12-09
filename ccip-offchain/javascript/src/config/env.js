@@ -30,6 +30,12 @@ const getProviderRpcUrl = (network) => {
     case "polygonMumbai":
       rpcUrl = process.env.POLYGON_MUMBAI_RPC_URL;
       break;
+    case "bnbTestnet":
+      rpcUrl = process.env.BNB_TESTNET_RPC_URL;
+      break;
+    case "baseGoerli":
+      rpcUrl = process.env.BASE_GOERLI_RPC_URL;
+      break;
     default:
       throw new Error("Unknown network: " + network);
   }
