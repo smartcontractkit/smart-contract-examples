@@ -1,15 +1,12 @@
-// calculate geometric mean off-chain by a DON then return the result
-// valures provided in args array
-
 // Imports
-const ethers = await import("npm:ethers")
+const ethers = await import("npm:ethers");
 
 // Constants
-const RPC_URL = "https://ethereum.publicnode.com"
-const CONTRACT_ADDRESS = "0xF4030086522a5bEEa4988F8cA5B36dbC97BeE88c"
+const RPC_URL = "https://ethereum.publicnode.com";
+const CONTRACT_ADDRESS = "0xF4030086522a5bEEa4988F8cA5B36dbC97BeE88c";
 
 // Data Feeds ABI
-const abi  = [
+const abi = [
   {
     inputs: [],
     name: "decimals",
@@ -57,28 +54,28 @@ const abi  = [
     stateMutability: "view",
     type: "function",
   },
-]
+];
 
 // Chainlink Functions compatible Ethers JSON RPC provider class
 // (this is required for making Ethers RPC calls with Chainlink Functions)
 class FunctionsJsonRpcProvider extends ethers.JsonRpcProvider {
   constructor(url) {
-    super(url)
-    this.url = url
+    super(url);
+    this.url = url;
   }
-  async _send(payload: ethers.JsonRpcPayload | Array<ethers.JsonRpcPayload>): Promise<Array<ethers.JsonRpcResult>> {
+  async _send(payload) {
     let resp = await fetch(this.url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
-    })
-    return resp.json()
+    });
+    return resp.json();
   }
 }
 
-const provider = new FunctionsJsonRpcProvider(RPC_URL)
-const dataFeedContract = new ethers.Contract(CONTRACT_ADDRESS, abi, provider)
-const dataFeedResponse = await dataFeedContract.latestRoundData()
+const provider = new FunctionsJsonRpcProvider(RPC_URL);
+const dataFeedContract = new ethers.Contract(CONTRACT_ADDRESS, abi, provider);
+const dataFeedResponse = await dataFeedContract.latestRoundData();
 
 console.log(`Fetched BTC / USD price: ` + dataFeedResponse.answer);
 
