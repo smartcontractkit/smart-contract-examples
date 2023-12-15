@@ -184,13 +184,6 @@ contract SuperDynamicNFT is ERC721, ERC721URIStorage, VRFConsumerBaseV2 {
         return finalTokenURI;
     }
 
-    // Overridden burn function to ensure ERC721 and ERC721URIStorage compatibility
-    function _burn(
-        uint256 tokenId
-    ) internal override(ERC721, ERC721URIStorage) {
-        super._burn(tokenId);
-    }
-
     // Modifier to restrict certain functions to contract owner
     modifier onlyOwner() {
         require(msg.sender == s_owner);
