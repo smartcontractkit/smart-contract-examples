@@ -1,7 +1,8 @@
 // Import necessary modules and data
 const { getProviderRpcUrl, getRouterConfig } = require("./config");
 const ethers = require("ethers");
-const { Router, ERC20 } = require("@chainlink/ccip-toolkit/dist");
+const routerAbi = require("../../abi/Router.json");
+const erc20Abi = require("../../abi/IERC20Metadata.json");
 
 // A script is run with two arguments representing the source and target chains
 // Example usage: node src/supported-tokens.js ethereumSepolia avalancheFuji
@@ -34,7 +35,7 @@ const getSupportedTokens = async () => {
   const targetChainSelector = getRouterConfig(targetChain).chainSelector;
 
   // Create a contract instance for the router using its ABI and address
-  const router = new Router(routerAddress, provider);
+  const router = new ethers.Contract(routerAddress, routerAbi, provider);
 
   // Fetch the list of supported tokens
   const supportedTokens = await router.getSupportedTokens(targetChainSelector);
@@ -42,10 +43,12 @@ const getSupportedTokens = async () => {
   // For each supported token, print its name, symbol, and decimal precision
   for (const supportedToken of supportedTokens) {
     // Create a contract instance for the token using its ABI and address
-    const erc20 = new ERC20(supportedToken, provider);
+    const erc20 = new ethers.Contract(supportedToken, erc20Abi, provider);
 
     // Fetch the token's name, symbol, and decimal precision
-    const { name, symbol, decimals } = await erc20.getTokenDetails();
+    const name = await erc20.name();
+    const symbol = await erc20.symbol();
+    const decimals = await erc20.decimals();
 
     // Print the token's details
     console.log(
