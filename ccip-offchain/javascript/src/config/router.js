@@ -37,6 +37,11 @@ const baseGoerli = {
   chainSelector: "5790810961207155433",
 };
 
+const arbitrumTestnet = {
+  address: "0x2a9C5afB0d0e4BAb2BCdaE109EC4b0c4Be15a165",
+  chainSelector: "3478487238524512106",
+}
+
 const getRouterConfig = (network) => {
   switch (network) {
     case "ethereumSepolia":
