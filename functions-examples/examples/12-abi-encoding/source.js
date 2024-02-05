@@ -63,7 +63,6 @@ class FunctionsJsonRpcProvider extends ethers.JsonRpcProvider {
     super(url);
     this.url = url;
   }
-
   async _send(payload) {
     let resp = await fetch(this.url, {
       method: "POST",
@@ -77,8 +76,19 @@ class FunctionsJsonRpcProvider extends ethers.JsonRpcProvider {
 const provider = new FunctionsJsonRpcProvider(RPC_URL);
 const dataFeedContract = new ethers.Contract(CONTRACT_ADDRESS, abi, provider);
 const dataFeedResponse = await dataFeedContract.latestRoundData();
+const decimals = await dataFeedContract.decimals();
+const description = await dataFeedContract.description();
 
-console.log(`Fetched BTC / USD price: ` + dataFeedResponse.answer);
+console.log(`Fetched BTC / USD price: dataFeedResponse.answer`);
+console.log(`Updated at: ${dataFeedResponse.updatedAt}`);
+console.log(`Decimals: ${decimals}`);
+console.log(`Description: ${description}`);
 
-// return result
-return Functions.encodeInt256(dataFeedResponse.answer);
+// ABI encoding
+const encoded = ethers.AbiCoder.defaultAbiCoder().encode(
+  ["uint256", "uint256", "uint8", "string"],
+  [dataFeedResponse.answer, dataFeedResponse.updatedAt, decimals, description]
+);
+
+// return the encoded data as Uint8Array
+return ethers.getBytes(encoded);
