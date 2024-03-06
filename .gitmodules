@@ -10,3 +10,6 @@
 [submodule "EmojiGotchi/foundry_final/lib/openzeppelin-contracts"]
 	path = EmojiGotchi/foundry_final/lib/openzeppelin-contracts
 	url = https://github.com/openzeppelin/openzeppelin-contracts
+[submodule "quiz-game/foundry/lib/ds-test"]
+	path = quiz-game/foundry/lib/ds-test
+	url = https://github.com/dapphub/ds-test
