@@ -1,0 +1,21 @@
+[submodule "EmojiGotchi/foundry/lib/ds-test"]
+	path = EmojiGotchi/foundry/lib/ds-test
+	url = https://github.com/dapphub/ds-test
+[submodule "EmojiGotchi/foundry/lib/openzeppelin-contracts"]
+	path = EmojiGotchi/foundry/lib/openzeppelin-contracts
+	url = https://github.com/openzeppelin/openzeppelin-contracts
+[submodule "EmojiGotchi/foundry_final/lib/ds-test"]
+	path = EmojiGotchi/foundry_final/lib/ds-test
+	url = https://github.com/dapphub/ds-test
+[submodule "EmojiGotchi/foundry_final/lib/openzeppelin-contracts"]
+	path = EmojiGotchi/foundry_final/lib/openzeppelin-contracts
+	url = https://github.com/openzeppelin/openzeppelin-contracts
+[submodule "quiz-game/foundry/lib/ds-test"]
+	path = quiz-game/foundry/lib/ds-test
+	url = https://github.com/dapphub/ds-test
+[submodule "timelocked-contracts/lib/ds-test"]
+	path = timelocked-contracts/lib/ds-test
+	url = https://github.com/dapphub/ds-test
+[submodule "timelocked-contracts/lib/openzeppelin-contracts"]
+	path = timelocked-contracts/lib/openzeppelin-contracts
+	url = https://github.com/openzeppelin/openzeppelin-contracts

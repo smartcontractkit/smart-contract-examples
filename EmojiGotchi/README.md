@@ -5,7 +5,7 @@ This repo will support the Code Along for [Building a Web3 Game](https://www.you
 
 The repo is broken down into 3 main sections via directories
 ___
-_**foundry & svelte**_ : The initail setup to get started consists of the foundry and svelte directories.These directories have Foundry and SvelteKit setup with a basic installation and a few nice to haves installed. 
+_**foundry & svelte**_ : The initial setup to get started consists of the foundry and svelte directories.These directories have Foundry and SvelteKit setup with a basic installation and a few nice to haves installed. 
 - ethers.js 
 - OpenZeppelin Contracts
 - remappings.txt

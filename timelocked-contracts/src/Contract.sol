@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.8.10;
+pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -37,7 +37,7 @@ contract Contract is ERC20, Ownable {
     // Minting Queue
     mapping(bytes32 => bool) public mintQueue;
 
-    constructor() ERC20("TimeLock Token", "TLT") {}
+    constructor() ERC20("TimeLock Token", "TLT") Ownable(msg.sender) {}
 
     // Create hash of transaction data for use in the queue
     function generateTxnHash(
