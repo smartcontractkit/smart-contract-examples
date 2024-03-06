@@ -1,0 +1,6 @@
+[submodule "EmojiGotchi/foundry/lib/ds-test"]
+	path = EmojiGotchi/foundry/lib/ds-test
+	url = https://github.com/dapphub/ds-test
+[submodule "EmojiGotchi/foundry/lib/openzeppelin-contracts"]
+	path = EmojiGotchi/foundry/lib/openzeppelin-contracts
+	url = https://github.com/openzeppelin/openzeppelin-contracts
