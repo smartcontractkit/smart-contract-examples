@@ -30,7 +30,7 @@ const getSupportedTokens = async () => {
   const provider = new ethers.providers.JsonRpcProvider(rpcUrl);
 
   // Get the router's address for the specified chain
-  const routerAddress = getRouterConfig(chain).address;
+  const routerAddress = getRouterConfig(chain).router;
   // Get the chain selector for the target chain
   const targetChainSelector = getRouterConfig(targetChain).chainSelector;
 

@@ -70,7 +70,7 @@ const transferTokens = async () => {
   const signer = wallet.connect(provider);
 
   // Get the router's address for the specified chain
-  const sourceRouterAddress = getRouterConfig(sourceChain).address;
+  const sourceRouterAddress = getRouterConfig(sourceChain).router;
   const sourceChainSelector = getRouterConfig(sourceChain).chainSelector;
   // Get the chain selector for the target chain
   const destinationChainSelector =
@@ -248,7 +248,7 @@ const transferTokens = async () => {
   const destinationProvider = new ethers.providers.JsonRpcProvider(
     destinationRpcUrl
   );
-  const destinationRouterAddress = getRouterConfig(destinationChain).address;
+  const destinationRouterAddress = getRouterConfig(destinationChain).router;
 
   // Instantiate the router contract on the destination chain
   const destinationRouterContract = new ethers.Contract(
