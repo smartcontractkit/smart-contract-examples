@@ -38,8 +38,8 @@ You will have to set-up the following variables:
 - `PRIVATE_KEY`: private key of the account that will be used to sign the transactions.
 - RPC URLs for the blockchains that you will interact with. In the [config](../config/) directory, the supported chains (for testnet and mainnet) are listed in camel case. Therefore, the RPC URLs environment variable names are derived from the chain name by converting it to upper case, replacing any camel case humps with underscores, and appending `_RPC_URL`. For example, the RPC URL for:
 
-- `ethereumSepolia` is `ETHEREUM_SEPOLIA_RPC_URL`.
-- `avalancheFuji` is `AVALANCHE_FUJI_RPC_URL`.
+  - `ethereumSepolia` is `ETHEREUM_SEPOLIA_RPC_URL`.
+  - `avalancheFuji` is `AVALANCHE_FUJI_RPC_URL`.
 
 ## Examples
 
