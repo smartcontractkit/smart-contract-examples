@@ -10,6 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "@chainlink/env-enc": "^1.0.5",
-    "ethers": "^5.7.2"
+    "ethers": "^6.11.1",
+    "lodash": "^4.17.21"
   }
 }

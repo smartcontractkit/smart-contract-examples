@@ -14,7 +14,7 @@ const erc20Abi = require("../../abi/IERC20Metadata.json");
 // Examples(sepolia):
 
 // pay fees with native token: node src/transfer-tokens.js ethereumSepolia avalancheFuji 0x9d087fC03ae39b088326b67fA3C788236645b717 0xFd57b4ddBf88a4e07fF4e34C487b99af2Fe82a05 100
-// pay fees with transferToken: node src/transfer-tokens.js ethereumSepolia avalancheFuji 0x9d087fC03ae39b088326b67fA3C788236645b717 0xFd57b4ddBf88a4e07fF4e34C487b99af2Fe82a05 100 0x779877A7B0D9E8603169DdbD7836e478b4624789
+// pay fees with LINK token: node src/transfer-tokens.js ethereumSepolia avalancheFuji 0x9d087fC03ae39b088326b67fA3C788236645b717 0xFd57b4ddBf88a4e07fF4e34C487b99af2Fe82a05 100 0x779877A7B0D9E8603169DdbD7836e478b4624789
 // pay fees with a wrapped native token: node src/transfer-tokens.js ethereumSepolia avalancheFuji 0x9d087fC03ae39b088326b67fA3C788236645b717 0xFd57b4ddBf88a4e07fF4e34C487b99af2Fe82a05 100 0x097D90c9d3E0B50Ca60e1ae45F6A81010f9FB534
 const handleArguments = () => {
   if (process.argv.length !== 7 && process.argv.length !== 8) {
@@ -26,7 +26,7 @@ const handleArguments = () => {
   const destinationChain = process.argv[3];
   const destinationAccount = process.argv[4];
   const tokenAddress = process.argv[5];
-  const amount = ethers.BigNumber.from(process.argv[6]);
+  const amount = BigInt(process.argv[6]);
   const feeTokenAddress = process.argv[7];
 
   return {
@@ -65,12 +65,12 @@ const transferTokens = async () => {
   // fetch the signer privateKey
   const privateKey = getPrivateKey();
   // Initialize a provider using the obtained RPC URL
-  const provider = new ethers.providers.JsonRpcProvider(rpcUrl);
+  const provider = new ethers.JsonRpcProvider(rpcUrl);
   const wallet = new ethers.Wallet(privateKey);
   const signer = wallet.connect(provider);
 
   // Get the router's address for the specified chain
-  const sourceRouterAddress = getRouterConfig(sourceChain).address;
+  const sourceRouterAddress = getRouterConfig(sourceChain).router;
   const sourceChainSelector = getRouterConfig(sourceChain).chainSelector;
   // Get the chain selector for the target chain
   const destinationChainSelector =
@@ -82,6 +82,25 @@ const transferTokens = async () => {
     routerAbi,
     signer
   );
+
+  // Default number of confirmations blocks to wait for
+  const DEFAULT_VERIFICATION_BLOCK_CONFIRMATIONS = 1;
+
+  /* 
+  ==================================================
+      Section: Check if lane is supported
+  ==================================================
+  */
+
+  const isChainSupported = await sourceRouter.isChainSupported(
+    destinationChainSelector
+  );
+
+  if (!isChainSupported) {
+    throw new Error(
+      `Lane ${chain}->${destinationChainSelector} is not supported}`
+    );
+  }
 
   /* 
   ==================================================
@@ -120,23 +139,21 @@ const transferTokens = async () => {
 
   // Encoding the data
 
-  const functionSelector = ethers.utils.id("CCIP EVMExtraArgsV1").slice(0, 10);
+  const functionSelector = ethers.id("CCIP EVMExtraArgsV1").slice(0, 10);
   //  "extraArgs" is a structure that can be represented as [ 'uint256']
   // extraArgs are { gasLimit: 0 }
   // we set gasLimit specifically to 0 because we are not sending any data so we are not expecting a receiving contract to handle data
 
-  const extraArgs = ethers.utils.defaultAbiCoder.encode(["uint256"], [0]);
+  const defaultAbiCoder = ethers.AbiCoder.defaultAbiCoder();
+  const extraArgs = defaultAbiCoder.encode(["uint256"], [0]);
 
   const encodedExtraArgs = functionSelector + extraArgs.slice(2);
 
   const message = {
-    receiver: ethers.utils.defaultAbiCoder.encode(
-      ["address"],
-      [destinationAccount]
-    ),
+    receiver: defaultAbiCoder.encode(["address"], [destinationAccount]),
     data: "0x", // no data
     tokenAmounts: tokenAmounts,
-    feeToken: feeTokenAddress ? feeTokenAddress : ethers.constants.AddressZero, // If fee token address is provided then fees must be paid in fee token.
+    feeToken: feeTokenAddress ? feeTokenAddress : ethers.ZeroAddress, // If fee token address is provided then fees must be paid in fee token.
     extraArgs: encodedExtraArgs,
   };
 
@@ -148,7 +165,16 @@ const transferTokens = async () => {
   */
 
   const fees = await sourceRouter.getFee(destinationChainSelector, message);
-  console.log(`Estimated fees (wei): ${fees}`);
+  if (!feeTokenAddress) {
+    console.log(`Estimated fees (native): ${fees}\n`);
+  } else {
+    const erc20 = new ethers.Contract(feeTokenAddress, erc20Abi, provider);
+    const symbol = await erc20.symbol();
+    const decimals = await erc20.decimals();
+    const feesFormatted = ethers.formatUnits(fees, decimals);
+
+    console.log(`Estimated fees (${symbol}): ${feesFormatted}\n`);
+  }
 
   /* 
   ==================================================
@@ -168,12 +194,16 @@ const transferTokens = async () => {
   if (!feeTokenAddress) {
     // Pay native
     // First approve the router to spend tokens
-    approvalTx = await erc20.approve(sourceRouterAddress, amount);
-    await approvalTx.wait(); // wait for the transaction to be mined
     console.log(
-      `approved router ${sourceRouterAddress} to spend ${amount} of token ${tokenAddress}. Transaction: ${approvalTx.hash}`
+      `Approving router ${sourceRouterAddress} to spend ${amount} of token ${tokenAddress}\n`
     );
+    approvalTx = await erc20.approve(sourceRouterAddress, amount);
+    await approvalTx.wait(DEFAULT_VERIFICATION_BLOCK_CONFIRMATIONS); // wait for the transaction to be mined
+    console.log(`Approval done. Transaction: ${approvalTx.hash}\n`);
 
+    console.log(
+      `Calling the router to send ${amount} of token ${tokenAddress} to account ${destinationAccount} on destination chain ${destinationChain} using CCIP\n`
+    );
     sendTx = await sourceRouter.ccipSend(destinationChainSelector, message, {
       value: fees,
     }); // fees are send as value since we are paying the fees in native
@@ -181,30 +211,39 @@ const transferTokens = async () => {
     if (tokenAddress.toUpperCase() === feeTokenAddress.toUpperCase()) {
       // fee token is the same as the token to transfer
       // Amount tokens to approve are transfer amount + fees
-      approvalTx = await erc20.approve(sourceRouterAddress, amount + fees);
-      await approvalTx.wait(); // wait for the transaction to be mined
       console.log(
-        `approved router ${sourceRouterAddress} to spend ${amount} and fees ${fees} of token ${tokenAddress}. Transaction: ${approvalTx.hash}`
+        `Approving router ${sourceRouterAddress} to spend ${amount} and fees ${fees} of token ${tokenAddress}\n`
       );
+      approvalTx = await erc20.approve(sourceRouterAddress, amount + fees);
+      await approvalTx.wait(DEFAULT_VERIFICATION_BLOCK_CONFIRMATIONS); // wait for the transaction to be mined
+      console.log(`Approval done. Transaction: ${approvalTx.hash}\n`);
     } else {
       // fee token is different than the token to transfer
       // 2 approvals
+      console.log(
+        `Approving router ${sourceRouterAddress} to spend ${amount} of token ${tokenAddress}\n`
+      );
       approvalTx = await erc20.approve(sourceRouterAddress, amount); // 1 approval for the tokens to transfer
-      await approvalTx.wait(); // wait for the transaction to be mined
-      console.log(
-        `approved router ${sourceRouterAddress} to spend ${amount} of token ${tokenAddress}. Transaction: ${approvalTx.hash}`
-      );
+      await approvalTx.wait(DEFAULT_VERIFICATION_BLOCK_CONFIRMATIONS); // wait for the transaction to be mined
+      console.log(`Approval done. Transaction: ${approvalTx.hash}\n`);
       const erc20Fees = new ethers.Contract(feeTokenAddress, erc20Abi, signer);
-      approvalTx = await erc20Fees.approve(sourceRouterAddress, fees); // 1 approval for the fees token
-      await approvalTx.wait();
       console.log(
-        `approved router ${sourceRouterAddress} to spend  fees ${fees} of token ${feeTokenAddress}. Transaction: ${approvalTx.hash}`
+        `Approving router ${sourceRouterAddress} to spend fees ${fees} of feeToken ${feeTokenAddress}\n`
       );
+      approvalTx = await erc20Fees.approve(sourceRouterAddress, fees); // 1 approval for the fees token
+      const receiptTmp = await approvalTx.wait(
+        DEFAULT_VERIFICATION_BLOCK_CONFIRMATIONS
+      );
+      console.log(`Approval done. Transaction: ${approvalTx.hash}\n`);
     }
-    sendTx = await sourceRouter.ccipSend(destinationChainSelector, message);
+
+    console.log(
+      `Calling the router to send ${amount} of token ${tokenAddress} to account ${destinationAccount} on destination chain ${destinationChain} using CCIP\n`
+    );
+    sendTx = await sourceRouter.ccipSend(destinationChainSelector, message); // fees are part of the message
   }
 
-  const receipt = await sendTx.wait(); // wait for the transaction to be mined
+  const receipt = await sendTx.wait(DEFAULT_VERIFICATION_BLOCK_CONFIRMATIONS); // wait for the transaction to be mined
 
   /* 
   ==================================================
@@ -216,6 +255,7 @@ const transferTokens = async () => {
   */
 
   // Simulate a call to the router to fetch the messageID
+  // prepare an ethersjs PreparedTransactionRequest
   const call = {
     from: sendTx.from,
     to: sendTx.to,
@@ -223,13 +263,13 @@ const transferTokens = async () => {
     gasLimit: sendTx.gasLimit,
     gasPrice: sendTx.gasPrice,
     value: sendTx.value,
+    blockTag: receipt.blockNumber - 1, // Simulate a contract call with the transaction data at the block before the transaction
   };
 
-  // Simulate a contract call with the transaction data at the block before the transaction
-  const messageId = await provider.call(call, receipt.blockNumber - 1);
+  const messageId = await provider.call(call);
 
   console.log(
-    `\n✅ ${amount} of Tokens(${tokenAddress}) Sent to account ${destinationAccount} on destination chain ${destinationChain} using CCIP. Transaction hash ${sendTx.hash} -  Message id is ${messageId}`
+    `\n✅ ${amount} of Tokens(${tokenAddress}) Sent to account ${destinationAccount} on destination chain ${destinationChain} using CCIP. Transaction hash ${sendTx.hash} -  Message id is ${messageId}\n`
   );
 
   /* 
@@ -245,10 +285,8 @@ const transferTokens = async () => {
   const destinationRpcUrl = getProviderRpcUrl(destinationChain);
 
   // Initialize providers for interacting with the blockchains
-  const destinationProvider = new ethers.providers.JsonRpcProvider(
-    destinationRpcUrl
-  );
-  const destinationRouterAddress = getRouterConfig(destinationChain).address;
+  const destinationProvider = new ethers.JsonRpcProvider(destinationRpcUrl);
+  const destinationRouterAddress = getRouterConfig(destinationChain).router;
 
   // Instantiate the router contract on the destination chain
   const destinationRouterContract = new ethers.Contract(
@@ -306,14 +344,14 @@ const transferTokens = async () => {
 
   // Start polling
   console.log(
-    `\nWait for message ${messageId} to be executed on the destination chain - Check the explorer https://ccip.chain.link/msg/${messageId}`
+    `Wait for message ${messageId} to be executed on the destination chain - Check the explorer https://ccip.chain.link/msg/${messageId}\n`
   );
   pollingId = setInterval(pollStatus, POLLING_INTERVAL);
 
   // Set timeout to stop polling after 40 minutes
   timeoutId = setTimeout(() => {
     console.log(
-      "\nTimeout reached. Stopping polling - check again later (Run `get-status` script) Or check the explorer https://ccip.chain.link/msg/${messageId}"
+      `Timeout reached. Stopping polling - check again later (Run "get-status" script) Or check the explorer https://ccip.chain.link/msg/${messageId}\n`
     );
     clearInterval(pollingId);
   }, TIMEOUT);

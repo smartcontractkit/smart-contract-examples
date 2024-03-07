@@ -11,7 +11,7 @@ const onRampAbi = require("../../abi/OnRamp.json");
 
 // Command: node src/get-status.js sourceChain destinationChain messageId
 // Examples(sepolia-->Fuji):
-// node src/get-status.js ethereumSepolia avalancheFuji 0xea33f48f3cc8ac7dd38cebdc4b750affa9792e0b904916eb943da7735c4ca20a
+// node src/get-status.js ethereumSepolia avalancheFuji 0xbd2f751ffab340b98575a8f46efc234e8d884db7b654c0144d7aabd72ff38595
 
 const handleArguments = () => {
   // Check if the correct number of arguments are passed
@@ -42,15 +42,15 @@ const getStatus = async () => {
   const sourceRpcUrl = getProviderRpcUrl(chain);
 
   // Initialize providers for interacting with the blockchains
-  const destinationProvider = new ethers.providers.JsonRpcProvider(
+  const destinationProvider = new ethers.JsonRpcProvider(
     destinationRpcUrl
   );
-  const sourceProvider = new ethers.providers.JsonRpcProvider(sourceRpcUrl);
+  const sourceProvider = new ethers.JsonRpcProvider(sourceRpcUrl);
 
   // Retrieve router configuration for the source and destination chains
-  const sourceRouterAddress = getRouterConfig(chain).address;
+  const sourceRouterAddress = getRouterConfig(chain).router;
   const sourceChainSelector = getRouterConfig(chain).chainSelector;
-  const destinationRouterAddress = getRouterConfig(targetChain).address;
+  const destinationRouterAddress = getRouterConfig(targetChain).router;
   const destinationChainSelector = getRouterConfig(targetChain).chainSelector;
 
   // Instantiate the router contract on the source chain
@@ -59,6 +59,14 @@ const getStatus = async () => {
     routerAbi,
     sourceProvider
   );
+
+  const isChainSupported = await sourceRouterContract.isChainSupported(
+    destinationChainSelector
+  );
+
+  if (!isChainSupported) {
+    throw new Error(`Lane ${chain}->${targetChain} is not supported}`);
+  }
 
   // Fetch the OnRamp contract address on the source chain
   const onRamp = await sourceRouterContract.getOnRamp(destinationChainSelector);

@@ -1,9 +1,4 @@
-const messageExecutionState = {
-  0: "UNTOUCHED",
-  1: "IN_PROGRESS",
-  2: "SUCCESS",
-  3: "FAILURE",
-};
+const messageExecutionState = require("../../../config/messageState.json");
 
 const getMessageState = (status) => {
   if (status in messageExecutionState) {
@@ -13,5 +8,5 @@ const getMessageState = (status) => {
 };
 
 module.exports = {
-    getMessageState,
+  getMessageState,
 };
