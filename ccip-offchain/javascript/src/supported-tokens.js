@@ -27,7 +27,7 @@ const getSupportedTokens = async () => {
   // Get the RPC URL for the chain from the config
   const rpcUrl = getProviderRpcUrl(chain);
   // Initialize a provider using the obtained RPC URL
-  const provider = new ethers.providers.JsonRpcProvider(rpcUrl);
+  const provider = new ethers.JsonRpcProvider(rpcUrl);
 
   // Get the router's address for the specified chain
   const routerAddress = getRouterConfig(chain).router;
@@ -36,6 +36,12 @@ const getSupportedTokens = async () => {
 
   // Create a contract instance for the router using its ABI and address
   const router = new ethers.Contract(routerAddress, routerAbi, provider);
+
+  const isChainSupported = await router.isChainSupported(targetChainSelector);
+
+  if (!isChainSupported) {
+    throw new Error(`Lane ${chain}->${targetChain} is not supported}`);
+  }
 
   // Fetch the list of supported tokens
   const supportedTokens = await router.getSupportedTokens(targetChainSelector);
