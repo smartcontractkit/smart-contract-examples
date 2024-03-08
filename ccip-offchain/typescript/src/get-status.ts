@@ -87,24 +87,27 @@ const getStatus = async () => {
   );
 
   // Fetch the OffRamp contract addresses on the destination chain
+  // Fetch the OffRamp contract addresses on the destination chain
   const offRamps = await destinationRouterContract.getOffRamps();
-  const targetOffRamp = offRamps.find(
+
+  const matchingOffRamps = offRamps.filter(
     (offRamp) => offRamp.sourceChainSelector === sourceChainSelector
   );
 
-  if (targetOffRamp) {
+  for (const matchingOffRamp of matchingOffRamps) {
     const offRampContract = OffRamp__factory.connect(
-      targetOffRamp.offRamp,
+      matchingOffRamp.offRamp,
       destinationProvider
     );
     const events = await offRampContract.queryFilter(
-      offRampContract.filters["ExecutionStateChanged"](undefined, messageId)
+      offRampContract.filters.ExecutionStateChanged(undefined, messageId)
     );
 
     if (events.length > 0) {
       const { state } = events[0].args;
+      const status = getMessageStatus(state);
       console.log(
-        `Status of message ${messageId} is ${getMessageStatus(state)}\n`
+        `Status of message ${messageId} on offRamp ${matchingOffRamp.offRamp} is ${status}\n`
       );
       return;
     }
