@@ -80,7 +80,7 @@ const transferTokens = async () => {
   const sourceRouter = Router__factory.connect(sourceRouterAddress, signer);
 
   // Default number of confirmations blocks to wait for
-  const DEFAULT_VERIFICATION_BLOCK_CONFIRMATIONS = 1;
+  const DEFAULT_VERIFICATION_BLOCK_CONFIRMATIONS = 2;
 
   const isChainSupported = await sourceRouter.isChainSupported(
     destinationChainSelector

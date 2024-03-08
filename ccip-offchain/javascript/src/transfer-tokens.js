@@ -5,7 +5,7 @@ const {
   getPrivateKey,
   getMessageState,
 } = require("./config");
-const ethers = require("ethers");
+const { ethers, JsonRpcProvider } = require("ethers");
 const routerAbi = require("../../abi/Router.json");
 const offRampAbi = require("../../abi/OffRamp.json");
 const erc20Abi = require("../../abi/IERC20Metadata.json");
@@ -65,7 +65,7 @@ const transferTokens = async () => {
   // fetch the signer privateKey
   const privateKey = getPrivateKey();
   // Initialize a provider using the obtained RPC URL
-  const provider = new ethers.JsonRpcProvider(rpcUrl);
+  const provider = new JsonRpcProvider(rpcUrl);
   const wallet = new ethers.Wallet(privateKey);
   const signer = wallet.connect(provider);
 
@@ -84,7 +84,7 @@ const transferTokens = async () => {
   );
 
   // Default number of confirmations blocks to wait for
-  const DEFAULT_VERIFICATION_BLOCK_CONFIRMATIONS = 1;
+  const DEFAULT_VERIFICATION_BLOCK_CONFIRMATIONS = 2;
 
   /* 
   ==================================================
@@ -281,7 +281,7 @@ const transferTokens = async () => {
   const destinationRpcUrl = getProviderRpcUrl(destinationChain);
 
   // Initialize providers for interacting with the blockchains
-  const destinationProvider = new ethers.JsonRpcProvider(destinationRpcUrl);
+  const destinationProvider = new JsonRpcProvider(destinationRpcUrl);
   const destinationRouterAddress = getRouterConfig(destinationChain).router;
 
   // Instantiate the router contract on the destination chain
