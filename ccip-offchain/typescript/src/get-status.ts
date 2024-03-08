@@ -112,7 +112,7 @@ const getStatus = async () => {
 
   // If no event found, the message has not yet been processed on the destination chain
   console.log(
-    `Ether the message ${messageId} does not exist OR it has not been processed yet on destination chain\n`
+    `Either the message ${messageId} does not exist OR it has not been processed yet on destination chain\n`
   );
 };
 
