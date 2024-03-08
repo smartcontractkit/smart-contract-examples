@@ -1,32 +1,36 @@
-// Import the required modules and configuration functions
-const {
+import {
   getProviderRpcUrl,
   getRouterConfig,
   getMessageStatus,
-} = require("./config");
-const { ethers, JsonRpcProvider } = require("ethers");
-const routerAbi = require("../../abi/Router.json");
-const offRampAbi = require("../../abi/OffRamp.json");
+  NETWORK,
+} from "./config";
+import { JsonRpcProvider } from "ethers";
+import { Router__factory, OffRamp__factory } from "./typechain-types";
 
-// Command: node src/get-status.js sourceChain destinationChain messageId
+// Command: npx ts-node src/get-status.ts sourceChain destinationChain messageId
 // Examples(sepolia-->Fuji):
-// node src/get-status.js ethereumSepolia avalancheFuji 0xbd2f751ffab340b98575a8f46efc234e8d884db7b654c0144d7aabd72ff38595
+// npx ts-node src/get-status.ts ethereumSepolia avalancheFuji 0x6adcad3b71f62c7fcd45b3145d8d5aebfeb4a7ffacf567c09e5ce509120e8a8d
+interface Arguments {
+  sourceChain: NETWORK;
+  destinationChain: NETWORK;
+  messageId: string;
+}
 
-const handleArguments = () => {
+const handleArguments = (): Arguments => {
   // Check if the correct number of arguments are passed
   if (process.argv.length !== 5) {
-    throw new Error("Wrong number of arguments");
+    throw new Error("Wrong number of arguments. Expected format: npx ts-node src/get-status.ts <sourceChain> <destinationChain> <messageId>");
   }
 
   // Extract the arguments from the command line
-  const chain = process.argv[2];
-  const targetChain = process.argv[3];
+  const sourceChain = process.argv[2] as NETWORK;
+  const destinationChain = process.argv[3] as NETWORK;
   const messageId = process.argv[4];
 
   // Return the arguments in an object
   return {
-    chain,
-    targetChain,
+    sourceChain,
+    destinationChain,
     messageId,
   };
 };
@@ -34,26 +38,26 @@ const handleArguments = () => {
 // Main function to get the status of a message by its ID
 const getStatus = async () => {
   // Parse command-line arguments
-  const { chain, targetChain, messageId } = handleArguments();
+  const { sourceChain, destinationChain, messageId } = handleArguments();
 
   // Get the RPC URLs for both the source and destination chains
-  const destinationRpcUrl = getProviderRpcUrl(targetChain);
-  const sourceRpcUrl = getProviderRpcUrl(chain);
+  const destinationRpcUrl = getProviderRpcUrl(destinationChain);
+  const sourceRpcUrl = getProviderRpcUrl(sourceChain);
 
   // Initialize providers for interacting with the blockchains
   const destinationProvider = new JsonRpcProvider(destinationRpcUrl);
   const sourceProvider = new JsonRpcProvider(sourceRpcUrl);
 
   // Retrieve router configuration for the source and destination chains
-  const sourceRouterAddress = getRouterConfig(chain).router;
-  const sourceChainSelector = getRouterConfig(chain).chainSelector;
-  const destinationRouterAddress = getRouterConfig(targetChain).router;
-  const destinationChainSelector = getRouterConfig(targetChain).chainSelector;
+  const sourceRouterAddress = getRouterConfig(sourceChain).router;
+  const sourceChainSelector = getRouterConfig(sourceChain).chainSelector;
+  const destinationRouterAddress = getRouterConfig(destinationChain).router;
+  const destinationChainSelector =
+    getRouterConfig(destinationChain).chainSelector;
 
   // Instantiate the router contract on the source chain
-  const sourceRouterContract = new ethers.Contract(
+  const sourceRouterContract = Router__factory.connect(
     sourceRouterAddress,
-    routerAbi,
     sourceProvider
   );
 
@@ -62,27 +66,28 @@ const getStatus = async () => {
   );
 
   if (!isChainSupported) {
-    throw new Error(`Lane ${chain}->${targetChain} is not supported}`);
+    throw new Error(
+      `Lane ${sourceChain}->${destinationChain} is not supported\n`
+    );
   }
 
   // Instantiate the router contract on the destination chain
-  const destinationRouterContract = new ethers.Contract(
+  const destinationRouterContract = Router__factory.connect(
     destinationRouterAddress,
-    routerAbi,
     destinationProvider
   );
 
   // Fetch the OffRamp contract addresses on the destination chain
+  // Fetch the OffRamp contract addresses on the destination chain
   const offRamps = await destinationRouterContract.getOffRamps();
 
   const matchingOffRamps = offRamps.filter(
-    (offRamp) => offRamp.sourceChainSelector.toString() === sourceChainSelector
+    (offRamp) => offRamp.sourceChainSelector === sourceChainSelector
   );
 
   for (const matchingOffRamp of matchingOffRamps) {
-    const offRampContract = new ethers.Contract(
+    const offRampContract = OffRamp__factory.connect(
       matchingOffRamp.offRamp,
-      offRampAbi,
       destinationProvider
     );
     const events = await offRampContract.queryFilter(

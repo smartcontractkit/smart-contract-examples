@@ -1,33 +1,42 @@
-// Import necessary modules and data
-const {
+import {
   getProviderRpcUrl,
   getRouterConfig,
   getPrivateKey,
-  getMessageState,
-} = require("./config");
-const { ethers, JsonRpcProvider } = require("ethers");
-const routerAbi = require("../../abi/Router.json");
-const offRampAbi = require("../../abi/OffRamp.json");
-const erc20Abi = require("../../abi/IERC20Metadata.json");
+  getMessageStatus,
+  NETWORK,
+} from "./config";
+import { ethers, JsonRpcProvider } from "ethers";
+import {
+  Router__factory,
+  OffRamp__factory,
+  IERC20Metadata__factory,
+} from "./typechain-types";
+import { Client } from "./typechain-types/Router";
 
-// Command: node src/transfer-tokens.js sourceChain destinationChain destinationAccount tokenAddress amount feeTokenAddress(optional)
-// Examples(sepolia):
+// Command: npx ts-node src/transfer-tokens.ts sourceChain destinationChain destinationAccount tokenAddress amount feeTokenAddress(optional)
+// pay fees with native token: npx ts-node src/transfer-tokens.ts ethereumSepolia avalancheFuji 0x9d087fC03ae39b088326b67fA3C788236645b717 0xFd57b4ddBf88a4e07fF4e34C487b99af2Fe82a05 100
 
-// pay fees with native token: node src/transfer-tokens.js ethereumSepolia avalancheFuji 0x9d087fC03ae39b088326b67fA3C788236645b717 0xFd57b4ddBf88a4e07fF4e34C487b99af2Fe82a05 100
-// pay fees with LINK token: node src/transfer-tokens.js ethereumSepolia avalancheFuji 0x9d087fC03ae39b088326b67fA3C788236645b717 0xFd57b4ddBf88a4e07fF4e34C487b99af2Fe82a05 100 0x779877A7B0D9E8603169DdbD7836e478b4624789
-// pay fees with a wrapped native token: node src/transfer-tokens.js ethereumSepolia avalancheFuji 0x9d087fC03ae39b088326b67fA3C788236645b717 0xFd57b4ddBf88a4e07fF4e34C487b99af2Fe82a05 100 0x097D90c9d3E0B50Ca60e1ae45F6A81010f9FB534
-const handleArguments = () => {
+interface Arguments {
+  sourceChain: NETWORK;
+  destinationChain: NETWORK;
+  destinationAccount: string;
+  tokenAddress: string;
+  amount: bigint;
+  feeTokenAddress?: string;
+}
+
+const handleArguments = (): Arguments => {
   if (process.argv.length !== 7 && process.argv.length !== 8) {
-    // feeTokenAddress is optional
-    throw new Error("Wrong number of arguments");
+    throw new Error("Wrong number of arguments. Expected format: npx ts-node src/transfer-tokens.ts <sourceChain> <destinationChain> <destinationAccount> <tokenAddress> <amount> [feeTokenAddress]");
   }
 
-  const sourceChain = process.argv[2];
-  const destinationChain = process.argv[3];
-  const destinationAccount = process.argv[4];
-  const tokenAddress = process.argv[5];
-  const amount = BigInt(process.argv[6]);
-  const feeTokenAddress = process.argv[7];
+  const sourceChain = process.argv[2] as NETWORK;
+  const destinationChain = process.argv[3] as NETWORK;
+  const destinationAccount: string = process.argv[4];
+  const tokenAddress: string = process.argv[5];
+  const amount: bigint = BigInt(process.argv[6]);
+  const feeTokenAddress: string | undefined =
+    process.argv.length === 8 ? process.argv[7] : undefined;
 
   return {
     sourceChain,
@@ -49,17 +58,6 @@ const transferTokens = async () => {
     feeTokenAddress,
   } = handleArguments();
 
-  /* 
-  ==================================================
-      Section: INITIALIZATION
-      This section of the code parses the source and 
-      destination router addresses and blockchain 
-      selectors.
-      It also initialized the ethers providers 
-      to communicate with the blockchains.
-  ==================================================
-  */
-
   // Get the RPC URL for the chain from the config
   const rpcUrl = getProviderRpcUrl(sourceChain);
   // fetch the signer privateKey
@@ -70,45 +68,30 @@ const transferTokens = async () => {
   const signer = wallet.connect(provider);
 
   // Get the router's address for the specified chain
-  const sourceRouterAddress = getRouterConfig(sourceChain).router;
-  const sourceChainSelector = getRouterConfig(sourceChain).chainSelector;
-  // Get the chain selector for the target chain
-  const destinationChainSelector =
-    getRouterConfig(destinationChain).chainSelector;
+  const { router: sourceRouterAddress, chainSelector: sourceChainSelector } =
+    getRouterConfig(sourceChain);
+
+  // For the destination chain
+  const { chainSelector: destinationChainSelector } =
+    getRouterConfig(destinationChain);
 
   // Create a contract instance for the router using its ABI and address
-  const sourceRouter = new ethers.Contract(
-    sourceRouterAddress,
-    routerAbi,
-    signer
-  );
+
+  const sourceRouter = Router__factory.connect(sourceRouterAddress, signer);
 
   // Default number of confirmations blocks to wait for
   const DEFAULT_VERIFICATION_BLOCK_CONFIRMATIONS = 2;
-
-  /* 
-  ==================================================
-      Section: Check if lane is supported
-  ==================================================
-  */
 
   const isChainSupported = await sourceRouter.isChainSupported(
     destinationChainSelector
   );
 
   if (!isChainSupported) {
-    throw new Error(`Lane ${chain}->${destinationChain} is not supported}`);
+    throw new Error(
+      `Lane ${sourceChain}->${destinationChain} is not supported`
+    );
   }
 
-  /* 
-  ==================================================
-      Section: Check token validity
-      Check first if the token you would like to 
-      transfer is supported.
-  ==================================================
-  */
-
-  // Fetch the list of supported tokens
   const supportedTokens = await sourceRouter.getSupportedTokens(
     destinationChainSelector
   );
@@ -119,16 +102,8 @@ const transferTokens = async () => {
     );
   }
 
-  /* 
-  ==================================================
-      Section: BUILD CCIP MESSAGE
-      build CCIP message that you will send to the
-      Router contract.
-  ==================================================
-  */
-
   // build message
-  const tokenAmounts = [
+  const tokenAmounts: Client.EVMTokenAmountStruct[] = [
     {
       token: tokenAddress,
       amount: amount,
@@ -147,26 +122,19 @@ const transferTokens = async () => {
 
   const encodedExtraArgs = functionSelector + extraArgs.slice(2);
 
-  const message = {
+  const message: Client.EVM2AnyMessageStruct = {
     receiver: defaultAbiCoder.encode(["address"], [destinationAccount]),
     data: "0x", // no data
     tokenAmounts: tokenAmounts,
-    feeToken: feeTokenAddress ? feeTokenAddress : ethers.ZeroAddress, // If fee token address is provided then fees must be paid in fee token.
+    feeToken: feeTokenAddress || ethers.ZeroAddress, // If fee token address is provided then fees must be paid in fee token.
     extraArgs: encodedExtraArgs,
   };
-
-  /* 
-  ==================================================
-      Section: CALCULATE THE FEES
-      Call the Router to estimate the fees for sending tokens.
-  ==================================================
-  */
 
   const fees = await sourceRouter.getFee(destinationChainSelector, message);
   if (!feeTokenAddress) {
     console.log(`Estimated fees (native): ${fees}\n`);
   } else {
-    const erc20 = new ethers.Contract(feeTokenAddress, erc20Abi, provider);
+    const erc20 = IERC20Metadata__factory.connect(feeTokenAddress, provider);
     const symbol = await erc20.symbol();
     const decimals = await erc20.decimals();
     const feesFormatted = ethers.formatUnits(fees, decimals);
@@ -174,19 +142,8 @@ const transferTokens = async () => {
     console.log(`Estimated fees (${symbol}): ${feesFormatted}\n`);
   }
 
-  /* 
-  ==================================================
-      Section: SEND tokens
-      This code block initializes an ERC20 token contract for token transfer across chains. It handles three cases:
-      1. If the fee token is the native blockchain token, it makes one approval for the transfer amount. The fees are included in the msg.value field.
-      2. If the fee token is different from both the native blockchain token and the transfer token, it makes two approvals: one for the transfer amount and another for the fees. The fees are part of the message.
-      3. If the fee token is the same as the transfer token but not the native blockchain token, it makes a single approval for the sum of the transfer amount and fees. The fees are part of the message.
-      The code waits for the transaction to be mined and stores the transaction receipt.
-  ==================================================
-  */
-
   // Create a contract instance for the token using its ABI and address
-  const erc20 = new ethers.Contract(tokenAddress, erc20Abi, signer);
+  const erc20 = IERC20Metadata__factory.connect(tokenAddress, signer);
   let sendTx, approvalTx;
 
   if (!feeTokenAddress) {
@@ -224,12 +181,17 @@ const transferTokens = async () => {
       approvalTx = await erc20.approve(sourceRouterAddress, amount); // 1 approval for the tokens to transfer
       await approvalTx.wait(DEFAULT_VERIFICATION_BLOCK_CONFIRMATIONS); // wait for the transaction to be mined
       console.log(`Approval done. Transaction: ${approvalTx.hash}\n`);
-      const erc20Fees = new ethers.Contract(feeTokenAddress, erc20Abi, signer);
+      const erc20Fees = IERC20Metadata__factory.connect(
+        feeTokenAddress,
+        signer
+      );
       console.log(
         `Approving router ${sourceRouterAddress} to spend fees ${fees} of feeToken ${feeTokenAddress}\n`
       );
       approvalTx = await erc20Fees.approve(sourceRouterAddress, fees); // 1 approval for the fees token
-
+      const receiptTmp = await approvalTx.wait(
+        DEFAULT_VERIFICATION_BLOCK_CONFIRMATIONS
+      );
       console.log(`Approval done. Transaction: ${approvalTx.hash}\n`);
     }
 
@@ -240,18 +202,10 @@ const transferTokens = async () => {
   }
 
   const receipt = await sendTx.wait(DEFAULT_VERIFICATION_BLOCK_CONFIRMATIONS); // wait for the transaction to be mined
-
-  /* 
-  ==================================================
-      Section: Fetch message ID
-      The Router ccipSend function returns the messageId.
-      This section makes a call (simulation) to the blockchain
-      to fetch the messageId that was returned by the Router.
-  ==================================================
-  */
-
   // Simulate a call to the router to fetch the messageID
   // prepare an ethersjs PreparedTransactionRequest
+
+  if (!receipt) throw Error("Transaction not mined yet"); // TODO : add a better code to handle this case
   const call = {
     from: sendTx.from,
     to: sendTx.to,
@@ -268,15 +222,6 @@ const transferTokens = async () => {
     `\n✅ ${amount} of Tokens(${tokenAddress}) Sent to account ${destinationAccount} on destination chain ${destinationChain} using CCIP. Transaction hash ${sendTx.hash} -  Message id is ${messageId}\n`
   );
 
-  /* 
-  ==================================================
-      Section: Check status of the destination chain
-      Poll the off-ramps contracts of the destination chain
-      to wait for the message to be executed then return
-      the status.
-  ==================================================
-  */
-
   // Fetch status on destination chain
   const destinationRpcUrl = getProviderRpcUrl(destinationChain);
 
@@ -285,9 +230,8 @@ const transferTokens = async () => {
   const destinationRouterAddress = getRouterConfig(destinationChain).router;
 
   // Instantiate the router contract on the destination chain
-  const destinationRouterContract = new ethers.Contract(
+  const destinationRouterContract = Router__factory.connect(
     destinationRouterAddress,
-    routerAbi,
     destinationProvider
   );
 
@@ -296,8 +240,8 @@ const transferTokens = async () => {
   const POLLING_INTERVAL = 60000; // Poll every 60 seconds
   const TIMEOUT = 40 * 60 * 1000; // 40 minutes in milliseconds
 
-  let pollingId;
-  let timeoutId;
+  let pollingId: NodeJS.Timeout;
+  let timeoutId: NodeJS.Timeout;
 
   const pollStatus = async () => {
     // Fetch the OffRamp contract addresses on the destination chain
@@ -305,15 +249,16 @@ const transferTokens = async () => {
 
     // Iterate through OffRamps to find the one linked to the source chain and check message status
     for (const offRamp of offRamps) {
-      if (offRamp.sourceChainSelector.toString() === sourceChainSelector) {
-        const offRampContract = new ethers.Contract(
+      if (offRamp.sourceChainSelector === sourceChainSelector) {
+        const offRampContract = OffRamp__factory.connect(
           offRamp.offRamp,
-          offRampAbi,
           destinationProvider
         );
+
         const executionStateChangeEvent = offRampContract.filters[
           "ExecutionStateChanged"
         ](undefined, messageId, undefined, undefined);
+
         const events = await offRampContract.queryFilter(
           executionStateChangeEvent
         );
@@ -322,7 +267,7 @@ const transferTokens = async () => {
         for (let event of events) {
           if (event.args && event.args.messageId === messageId) {
             const state = event.args.state;
-            const status = getMessageState(state);
+            const status = getMessageStatus(state);
             console.log(
               `\n✅Status of message ${messageId} is ${status} - Check the explorer https://ccip.chain.link/msg/${messageId}`
             );
