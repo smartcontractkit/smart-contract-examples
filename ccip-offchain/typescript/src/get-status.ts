@@ -71,7 +71,7 @@ const getStatus = async () => {
 
   if (!isChainSupported) {
     throw new Error(
-      `Lane ${sourceChain}->${destinationChain} is not supported}`
+      `Lane ${sourceChain}->${destinationChain} is not supported\n`
     );
   }
 

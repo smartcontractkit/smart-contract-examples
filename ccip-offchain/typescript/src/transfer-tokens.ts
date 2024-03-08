@@ -27,7 +27,7 @@ interface Arguments {
 
 const handleArguments = (): Arguments => {
   if (process.argv.length !== 7 && process.argv.length !== 8) {
-    throw new Error("Wrong number of arguments");
+    throw new Error("Wrong number of arguments. Expected format: npx ts-node src/transfer-tokens.ts <sourceChain> <destinationChain> <destinationAccount> <tokenAddress> <amount> [feeTokenAddress]");
   }
 
   const sourceChain = process.argv[2] as NETWORK;
@@ -88,7 +88,7 @@ const transferTokens = async () => {
 
   if (!isChainSupported) {
     throw new Error(
-      `Lane ${sourceChain}->${destinationChain} is not supported}`
+      `Lane ${sourceChain}->${destinationChain} is not supported`
     );
   }
 

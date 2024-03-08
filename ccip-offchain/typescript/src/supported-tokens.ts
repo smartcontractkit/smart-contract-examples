@@ -13,7 +13,7 @@ interface Arguments {
 const handleArguments = (): Arguments => {
   // Check if the correct number of arguments have been passed
   if (process.argv.length !== 4) {
-    throw new Error("Expects 2 arguments");
+    throw new Error("Expects 2 arguments. Expected format: npx ts-node src/supported-tokens.ts <sourceChain> <destinationChain>");
   }
 
   // Retrieve the chain names from command line arguments
@@ -48,7 +48,7 @@ const getSupportedTokens = async () => {
 
   if (!isChainSupported) {
     throw new Error(
-      `Lane ${sourceChain}->${destinationChain} is not supported}\n`
+      `Lane ${sourceChain}->${destinationChain} is not supported\n`
     );
   }
 

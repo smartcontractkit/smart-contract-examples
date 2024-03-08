@@ -64,7 +64,7 @@ In these examples, you will interact with the router contract to transfer a spec
 #### Pay fees in LINK token
 
 ```shell
-npx ts-npde src/transfer-tokens.ts sourceBlockchain targetBlockchain targetAccountAddress tokenAddress amount linkTokenAddress
+npx ts-node src/transfer-tokens.ts sourceBlockchain targetBlockchain targetAccountAddress tokenAddress amount linkTokenAddress
 ```
 
 Example (transfer CCIP-BnM and pay fees in LINK):
