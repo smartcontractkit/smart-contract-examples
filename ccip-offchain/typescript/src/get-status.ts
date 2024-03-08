@@ -4,7 +4,7 @@ import {
   getMessageStatus,
   NETWORK,
 } from "./config";
-import { ethers, JsonRpcProvider } from "ethers";
+import { JsonRpcProvider } from "ethers";
 import {
   Router__factory,
   OnRamp__factory,
