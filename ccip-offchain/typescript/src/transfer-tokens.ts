@@ -260,8 +260,7 @@ const transferTokens = async () => {
         ](undefined, messageId, undefined, undefined);
 
         const events = await offRampContract.queryFilter(
-          executionStateChangeEvent,
-          0
+          executionStateChangeEvent
         );
 
         // Check if an event with the specific messageId exists and log its status
