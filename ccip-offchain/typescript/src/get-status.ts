@@ -5,11 +5,7 @@ import {
   NETWORK,
 } from "./config";
 import { JsonRpcProvider } from "ethers";
-import {
-  Router__factory,
-  OnRamp__factory,
-  OffRamp__factory,
-} from "./typechain-types";
+import { Router__factory, OffRamp__factory } from "./typechain-types";
 
 // Command: npx ts-node src/get-status.ts sourceChain destinationChain messageId
 // Examples(sepolia-->Fuji):
@@ -74,11 +70,6 @@ const getStatus = async () => {
       `Lane ${sourceChain}->${destinationChain} is not supported\n`
     );
   }
-
-  // Fetch the OnRamp contract address on the source chain
-  const onRampAddress = await sourceRouterContract.getOnRamp(
-    destinationChainSelector
-  );
 
   // Instantiate the router contract on the destination chain
   const destinationRouterContract = Router__factory.connect(
