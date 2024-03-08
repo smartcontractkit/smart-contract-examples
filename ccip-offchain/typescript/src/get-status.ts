@@ -80,29 +80,6 @@ const getStatus = async () => {
     destinationChainSelector
   );
 
-  const onRampContract = OnRamp__factory.connect(onRampAddress, sourceProvider);
-
-  // Check if the messageId exists in the OnRamp contract
-  const ccipSendRequestEvent = onRampContract.filters["CCIPSendRequested"]; // TODO: build a more efficient way than brute force all the events
-  const events = await onRampContract.queryFilter(ccipSendRequestEvent);
-  let messageFound = false;
-  for (const event of events) {
-    if (
-      event.args &&
-      event.args.message &&
-      event.args.message.messageId === messageId
-    ) {
-      messageFound = true;
-      break;
-    }
-  }
-
-  // If the messageId doesn't exist, log an error and exit
-  if (!messageFound) {
-    console.error(`Message ${messageId} does not exist on this lane\n`);
-    return;
-  }
-
   // Instantiate the router contract on the destination chain
   const destinationRouterContract = Router__factory.connect(
     destinationRouterAddress,
@@ -111,36 +88,31 @@ const getStatus = async () => {
 
   // Fetch the OffRamp contract addresses on the destination chain
   const offRamps = await destinationRouterContract.getOffRamps();
+  const targetOffRamp = offRamps.find(
+    (offRamp) => offRamp.sourceChainSelector === sourceChainSelector
+  );
 
-  // Iterate through OffRamps to find the one linked to the source chain and check message status
-  for (const offRamp of offRamps) {
-    if (offRamp.sourceChainSelector === sourceChainSelector) {
-      const offRampContract = OffRamp__factory.connect(
-        offRamp.offRamp,
-        destinationProvider
+  if (targetOffRamp) {
+    const offRampContract = OffRamp__factory.connect(
+      targetOffRamp.offRamp,
+      destinationProvider
+    );
+    const events = await offRampContract.queryFilter(
+      offRampContract.filters["ExecutionStateChanged"](undefined, messageId)
+    );
+
+    if (events.length > 0) {
+      const { state } = events[0].args;
+      console.log(
+        `Status of message ${messageId} is ${getMessageStatus(state)}\n`
       );
-      const executionStateChangeEvent = offRampContract.filters[
-        "ExecutionStateChanged"
-      ](undefined, messageId, undefined, undefined);
-
-      const events = await offRampContract.queryFilter(
-        executionStateChangeEvent
-      );
-
-      // Check if an event with the specific messageId exists and log its status
-      for (let event of events) {
-        if (event.args && event.args.messageId === messageId) {
-          const state = event.args.state;
-          const status = getMessageStatus(state);
-          console.log(`Status of message ${messageId} is ${status}\n`);
-          return;
-        }
-      }
+      return;
     }
   }
+
   // If no event found, the message has not yet been processed on the destination chain
   console.log(
-    `Message ${messageId} is not processed yet on destination chain\n`
+    `Ether the message ${messageId} does not exist OR it has not been processed yet on destination chain\n`
   );
 };
 

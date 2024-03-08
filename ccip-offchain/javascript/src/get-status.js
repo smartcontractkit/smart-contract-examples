@@ -2,12 +2,11 @@
 const {
   getProviderRpcUrl,
   getRouterConfig,
-  getMessageState,
+  getMessageStatus,
 } = require("./config");
 const { ethers, JsonRpcProvider } = require("ethers");
 const routerAbi = require("../../abi/Router.json");
 const offRampAbi = require("../../abi/OffRamp.json");
-const onRampAbi = require("../../abi/OnRamp.json");
 
 // Command: node src/get-status.js sourceChain destinationChain messageId
 // Examples(sepolia-->Fuji):
@@ -66,30 +65,6 @@ const getStatus = async () => {
     throw new Error(`Lane ${chain}->${targetChain} is not supported}`);
   }
 
-  // Fetch the OnRamp contract address on the source chain
-  const onRamp = await sourceRouterContract.getOnRamp(destinationChainSelector);
-  const onRampContract = new ethers.Contract(onRamp, onRampAbi, sourceProvider);
-
-  // Check if the messageId exists in the OnRamp contract
-  const events = await onRampContract.queryFilter("CCIPSendRequested");
-  let messageFound = false;
-  for (const event of events) {
-    if (
-      event.args &&
-      event.args.message &&
-      event.args.message.messageId === messageId
-    ) {
-      messageFound = true;
-      break;
-    }
-  }
-
-  // If the messageId doesn't exist, log an error and exit
-  if (!messageFound) {
-    console.error(`Message ${messageId} does not exist on this lane`);
-    return;
-  }
-
   // Instantiate the router contract on the destination chain
   const destinationRouterContract = new ethers.Contract(
     destinationRouterAddress,
@@ -99,35 +74,34 @@ const getStatus = async () => {
 
   // Fetch the OffRamp contract addresses on the destination chain
   const offRamps = await destinationRouterContract.getOffRamps();
+  const targetOffRamp = offRamps.find(
+    (offRamp) => offRamp.sourceChainSelector.toString() === sourceChainSelector
+  );
 
-  // Iterate through OffRamps to find the one linked to the source chain and check message status
-  for (const offRamp of offRamps) {
-    if (offRamp.sourceChainSelector.toString() === sourceChainSelector) {
-      const offRampContract = new ethers.Contract(
-        offRamp.offRamp,
-        offRampAbi,
-        destinationProvider
-      );
-      const executionStateChangeEvent = offRampContract.filters[
-        "ExecutionStateChanged"
-      ](undefined, messageId, undefined, undefined);
-      const events = await offRampContract.queryFilter(
-        executionStateChangeEvent
-      );
+  if (targetOffRamp) {
+    const offRampContract = new ethers.Contract(
+      targetOffRamp.offRamp,
+      offRampAbi,
+      destinationProvider
+    );
 
-      // Check if an event with the specific messageId exists and log its status
-      for (let event of events) {
-        if (event.args && event.args.messageId === messageId) {
-          const state = event.args.state;
-          const status = getMessageState(state);
-          console.log(`Status of message ${messageId} is ${status}`);
-          return;
-        }
-      }
+    const events = await offRampContract.queryFilter(
+      offRampContract.filters["ExecutionStateChanged"](undefined, messageId)
+    );
+
+    if (events.length > 0) {
+      const { state } = events[0].args;
+      console.log(
+        `Status of message ${messageId} is ${getMessageStatus(state)}\n`
+      );
+      return;
     }
   }
+
   // If no event found, the message has not yet been processed on the destination chain
-  console.log(`Message ${messageId} is not processed yet on destination chain`);
+  console.log(
+    `Ether the message ${messageId} does not exist OR it has not been processed yet on destination chain\n`
+  );
 };
 
 // Run the getStatus function and handle any errors

@@ -1,6 +1,6 @@
 const messageExecutionState = require("../../../config/messageState.json");
 
-const getMessageState = (status) => {
+const getMessageStatus = (status) => {
   if (status in messageExecutionState) {
     return messageExecutionState[status];
   }
@@ -8,5 +8,5 @@ const getMessageState = (status) => {
 };
 
 module.exports = {
-  getMessageState,
+  getMessageStatus,
 };
