@@ -19,7 +19,7 @@ interface Arguments {
 const handleArguments = (): Arguments => {
   // Check if the correct number of arguments are passed
   if (process.argv.length !== 5) {
-    throw new Error("Wrong number of arguments");
+    throw new Error("Wrong number of arguments. Expected format: npx ts-node src/get-status.ts <sourceChain> <destinationChain> <messageId>");
   }
 
   // Extract the arguments from the command line
