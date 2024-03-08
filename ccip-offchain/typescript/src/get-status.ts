@@ -1,33 +1,40 @@
-// Import the required modules and configuration functions
-const {
+import {
   getProviderRpcUrl,
   getRouterConfig,
-  getMessageState,
-} = require("./config");
-const ethers = require("ethers");
-const routerAbi = require("../../abi/Router.json");
-const offRampAbi = require("../../abi/OffRamp.json");
-const onRampAbi = require("../../abi/OnRamp.json");
+  getMessageStatus,
+  NETWORK,
+} from "./config";
+import { ethers, JsonRpcProvider } from "ethers";
+import {
+  Router__factory,
+  OnRamp__factory,
+  OffRamp__factory,
+} from "./typechain-types";
 
-// Command: node src/get-status.js sourceChain destinationChain messageId
+// Command: npx ts-node src/get-status.ts sourceChain destinationChain messageId
 // Examples(sepolia-->Fuji):
-// node src/get-status.js ethereumSepolia avalancheFuji 0xbd2f751ffab340b98575a8f46efc234e8d884db7b654c0144d7aabd72ff38595
+// npx ts-node src/get-status.ts ethereumSepolia avalancheFuji 0x6adcad3b71f62c7fcd45b3145d8d5aebfeb4a7ffacf567c09e5ce509120e8a8d
+interface Arguments {
+  sourceChain: NETWORK;
+  destinationChain: NETWORK;
+  messageId: string;
+}
 
-const handleArguments = () => {
+const handleArguments = (): Arguments => {
   // Check if the correct number of arguments are passed
   if (process.argv.length !== 5) {
     throw new Error("Wrong number of arguments");
   }
 
   // Extract the arguments from the command line
-  const chain = process.argv[2];
-  const targetChain = process.argv[3];
+  const sourceChain = process.argv[2] as NETWORK;
+  const destinationChain = process.argv[3] as NETWORK;
   const messageId = process.argv[4];
 
   // Return the arguments in an object
   return {
-    chain,
-    targetChain,
+    sourceChain,
+    destinationChain,
     messageId,
   };
 };
@@ -35,26 +42,26 @@ const handleArguments = () => {
 // Main function to get the status of a message by its ID
 const getStatus = async () => {
   // Parse command-line arguments
-  const { chain, targetChain, messageId } = handleArguments();
+  const { sourceChain, destinationChain, messageId } = handleArguments();
 
   // Get the RPC URLs for both the source and destination chains
-  const destinationRpcUrl = getProviderRpcUrl(targetChain);
-  const sourceRpcUrl = getProviderRpcUrl(chain);
+  const destinationRpcUrl = getProviderRpcUrl(destinationChain);
+  const sourceRpcUrl = getProviderRpcUrl(sourceChain);
 
   // Initialize providers for interacting with the blockchains
-  const destinationProvider = new ethers.JsonRpcProvider(destinationRpcUrl);
-  const sourceProvider = new ethers.JsonRpcProvider(sourceRpcUrl);
+  const destinationProvider = new JsonRpcProvider(destinationRpcUrl);
+  const sourceProvider = new JsonRpcProvider(sourceRpcUrl);
 
   // Retrieve router configuration for the source and destination chains
-  const sourceRouterAddress = getRouterConfig(chain).router;
-  const sourceChainSelector = getRouterConfig(chain).chainSelector;
-  const destinationRouterAddress = getRouterConfig(targetChain).router;
-  const destinationChainSelector = getRouterConfig(targetChain).chainSelector;
+  const sourceRouterAddress = getRouterConfig(sourceChain).router;
+  const sourceChainSelector = getRouterConfig(sourceChain).chainSelector;
+  const destinationRouterAddress = getRouterConfig(destinationChain).router;
+  const destinationChainSelector =
+    getRouterConfig(destinationChain).chainSelector;
 
   // Instantiate the router contract on the source chain
-  const sourceRouterContract = new ethers.Contract(
+  const sourceRouterContract = Router__factory.connect(
     sourceRouterAddress,
-    routerAbi,
     sourceProvider
   );
 
@@ -63,15 +70,21 @@ const getStatus = async () => {
   );
 
   if (!isChainSupported) {
-    throw new Error(`Lane ${chain}->${targetChain} is not supported}`);
+    throw new Error(
+      `Lane ${sourceChain}->${destinationChain} is not supported}`
+    );
   }
 
   // Fetch the OnRamp contract address on the source chain
-  const onRamp = await sourceRouterContract.getOnRamp(destinationChainSelector);
-  const onRampContract = new ethers.Contract(onRamp, onRampAbi, sourceProvider);
+  const onRampAddress = await sourceRouterContract.getOnRamp(
+    destinationChainSelector
+  );
+
+  const onRampContract = OnRamp__factory.connect(onRampAddress, sourceProvider);
 
   // Check if the messageId exists in the OnRamp contract
-  const events = await onRampContract.queryFilter("CCIPSendRequested");
+  const ccipSendRequestEvent = onRampContract.filters["CCIPSendRequested"]; // TODO: build a more efficient way than brute force all the events
+  const events = await onRampContract.queryFilter(ccipSendRequestEvent);
   let messageFound = false;
   for (const event of events) {
     if (
@@ -86,14 +99,13 @@ const getStatus = async () => {
 
   // If the messageId doesn't exist, log an error and exit
   if (!messageFound) {
-    console.error(`Message ${messageId} does not exist on this lane`);
+    console.error(`Message ${messageId} does not exist on this lane\n`);
     return;
   }
 
   // Instantiate the router contract on the destination chain
-  const destinationRouterContract = new ethers.Contract(
+  const destinationRouterContract = Router__factory.connect(
     destinationRouterAddress,
-    routerAbi,
     destinationProvider
   );
 
@@ -102,32 +114,35 @@ const getStatus = async () => {
 
   // Iterate through OffRamps to find the one linked to the source chain and check message status
   for (const offRamp of offRamps) {
-    if (offRamp.sourceChainSelector.toString() === sourceChainSelector) {
-      const offRampContract = new ethers.Contract(
+    if (offRamp.sourceChainSelector === sourceChainSelector) {
+      const offRampContract = OffRamp__factory.connect(
         offRamp.offRamp,
-        offRampAbi,
         destinationProvider
       );
       const executionStateChangeEvent = offRampContract.filters[
         "ExecutionStateChanged"
       ](undefined, messageId, undefined, undefined);
+
       const events = await offRampContract.queryFilter(
-        executionStateChangeEvent
+        executionStateChangeEvent,
+        0
       );
 
       // Check if an event with the specific messageId exists and log its status
       for (let event of events) {
         if (event.args && event.args.messageId === messageId) {
           const state = event.args.state;
-          const status = getMessageState(state);
-          console.log(`Status of message ${messageId} is ${status}`);
+          const status = getMessageStatus(state);
+          console.log(`Status of message ${messageId} is ${status}\n`);
           return;
         }
       }
     }
   }
   // If no event found, the message has not yet been processed on the destination chain
-  console.log(`Message ${messageId} is not processed yet on destination chain`);
+  console.log(
+    `Message ${messageId} is not processed yet on destination chain\n`
+  );
 };
 
 // Run the getStatus function and handle any errors
