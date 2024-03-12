@@ -1,0 +1,25 @@
+{
+  "name": "offchain-simulator",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "generate-types": "typechain --target ethers-v6 --out-dir src/typechain-types './abis/*.json'",
+    "estimate-gas-provider": "ts-node src/estimateGasProvider.ts",
+    "estimate-gas-tenderly": "ts-node src/estimateGasTenderly.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^20.11.24",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "@chainlink/env-enc": "^1.0.5",
+    "@typechain/ethers-v6": "^0.5.1",
+    "axios": "^1.6.7",
+    "ethers": "^6.11.1"
+  }
+}

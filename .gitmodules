@@ -19,3 +19,9 @@
 [submodule "timelocked-contracts/lib/openzeppelin-contracts"]
 	path = timelocked-contracts/lib/openzeppelin-contracts
 	url = https://github.com/openzeppelin/openzeppelin-contracts
+[submodule "ccip/estimate-gas/foundry/lib/forge-std"]
+	path = ccip/estimate-gas/foundry/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
+[submodule "ccip/estimate-gas/foundry/lib/ccip"]
+	path = ccip/estimate-gas/foundry/lib/ccip
+	url = https://github.com/smartcontractkit/ccip
