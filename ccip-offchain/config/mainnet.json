@@ -26,5 +26,13 @@
   "baseMainnet": {
     "chainSelector": "15971525489660198786",
     "router": "0x881e3A65B4d4a04dD529061dd0071cf975F58bCD"
+  },
+  "wemixMainnet": {
+    "chainSelector": "5142893604156789321",
+    "router": "0x7798b795Fde864f4Cd1b124a38Ba9619B7F8A442"
+  },
+  "kromaMainnet": {
+    "chainSelector": "3719320017875267166",
+    "router": "0xE93E8B0d1b1CEB44350C8758ed1E2799CCee31aB"
   }
 }
