@@ -1,0 +1,11 @@
+[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+remappings = [
+    "@chainlink/contracts-ccip/=lib/ccip/contracts/",
+]
+gas_reports = ["*"]
+solc = '0.8.19'
+
+# See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

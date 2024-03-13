@@ -1,0 +1,8 @@
+{
+  "ethereumSepolia": {
+    "receiver": ""
+  },
+  "avalancheFuji": {
+    "sender": ""
+  }
+}

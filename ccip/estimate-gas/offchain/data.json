@@ -1,0 +1,8 @@
+{
+  "ethereumSepolia": {
+    "receiver": "REPLACE_WITH_YOUR_RECEIVER_ADDRESS"
+  },
+  "avalancheFuji": {
+    "sender": "REPLACE_WITH_YOUR_SENDER_ADDRESS"
+  }
+}
