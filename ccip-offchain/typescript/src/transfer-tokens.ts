@@ -5,13 +5,15 @@ import {
   getMessageStatus,
   NETWORK,
 } from "./config";
-import { ethers, JsonRpcProvider } from "ethers";
+import { BigNumber, ethers, providers } from "ethers";
 import {
   Router__factory,
   OffRamp__factory,
   IERC20Metadata__factory,
+  OnRamp__factory,
 } from "./typechain-types";
 import { Client } from "./typechain-types/Router";
+import { TransactionRequest } from "@ethersproject/abstract-provider";
 
 // Command: npx ts-node src/transfer-tokens.ts sourceChain destinationChain destinationAccount tokenAddress amount feeTokenAddress(optional)
 // pay fees with native token: npx ts-node src/transfer-tokens.ts ethereumSepolia avalancheFuji 0x9d087fC03ae39b088326b67fA3C788236645b717 0xFd57b4ddBf88a4e07fF4e34C487b99af2Fe82a05 100
@@ -21,20 +23,22 @@ interface Arguments {
   destinationChain: NETWORK;
   destinationAccount: string;
   tokenAddress: string;
-  amount: bigint;
+  amount: BigNumber;
   feeTokenAddress?: string;
 }
 
 const handleArguments = (): Arguments => {
   if (process.argv.length !== 7 && process.argv.length !== 8) {
-    throw new Error("Wrong number of arguments. Expected format: npx ts-node src/transfer-tokens.ts <sourceChain> <destinationChain> <destinationAccount> <tokenAddress> <amount> [feeTokenAddress]");
+    throw new Error(
+      "Wrong number of arguments. Expected format: npx ts-node src/transfer-tokens.ts <sourceChain> <destinationChain> <destinationAccount> <tokenAddress> <amount> [feeTokenAddress]"
+    );
   }
 
   const sourceChain = process.argv[2] as NETWORK;
   const destinationChain = process.argv[3] as NETWORK;
   const destinationAccount: string = process.argv[4];
   const tokenAddress: string = process.argv[5];
-  const amount: bigint = BigInt(process.argv[6]);
+  const amount = BigNumber.from(process.argv[6]);
   const feeTokenAddress: string | undefined =
     process.argv.length === 8 ? process.argv[7] : undefined;
 
@@ -63,7 +67,7 @@ const transferTokens = async () => {
   // fetch the signer privateKey
   const privateKey = getPrivateKey();
   // Initialize a provider using the obtained RPC URL
-  const provider = new JsonRpcProvider(rpcUrl);
+  const provider = new providers.JsonRpcProvider(rpcUrl);
   const wallet = new ethers.Wallet(privateKey);
   const signer = wallet.connect(provider);
 
@@ -112,12 +116,12 @@ const transferTokens = async () => {
 
   // Encoding the data
 
-  const functionSelector = ethers.id("CCIP EVMExtraArgsV1").slice(0, 10);
+  const functionSelector = ethers.utils.id("CCIP EVMExtraArgsV1").slice(0, 10);
   //  "extraArgs" is a structure that can be represented as [ 'uint256']
   // extraArgs are { gasLimit: 0 }
   // we set gasLimit specifically to 0 because we are not sending any data so we are not expecting a receiving contract to handle data
 
-  const defaultAbiCoder = ethers.AbiCoder.defaultAbiCoder();
+  const defaultAbiCoder = ethers.utils.defaultAbiCoder;
   const extraArgs = defaultAbiCoder.encode(["uint256"], [0]);
 
   const encodedExtraArgs = functionSelector + extraArgs.slice(2);
@@ -126,7 +130,7 @@ const transferTokens = async () => {
     receiver: defaultAbiCoder.encode(["address"], [destinationAccount]),
     data: "0x", // no data
     tokenAmounts: tokenAmounts,
-    feeToken: feeTokenAddress || ethers.ZeroAddress, // If fee token address is provided then fees must be paid in fee token.
+    feeToken: feeTokenAddress || ethers.constants.AddressZero, // If fee token address is provided then fees must be paid in fee token.
     extraArgs: encodedExtraArgs,
   };
 
@@ -137,7 +141,7 @@ const transferTokens = async () => {
     const erc20 = IERC20Metadata__factory.connect(feeTokenAddress, provider);
     const symbol = await erc20.symbol();
     const decimals = await erc20.decimals();
-    const feesFormatted = ethers.formatUnits(fees, decimals);
+    const feesFormatted = ethers.utils.formatUnits(fees, decimals);
 
     console.log(`Estimated fees (${symbol}): ${feesFormatted}\n`);
   }
@@ -169,7 +173,7 @@ const transferTokens = async () => {
       console.log(
         `Approving router ${sourceRouterAddress} to spend ${amount} and fees ${fees} of token ${tokenAddress}\n`
       );
-      approvalTx = await erc20.approve(sourceRouterAddress, amount + fees);
+      approvalTx = await erc20.approve(sourceRouterAddress, amount.add(fees));
       await approvalTx.wait(DEFAULT_VERIFICATION_BLOCK_CONFIRMATIONS); // wait for the transaction to be mined
       console.log(`Approval done. Transaction: ${approvalTx.hash}\n`);
     } else {
@@ -206,17 +210,28 @@ const transferTokens = async () => {
   // prepare an ethersjs PreparedTransactionRequest
 
   if (!receipt) throw Error("Transaction not mined yet"); // TODO : add a better code to handle this case
-  const call = {
+  let alternativeMessageId;
+  receipt.logs.forEach((log) => {
+    try {
+      const logDescription = OnRamp__factory.createInterface().parseLog(log);
+      if (logDescription.name === "CCIPSendRequested") {
+        alternativeMessageId = logDescription.args.message.messageId;
+      }
+    } catch (error) {
+      // don't do anything
+    }
+  });
+  console.log("alternativeMessageId", alternativeMessageId);
+  const call: TransactionRequest = {
     from: sendTx.from,
     to: sendTx.to,
     data: sendTx.data,
     gasLimit: sendTx.gasLimit,
     gasPrice: sendTx.gasPrice,
     value: sendTx.value,
-    blockTag: receipt.blockNumber - 1, // Simulate a contract call with the transaction data at the block before the transaction
   };
 
-  const messageId = await provider.call(call);
+  const messageId = await provider.call(call, receipt.blockNumber - 1);
 
   console.log(
     `\n✅ ${amount} of Tokens(${tokenAddress}) Sent to account ${destinationAccount} on destination chain ${destinationChain} using CCIP. Transaction hash ${sendTx.hash} -  Message id is ${messageId}\n`
@@ -226,7 +241,7 @@ const transferTokens = async () => {
   const destinationRpcUrl = getProviderRpcUrl(destinationChain);
 
   // Initialize providers for interacting with the blockchains
-  const destinationProvider = new JsonRpcProvider(destinationRpcUrl);
+  const destinationProvider = new providers.JsonRpcProvider(destinationRpcUrl);
   const destinationRouterAddress = getRouterConfig(destinationChain).router;
 
   // Instantiate the router contract on the destination chain
@@ -249,7 +264,10 @@ const transferTokens = async () => {
 
     // Iterate through OffRamps to find the one linked to the source chain and check message status
     for (const offRamp of offRamps) {
-      if (offRamp.sourceChainSelector === sourceChainSelector) {
+      if (
+        offRamp.sourceChainSelector.toString() ===
+        sourceChainSelector.toString()
+      ) {
         const offRampContract = OffRamp__factory.connect(
           offRamp.offRamp,
           destinationProvider

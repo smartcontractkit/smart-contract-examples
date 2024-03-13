@@ -1,6 +1,7 @@
 import { merge } from "lodash";
 import supportedNetworksMainnet from "../../../config/mainnet.json";
 import supportedNetworksTestnet from "../../../config/testnet.json";
+import { BigNumber } from "ethers";
 
 const mergedNetworks = merge(
   {},
@@ -18,7 +19,7 @@ const getRouterConfig = (network: NETWORK) => {
 
   return {
     router: config.router,
-    chainSelector: BigInt(config.chainSelector),
+    chainSelector: BigNumber.from(config.chainSelector),
   };
 };
 

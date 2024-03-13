@@ -4,7 +4,7 @@ const {
   getRouterConfig,
   getMessageStatus,
 } = require("./config");
-const { ethers, JsonRpcProvider } = require("ethers");
+const { ethers, providers } = require("ethers");
 const routerAbi = require("../../abi/Router.json");
 const offRampAbi = require("../../abi/OffRamp.json");
 
@@ -41,8 +41,8 @@ const getStatus = async () => {
   const sourceRpcUrl = getProviderRpcUrl(chain);
 
   // Initialize providers for interacting with the blockchains
-  const destinationProvider = new JsonRpcProvider(destinationRpcUrl);
-  const sourceProvider = new JsonRpcProvider(sourceRpcUrl);
+  const destinationProvider = new providers.JsonRpcProvider(destinationRpcUrl);
+  const sourceProvider = new providers.JsonRpcProvider(sourceRpcUrl);
 
   // Retrieve router configuration for the source and destination chains
   const sourceRouterAddress = getRouterConfig(chain).router;

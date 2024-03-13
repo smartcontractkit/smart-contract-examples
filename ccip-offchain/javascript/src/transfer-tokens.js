@@ -5,8 +5,9 @@ const {
   getPrivateKey,
   getMessageState,
 } = require("./config");
-const { ethers, JsonRpcProvider } = require("ethers");
+const { ethers, providers } = require("ethers");
 const routerAbi = require("../../abi/Router.json");
+const onRampAbi = require("../../abi/OnRamp.json");
 const offRampAbi = require("../../abi/OffRamp.json");
 const erc20Abi = require("../../abi/IERC20Metadata.json");
 
@@ -65,7 +66,7 @@ const transferTokens = async () => {
   // fetch the signer privateKey
   const privateKey = getPrivateKey();
   // Initialize a provider using the obtained RPC URL
-  const provider = new JsonRpcProvider(rpcUrl);
+  const provider = new providers.JsonRpcProvider(rpcUrl);
   const wallet = new ethers.Wallet(privateKey);
   const signer = wallet.connect(provider);
 
@@ -137,12 +138,12 @@ const transferTokens = async () => {
 
   // Encoding the data
 
-  const functionSelector = ethers.id("CCIP EVMExtraArgsV1").slice(0, 10);
+  const functionSelector = ethers.utils.id("CCIP EVMExtraArgsV1").slice(0, 10);
   //  "extraArgs" is a structure that can be represented as [ 'uint256']
   // extraArgs are { gasLimit: 0 }
   // we set gasLimit specifically to 0 because we are not sending any data so we are not expecting a receiving contract to handle data
 
-  const defaultAbiCoder = ethers.AbiCoder.defaultAbiCoder();
+  const defaultAbiCoder = ethers.utils.defaultAbiCoder;
   const extraArgs = defaultAbiCoder.encode(["uint256"], [0]);
 
   const encodedExtraArgs = functionSelector + extraArgs.slice(2);
@@ -151,7 +152,7 @@ const transferTokens = async () => {
     receiver: defaultAbiCoder.encode(["address"], [destinationAccount]),
     data: "0x", // no data
     tokenAmounts: tokenAmounts,
-    feeToken: feeTokenAddress ? feeTokenAddress : ethers.ZeroAddress, // If fee token address is provided then fees must be paid in fee token.
+    feeToken: feeTokenAddress || ethers.constants.AddressZero, // If fee token address is provided then fees must be paid in fee token.
     extraArgs: encodedExtraArgs,
   };
 
@@ -241,6 +242,21 @@ const transferTokens = async () => {
 
   const receipt = await sendTx.wait(DEFAULT_VERIFICATION_BLOCK_CONFIRMATIONS); // wait for the transaction to be mined
 
+  if (!receipt) throw Error("Transaction not mined yet"); // TODO : add a better code to handle this case
+  let alternativeMessageId;
+  receipt.logs.forEach((log) => {
+    try {
+      const onRampInterface = new ethers.utils.Interface(onRampAbi);
+      const logDescription = onRampInterface.parseLog(log);
+      if (logDescription.name === "CCIPSendRequested") {
+        alternativeMessageId = logDescription.args.message.messageId;
+      }
+    } catch (error) {
+      // don't do anything
+    }
+  });
+  console.log("alternativeMessageId", alternativeMessageId);
+
   /* 
   ==================================================
       Section: Fetch message ID
@@ -259,10 +275,9 @@ const transferTokens = async () => {
     gasLimit: sendTx.gasLimit,
     gasPrice: sendTx.gasPrice,
     value: sendTx.value,
-    blockTag: receipt.blockNumber - 1, // Simulate a contract call with the transaction data at the block before the transaction
   };
 
-  const messageId = await provider.call(call);
+  const messageId = await provider.call(call, receipt.blockNumber - 1);
 
   console.log(
     `\n✅ ${amount} of Tokens(${tokenAddress}) Sent to account ${destinationAccount} on destination chain ${destinationChain} using CCIP. Transaction hash ${sendTx.hash} -  Message id is ${messageId}\n`
@@ -281,7 +296,7 @@ const transferTokens = async () => {
   const destinationRpcUrl = getProviderRpcUrl(destinationChain);
 
   // Initialize providers for interacting with the blockchains
-  const destinationProvider = new JsonRpcProvider(destinationRpcUrl);
+  const destinationProvider = new providers.JsonRpcProvider(destinationRpcUrl);
   const destinationRouterAddress = getRouterConfig(destinationChain).router;
 
   // Instantiate the router contract on the destination chain

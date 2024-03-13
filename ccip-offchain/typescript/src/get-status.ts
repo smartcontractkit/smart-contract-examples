@@ -4,7 +4,7 @@ import {
   getMessageStatus,
   NETWORK,
 } from "./config";
-import { JsonRpcProvider } from "ethers";
+import { providers } from "ethers";
 import { Router__factory, OffRamp__factory } from "./typechain-types";
 
 // Command: npx ts-node src/get-status.ts sourceChain destinationChain messageId
@@ -19,7 +19,9 @@ interface Arguments {
 const handleArguments = (): Arguments => {
   // Check if the correct number of arguments are passed
   if (process.argv.length !== 5) {
-    throw new Error("Wrong number of arguments. Expected format: npx ts-node src/get-status.ts <sourceChain> <destinationChain> <messageId>");
+    throw new Error(
+      "Wrong number of arguments. Expected format: npx ts-node src/get-status.ts <sourceChain> <destinationChain> <messageId>"
+    );
   }
 
   // Extract the arguments from the command line
@@ -45,8 +47,8 @@ const getStatus = async () => {
   const sourceRpcUrl = getProviderRpcUrl(sourceChain);
 
   // Initialize providers for interacting with the blockchains
-  const destinationProvider = new JsonRpcProvider(destinationRpcUrl);
-  const sourceProvider = new JsonRpcProvider(sourceRpcUrl);
+  const destinationProvider = new providers.JsonRpcProvider(destinationRpcUrl);
+  const sourceProvider = new providers.JsonRpcProvider(sourceRpcUrl);
 
   // Retrieve router configuration for the source and destination chains
   const sourceRouterAddress = getRouterConfig(sourceChain).router;
@@ -82,7 +84,8 @@ const getStatus = async () => {
   const offRamps = await destinationRouterContract.getOffRamps();
 
   const matchingOffRamps = offRamps.filter(
-    (offRamp) => offRamp.sourceChainSelector === sourceChainSelector
+    (offRamp) =>
+      offRamp.sourceChainSelector.toString() === sourceChainSelector.toString()
   );
 
   for (const matchingOffRamp of matchingOffRamps) {

@@ -1,5 +1,5 @@
 import { getProviderRpcUrl, getRouterConfig, NETWORK } from "./config";
-import { JsonRpcProvider } from "ethers";
+import { providers } from "ethers";
 import { Router__factory, IERC20Metadata__factory } from "./typechain-types";
 
 // A script is run with two arguments representing the source and target chains
@@ -31,7 +31,7 @@ const getSupportedTokens = async () => {
   // Get the RPC URL for the chain from the config
   const rpcUrl = getProviderRpcUrl(sourceChain);
   // Initialize a provider using the obtained RPC URL
-  const provider = new JsonRpcProvider(rpcUrl);
+  const provider = new providers.JsonRpcProvider(rpcUrl);
 
   // Get the router's address for the specified chain
   const routerAddress = getRouterConfig(sourceChain).router;

@@ -1,6 +1,6 @@
 // Import necessary modules and data
 const { getProviderRpcUrl, getRouterConfig } = require("./config");
-const { ethers, JsonRpcProvider } = require("ethers");
+const { ethers, providers } = require("ethers");
 const routerAbi = require("../../abi/Router.json");
 const erc20Abi = require("../../abi/IERC20Metadata.json");
 
@@ -27,7 +27,7 @@ const getSupportedTokens = async () => {
   // Get the RPC URL for the chain from the config
   const rpcUrl = getProviderRpcUrl(chain);
   // Initialize a provider using the obtained RPC URL
-  const provider = new JsonRpcProvider(rpcUrl);
+  const provider = new providers.JsonRpcProvider(rpcUrl);
 
   // Get the router's address for the specified chain
   const routerAddress = getRouterConfig(chain).router;
