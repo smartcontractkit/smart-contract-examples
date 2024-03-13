@@ -11,6 +11,8 @@ This is an advanced guide and assumes you have a basic understanding of CCIP and
 
 1. You have already run the [CCIP gas estimator using Hardhat](../hardhat/README.md) guide. You will need the deployed addresses of the Sender and Receiver contracts.
 
+1. Modify the `data.json` file and put the deployed addresses of the Sender and Receiver contracts.
+
 1. Install all the dependencies:
 
 ```bash
