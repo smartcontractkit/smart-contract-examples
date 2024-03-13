@@ -1,6 +1,6 @@
 import { getProviderRpcUrl, getRouterConfig, NETWORK } from "./config";
 import { providers } from "ethers";
-import { Router__factory, IERC20Metadata__factory } from "./typechain-types";
+import { Router__factory, IERC20Metadata__factory } from "../types/ethers-contracts";
 
 // A script is run with two arguments representing the source and target chains
 // Example usage: npx ts-node src/supported-tokens.ts ethereumSepolia avalancheFuji

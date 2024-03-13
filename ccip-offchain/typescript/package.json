@@ -5,14 +5,14 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "generate-types": "typechain --target ethers-v5 --out-dir src/typechain-types '../abi/*.json'",
+    "generate-types": "typechain --target ethers-v5 '../abi/*.json'",
     "postinstall": "echo 'generate typechain types' && npm run generate-types"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@typechain/ethers-v5": "^11.1.2",
+    "@typechain/ethers-v5": "6.0.5",
     "@types/lodash": "^4.14.202",
     "@types/node": "^20.11.25",
     "ts-node": "^10.9.2",
@@ -20,7 +20,7 @@
   },
   "dependencies": {
     "@chainlink/env-enc": "^1.0.5",
-    "ethers": "^5.7.2",
+    "ethers": "5.5.1",
     "lodash": "^4.17.21"
   }
 }

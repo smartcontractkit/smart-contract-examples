@@ -5,20 +5,13 @@ import {
   getMessageStatus,
   NETWORK,
 } from "./config";
-import {
-  BigNumber,
-  ContractReceipt,
-  ContractTransaction,
-  ethers,
-  providers,
-} from "ethers";
+import { BigNumber, ContractReceipt, ethers, providers } from "ethers";
 import {
   Router__factory,
   OffRamp__factory,
   IERC20Metadata__factory,
-  OnRamp__factory,
-} from "./typechain-types";
-import { Client } from "./typechain-types/Router";
+} from "../types/ethers-contracts";
+
 import {
   TransactionReceipt,
   TransactionRequest,
@@ -78,6 +71,7 @@ const transferTokens = async () => {
   const privateKey = getPrivateKey();
   // Initialize a provider using the obtained RPC URL
   const provider = new providers.JsonRpcProvider(rpcUrl);
+
   const wallet = new ethers.Wallet(privateKey);
   const signer = wallet.connect(provider);
 
@@ -117,7 +111,7 @@ const transferTokens = async () => {
   }
 
   // build message
-  const tokenAmounts: Client.EVMTokenAmountStruct[] = [
+  const tokenAmounts = [
     {
       token: tokenAddress,
       amount: amount,
@@ -136,7 +130,7 @@ const transferTokens = async () => {
 
   const encodedExtraArgs = functionSelector + extraArgs.slice(2);
 
-  const message: Client.EVM2AnyMessageStruct = {
+  const message = {
     receiver: defaultAbiCoder.encode(["address"], [destinationAccount]),
     data: "0x", // no data
     tokenAmounts: tokenAmounts,
@@ -218,6 +212,7 @@ const transferTokens = async () => {
     sendTx = await sourceRouter.ccipSend(destinationChainSelector, message); // fees are part of the message
   }
 
+  console.log("Router call done. Transaction: ", sendTx.hash, "\n");
   const receipt: ContractReceipt = await sendTx.wait(
     DEFAULT_VERIFICATION_BLOCK_CONFIRMATIONS
   ); // wait for the transaction to be mined
@@ -279,7 +274,7 @@ const transferTokens = async () => {
 
         const executionStateChangeEvent = offRampContract.filters[
           "ExecutionStateChanged"
-        ](undefined, messageId, undefined, undefined);
+        ](null, messageId, null, null);
 
         const events = await offRampContract.queryFilter(
           executionStateChangeEvent

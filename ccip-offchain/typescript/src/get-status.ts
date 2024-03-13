@@ -4,8 +4,8 @@ import {
   getMessageStatus,
   NETWORK,
 } from "./config";
-import { providers } from "ethers";
-import { Router__factory, OffRamp__factory } from "./typechain-types";
+import { providers, ethers } from "ethers";
+import { Router__factory, OffRamp__factory } from "../types/ethers-contracts";
 
 // Command: npx ts-node src/get-status.ts sourceChain destinationChain messageId
 // Examples(sepolia-->Fuji):
@@ -94,7 +94,7 @@ const getStatus = async () => {
       destinationProvider
     );
     const events = await offRampContract.queryFilter(
-      offRampContract.filters.ExecutionStateChanged(undefined, messageId)
+      offRampContract.filters.ExecutionStateChanged(null, messageId, null, null)
     );
 
     if (events.length > 0) {
