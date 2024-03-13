@@ -36,7 +36,7 @@ using the following command:
 npx env-enc set
 ```
 
-1. Be familiar with abi encoding. In fact, you will encode an [Any2EVMMessage](https://docs.chain.link/ccip/api-reference/client#any2evmmessage) offchain then simulate sending it yo your Receiver contract.
+1. Be familiar with abi encoding. In fact, you will encode an [Any2EVMMessage](https://docs.chain.link/ccip/api-reference/client#any2evmmessage) offchain and then simulate sending it to your Receiver contract.
 
 1. Generate typechain typings for the Receiver contract:
 
@@ -106,4 +106,4 @@ As you can notice from the output, the gas usage increases with the number of it
 | 50                   | 14946                       | 14581                 |
 | 99                   | 24324                       | 23940                 |
 
-Read the [CCIP gas estimator using Hardhat](../hardhat/README.md) guide to compare the results. More specifically , check the actual testnet results. You will notice that using the tenderly API gives more precise results.
+Read the [CCIP gas estimator using Hardhat](../hardhat/README.md) guide to compare the results. More specifically, check the actual testnet results. You will notice that using the tenderly API gives more precise results.
