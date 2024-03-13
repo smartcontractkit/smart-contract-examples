@@ -154,7 +154,7 @@ const transferTokens = async () => {
   const erc20 = IERC20Metadata__factory.connect(tokenAddress, signer);
   let sendTx: TransactionResponse, approvalTx: TransactionResponse;
 
-  let currentBlock: number;
+  let messageId: string;
 
   if (!feeTokenAddress) {
     // Pay native
@@ -169,7 +169,21 @@ const transferTokens = async () => {
     console.log(
       `Calling the router to send ${amount} of token ${tokenAddress} to account ${destinationAccount} on destination chain ${destinationChain} using CCIP\n`
     );
-    currentBlock = await signer.provider.getBlockNumber();
+
+    const txData = await sourceRouter.populateTransaction.ccipSend(
+      destinationChainSelector,
+      message,
+      {
+        value: fees,
+      }
+    );
+
+    // simulate messageId
+    messageId = await sourceRouter.callStatic.ccipSend(
+      destinationChainSelector,
+      message,
+      { value: fees }
+    );
     sendTx = await sourceRouter.ccipSend(destinationChainSelector, message, {
       value: fees,
     }); // fees are send as value since we are paying the fees in native
@@ -208,7 +222,10 @@ const transferTokens = async () => {
       `Calling the router to send ${amount} of token ${tokenAddress} to account ${destinationAccount} on destination chain ${destinationChain} using CCIP\n`
     );
 
-    currentBlock = await signer.provider.getBlockNumber();
+    messageId = await sourceRouter.callStatic.ccipSend(
+      destinationChainSelector,
+      message
+    ); // simulate messageId
     sendTx = await sourceRouter.ccipSend(destinationChainSelector, message); // fees are part of the message
   }
 
@@ -220,17 +237,6 @@ const transferTokens = async () => {
   // prepare an ethersjs PreparedTransactionRequest
 
   if (!receipt) throw Error("Transaction not mined yet"); // TODO : add a better code to handle this case
-
-  const call: TransactionRequest = {
-    from: sendTx.from,
-    to: sendTx.to,
-    data: sendTx.data,
-    gasLimit: sendTx.gasLimit,
-    gasPrice: sendTx.gasPrice,
-    value: sendTx.value,
-  };
-
-  const messageId = await signer.call(call, currentBlock);
 
   console.log(
     `\n✅ ${amount} of Tokens(${tokenAddress}) Sent to account ${destinationAccount} on destination chain ${destinationChain} using CCIP. Transaction hash ${sendTx.hash} -  Message id is ${messageId}\n`
