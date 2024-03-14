@@ -240,22 +240,9 @@ const transferTokens = async () => {
     sendTx = await sourceRouter.ccipSend(destinationChainSelector, message); // fees are part of the message
   }
 
-  const receipt = await sendTx.wait(DEFAULT_VERIFICATION_BLOCK_CONFIRMATIONS); // wait for the transaction to be mined
+  const currentBlock = await signer.provider.getBlockNumber();
 
-  if (!receipt) throw Error("Transaction not mined yet"); // TODO : add a better code to handle this case
-  let alternativeMessageId;
-  receipt.logs.forEach((log) => {
-    try {
-      const onRampInterface = new ethers.utils.Interface(onRampAbi);
-      const logDescription = onRampInterface.parseLog(log);
-      if (logDescription.name === "CCIPSendRequested") {
-        alternativeMessageId = logDescription.args.message.messageId;
-      }
-    } catch (error) {
-      // don't do anything
-    }
-  });
-  console.log("alternativeMessageId", alternativeMessageId);
+  const receipt = await sendTx.wait(DEFAULT_VERIFICATION_BLOCK_CONFIRMATIONS); // wait for the transaction to be mined
 
   /* 
   ==================================================
@@ -277,7 +264,7 @@ const transferTokens = async () => {
     value: sendTx.value,
   };
 
-  const messageId = await provider.call(call, receipt.blockNumber - 1);
+  const messageId = await provider.call(call, currentBlock);
 
   console.log(
     `\n✅ ${amount} of Tokens(${tokenAddress}) Sent to account ${destinationAccount} on destination chain ${destinationChain} using CCIP. Transaction hash ${sendTx.hash} -  Message id is ${messageId}\n`
