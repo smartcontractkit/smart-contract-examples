@@ -69,7 +69,7 @@ async function estimateGas() {
   console.log("Final Gas Usage Report:");
   gasUsageReport.forEach((report) => {
     console.log(
-      `Number of iterations ${report.iterations} - Gas used: ${report.gasUsed}`
+      `Number of iterations: ${report.iterations} - Gas used: ${report.gasUsed}`
     );
   });
 }

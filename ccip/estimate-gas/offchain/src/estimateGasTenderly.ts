@@ -6,7 +6,7 @@ import axios from "axios";
 import { getCCIPConfig } from "../ccip.config";
 // Import a helper function for building transaction data.
 import { buildTransactionData } from "./helper";
-// Import test data, which includes sender and receiver information.
+// Import test data, which includes sender and receiver addresses.
 import testData from "../data.json";
 
 /**
@@ -85,7 +85,7 @@ const simulateTransaction = async () => {
   console.log("Final Gas Usage Report:");
   gasUsageReport.forEach((report) => {
     console.log(
-      `Number of iterations ${report.iterations} - Gas used: ${report.gasUsed}`
+      `Number of iterations: ${report.iterations} - Gas used: ${report.gasUsed}`
     );
   });
 };
