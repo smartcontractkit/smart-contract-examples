@@ -20,6 +20,7 @@
     "@chainlink/env-enc": "^1.0.5",
     "@typechain/ethers-v6": "^0.5.1",
     "axios": "^1.6.7",
-    "ethers": "^6.11.1"
+    "ethers": "^6.11.1",
+    "uid": "^2.0.2"
   }
 }
