@@ -25,7 +25,7 @@ npm install
 npx env-enc set-pw
 ```
 
-1. Setup this environment variables (**Remark**: Read the [tenderly guide](https://docs.tenderly.co/account/projects/account-project-slug) for finding the `TENDERLY_ACCOUNT_SLUG` and `TENDERLY_PROJECT_SLUG`. You can get `TENDERLY_ACCESS_KEY` by generating a new access token):
+1. Setup these environment variables (**Remark**: Read the [tenderly guide](https://docs.tenderly.co/account/projects/account-project-slug) for finding the `TENDERLY_ACCOUNT_SLUG` and `TENDERLY_PROJECT_SLUG`. You can get `TENDERLY_ACCESS_KEY` by generating a new access token):
 
 - `ETHEREUM_SEPOLIA_RPC_URL`
 - `TENDERLY_ACCOUNT_SLUG`
@@ -46,7 +46,7 @@ npx env-enc set
 npm run generate-types
 ```
 
-The types will be generated in the `src/types` directory.
+The types will be generated in the `src/typechain-types` directory.
 
 ## Estimate gas using ethers.js provider
 
