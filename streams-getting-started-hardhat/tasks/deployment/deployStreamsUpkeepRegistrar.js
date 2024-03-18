@@ -30,7 +30,10 @@ task("deployStreamsUpkeepRegistrar", "Deploys the StreamsUpkeepRegistrar contrac
     const streamsUpkeepRegistrar = await StreamsUpkeepRegistrar.deploy(
       config.verifierProxyAddress,
       config.linkToken,
-      config.automationRegistrarAddress
+      config.automationRegistrarAddress,
+      ["0x00027bbaff688c906a3e20a34fe951715d1018d262a5b66e38eda027a674cd1b"]
+      // This example reads the ID for the basic ETH/USD price report on Arbitrum Sepolia.
+      // Find a complete list of IDs at https://docs.chain.link/data-streams/stream-ids
     )
 
     // Wait for the contract deployment transaction to be mined.

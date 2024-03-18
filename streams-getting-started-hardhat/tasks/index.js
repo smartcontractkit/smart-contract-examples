@@ -7,7 +7,7 @@
 exports.transferLink = require("./transfer-link.js")
 
 // Import and export the task for registering a log upkeep with Chainlink Automation.
-exports.registerLogUpkeep = require("./registerLogUpkeep.js")
+exports.registerAndFundLogUpkeep = require("./registerAndFundLogUpkeep.js")
 
 // Import and export the task for emitting a log from the LogEmitter contract.
 exports.emitLog = require("./emitLog.js")

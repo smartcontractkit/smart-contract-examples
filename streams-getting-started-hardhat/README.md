@@ -1,6 +1,6 @@
 # Getting Started with Data Streams
 
-This guide shows you how to read data from a Data Streams feed, verify the answer, and store the answer onchain. This example uses a [Chainlink Automation Log Trigger](https://docs.chain.link/chainlink-automation/guides/log-trigger) to check for events that require data. For this example, the log trigger comes from a simple emitter contract. Chainlink Automation then uses `StreamsLookup` to retrieve a signed report from the Data Streams Engine, return the data in a callback, and run the [`performUpkeep` function](https://docs.chain.link//chainlink-automation/reference/automation-interfaces#performupkeep-function-for-log-triggers) on your registered upkeep contract. The `performUpkeep` function calls the `verify` function on the verifier contract.
+This guide shows you how to read data from a Data Streams feed, verify the answer, and store the answer onchain. This example uses a [Chainlink Automation Log Trigger](https://docs.chain.link/chainlink-automation/guides/log-trigger) to check for events that require data. For this example, the log trigger comes from a simple emitter contract. Chainlink Automation then uses `StreamsLookup` to retrieve a signed report from the Data Streams Engine, return the data in a callback, and run the [`performUpkeep` function](https://docs.chain.link/chainlink-automation/reference/automation-interfaces#performupkeep-function-for-log-triggers) on your registered upkeep contract. The `performUpkeep` function calls the `verify` function on the verifier contract.
 
 This guide represents an example of using a Chainlink product or service and is provided to help you understand how to
 interact with Chainlink's systems and services so that you can integrate them into your own. This template is provided
@@ -17,12 +17,14 @@ This guide uses the [Hardhat](https://hardhat.org/) development environment to d
 ### Requirements
 
 - **Git**: Make sure you have Git installed. You can check your current version by running <CopyText text="git --version" code/> in your terminal and download the latest version from the official [Git website](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git) if necessary.
-- **Nodejs** and **npm**: Make sure you have Node.js and npm installed. You can check your current version by running <CopyText text="node -v" code/> and <CopyText text="npm -v" code/> in your terminal. Download the latest version from the official [Node.js website](https://nodejs.org/en/download/) if necessary.
+- **Nodejs** and **npm**: [Install the latest release of Node.js 20](https://nodejs.org/en/download/). Optionally, you can use the nvm package to switch between Node.js versions with <CopyText text="nvm use 20" code/>. To ensure you are running the correct version in a terminal, type <CopyText text="node -v" code/>.
+  ```bash
+   $ node -v
+   v20.11.0
+  ```
 - **RPC URL**: You need a Remote Procedure Call (RPC) URL for the Arbitrum Sepolia network. You can obtain one by creating an account on [Alchemy](https://www.alchemy.com/) or [Infura](https://www.infura.io/) and setting up an Arbitrum Sepolia project.
 - **Private key**: You need the private key of the account that will deploy and interact with the contracts. You can use the private key of your [MetaMask wallet](https://metamask.io/).
-- **Testnet funds**: This guide requires testnet ETH and LINK on _Arbitrum Sepolia_.
-  - Use the [Arbitrum Bridge](https://bridge.arbitrum.io/) to transfer testnet ETH from Ethereum Sepolia to Arbitrum Sepolia. Testnet ETH on Ethereum Sepolia is available at one of [several faucets](https://faucetlink.to/sepolia).
-  - Testnet LINK is available for Arbitrum Sepolia at [faucets.chain.link](https://faucets.chain.link/arbitrum-sepolia).
+- **Testnet funds**: This guide requires testnet ETH and LINK on Arbitrum Sepolia. Both are available at [faucets.chain.link](https://faucets.chain.link/arbitrum-sepolia).
 
 ## Tutorial
 
@@ -83,10 +85,10 @@ Save the deployed contract addresses for both contracts. You will use these addr
 In this example, the upkeep contract pays for onchain verification of reports from Data Streams. The Automation subscription does not cover the cost. Transfer `1.5` testnet LINK to the upkeep contract address you saved earlier. You can retrieve unused LINK later.
 
 ```bash
-npx hardhat transfer-link --recipient <StreamsUpkeepAddress> --amount 1500000000000000000 --network arbitrumSepolia
+npx hardhat transfer-link --recipient <StreamsUpkeepRegistrarAddress> --amount 1500000000000000000 --network arbitrumSepolia
 ```
 
-Replace `<StreamsUpkeepAddress>` with the address of the `StreamsUpkeep` contract you saved earlier.
+Replace `<StreamsUpkeepRegistrarAddress>` with the address of the `StreamsUpkeepRegistrar` contract you saved earlier.
 
 Expect output similar to the following in your terminal:
 
@@ -97,15 +99,15 @@ Expect output similar to the following in your terminal:
 ✔ 1.5 LINK were sent from 0x45C90FBb5acC1a5c156a401B56Fea55e69E7669d to 0xD721337a827F9D814daEcCc3c7e72300af914BFE. Transaction Hash: 0xf241bf4415ec081325ccd8ec3d54432e424afd16f1c81fa78b291ae9a0c03ce2
 ```
 
-### Register the upkeep
+### Register and fund the upkeep
 
 Programmatically register and fund a new `Log Trigger` upkeep with 1 LINK:
 
 ```bash
-npx hardhat registerAndFundUpkeep --streams-upkeep <StreamsUpkeepAddress> --log-emitter <LogEmitterAddress> --network arbitrumSepolia
+npx hardhat registerAndFundUpkeep --streams-upkeep <StreamsUpkeepRegistrarAddress> --log-emitter <LogEmitterAddress> --network arbitrumSepolia
 ```
 
-Replace `<StreamsUpkeepAddress>` and `<LogEmitterAddress>` with the addresses of your `StreamsUpkeep` and `LogEmitter` contracts.
+Replace `<StreamsUpkeepRegistrarAddress>` and `<LogEmitterAddress>` with the addresses of your `StreamsUpkeepRegistrar` and `LogEmitter` contracts.
 
 Expect output similar to the following in your terminal:
 
@@ -121,7 +123,7 @@ Now, you can use your emitter contract to emit a log and initiate the upkeep, wh
 npx hardhat emitLog --log-emitter <LogEmitterAddress> --network arbitrumSepolia
 ```
 
-Replace `<LogEmitterContractAddress>` with the address of your `LogEmitter` contract.
+Replace `<LogEmitterAddress>` with the address of your `LogEmitter` contract.
 
 Expect output similar to the following in your terminal:
 
@@ -133,13 +135,13 @@ After the transaction is complete, the log is emitted, and the upkeep is trigger
 
 ### View the retrieved price
 
-The retrieved price is stored in the `s_last_retrieved_price` contract variable and emitted in the logs. To see the price retrieved by the `StreamsUpkeep` contract:
+The retrieved price is stored in the `s_last_retrieved_price` contract variable and emitted in the logs. To see the price retrieved by the `StreamsUpkeepRegistrar` contract:
 
 ```bash
-npx hardhat getLastRetrievedPrice --streams-upkeep <StreamsUpkeepContractAddress> --network arbitrumSepolia
+npx hardhat getLastRetrievedPrice --streams-upkeep <StreamsUpkeepRegistrarAddress> --network arbitrumSepolia
 ```
 
-Replace `<StreamsUpkeepContractAddress>` with the address of your `StreamsUpkeep` contract.
+Replace `<StreamsUpkeepRegistrarAddress>` with the address of your `StreamsUpkeepRegistrar` contract.
 
 Expect output similar to the following in your terminal:
 
