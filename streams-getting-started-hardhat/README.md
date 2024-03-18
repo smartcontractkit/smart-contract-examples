@@ -80,7 +80,7 @@ Save the deployed contract addresses for both contracts. You will use these addr
 
 ### Fund the upkeep contract
 
-Before registering your upkeep, you need to fund the upkeep contract with testnet LINK tokens. Transfer `1.5` testnet LINK to the upkeep contract address you saved earlier. You can retrieve unused LINK later.
+In this example, the upkeep contract pays for onchain verification of reports from Data Streams. The Automation subscription does not cover the cost. Transfer `1.5` testnet LINK to the upkeep contract address you saved earlier. You can retrieve unused LINK later.
 
 ```bash
 npx hardhat transfer-link --recipient <StreamsUpkeepAddress> --amount 1500000000000000000 --network arbitrumSepolia
