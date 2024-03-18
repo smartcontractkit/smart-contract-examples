@@ -1,0 +1,46 @@
+{
+  "name": "Getting Started with Data Streams",
+  "license": "MIT",
+  "version": "1.0.0",
+  "description": "A getting started guide for using Chainlink Data Streams",
+  "scripts": {
+    "compile": "hardhat compile",
+    "deploy": "hardhat run scripts/deployment/main.js --network arbitrumSepolia",
+    "lint": "npm run lint:contracts && npm run format:check",
+    "lint:fix": "solhint 'contracts/**/*.sol' --fix",
+    "lint:contracts": "solhint 'contracts/*.sol'",
+    "lint:contracts:fix": "solhint 'contracts/**/*.sol' --fix",
+    "format:check": "prettier --check .",
+    "format:fix": "prettier --write ."
+  },
+  "dependencies": {
+    "@chainlink/contracts": "^0.8.0",
+    "@chainlink/env-enc": "^1.0.5",
+    "@nomiclabs/hardhat-ethers": "^2.1.1",
+    "@nomicfoundation/hardhat-toolbox": "^2.0.0",
+    "ethers": "^5.7.2",
+    "hardhat": "^2.20.1",
+    "lint-staged": "^13.0.3",
+    "ora": "5.4.1",
+    "prettier": "^2.7.1",
+    "prettier-plugin-solidity": "^1.0.0-beta.24",
+    "solhint": "^3.3.7",
+    "solhint-plugin-prettier": "^0.0.5"
+  },
+  "lint-staged": {
+    "*.{js,json,yml,yaml}": [
+      "prettier --write"
+    ],
+    "*.sol": [
+      "prettier --write",
+      "solhint"
+    ]
+  },
+  "prettier": {
+    "trailingComma": "es5",
+    "tabWidth": 2,
+    "semi": false,
+    "singleQuote": false,
+    "printWidth": 120
+  }
+}
