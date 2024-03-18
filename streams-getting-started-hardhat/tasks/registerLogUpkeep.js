@@ -6,7 +6,7 @@ const utils = require("./utils")
  * trigger configuration for a LogEmitter contract, and submits the registration
  * request to a specified StreamsUpkeep contract.
  */
-task("registerUpkeep", "Registers an upkeep with Chainlink Automation")
+task("registerAndFundUpkeep", "Registers and funds an upkeep with Chainlink Automation")
   .addParam("streamsUpkeep", "The address of the deployed StreamsUpkeep contract") // Address of the StreamsUpkeep contract.
   .addParam("logEmitter", "The address of the deployed LogEmitter contract") // Address of the LogEmitter contract used in the trigger.
   .setAction(async (taskArgs) => {
@@ -56,7 +56,7 @@ task("registerUpkeep", "Registers an upkeep with Chainlink Automation")
 
     try {
       await StreamsUpkeepContract.registerAndPredictID(params)
-      spinner.succeed("Upkeep registered successfully.") // Update spinner on success
+      spinner.succeed("Upkeep registered and funded with 1 LINK successfully.") // Update spinner on success
     } catch (error) {
       spinner.fail("Failed to register upkeep.") // Update spinner on failure
       throw error
@@ -64,4 +64,3 @@ task("registerUpkeep", "Registers an upkeep with Chainlink Automation")
   })
 
 module.exports = {}
-0xfbd7fe34751b0b44a8e721acb9e4249407c5996e

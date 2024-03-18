@@ -63,14 +63,17 @@ Deploy an upkeep contract that is enabled to retrieve data from Data Streams. Fo
 Execute the following command to deploy the Chainlink Automation upkeep contract and the Log Emitter contract to the Arbitrum Sepolia network.
 
 ```bash
-npm run deploy
+npx hardhat deployAll --network arbitrumSepolia
 ```
 
 Expect output similar to the following in your terminal:
 
 ```bash
-✔ StreamsUpkeep deployed at: 0xD721337a827F9D814daEcCc3c7e72300af914BFE
-✔ LogEmitter deployed at: 0x48403478Aa021A9BC30Da0BDE47cbc155CcA8916
+ℹ Deploying StreamsUpkeepRegistrar contract...
+✔ StreamsUpkeepRegistrar deployed at: 0x48403478Aa021A9BC30Da0BDE47cbc155CcA8916
+ℹ Deploying LogEmitter contract...
+✔ LogEmitter deployed at: 0xD721337a827F9D814daEcCc3c7e72300af914BFE
+✔ All contracts deployed successfully.
 ```
 
 Save the deployed contract addresses for both contracts. You will use these addresses later.
@@ -96,10 +99,10 @@ Expect output similar to the following in your terminal:
 
 ### Register the upkeep
 
-Programmatically register a new `Log Trigger` upkeep:
+Programmatically register and fund a new `Log Trigger` upkeep with 1 LINK:
 
 ```bash
-npx hardhat registerUpkeep --streams-upkeep <StreamsUpkeepAddress> --log-emitter <LogEmitterAddress> --network arbitrumSepolia
+npx hardhat registerAndFundUpkeep --streams-upkeep <StreamsUpkeepAddress> --log-emitter <LogEmitterAddress> --network arbitrumSepolia
 ```
 
 Replace `<StreamsUpkeepAddress>` and `<LogEmitterAddress>` with the addresses of your `StreamsUpkeep` and `LogEmitter` contracts.
@@ -107,7 +110,7 @@ Replace `<StreamsUpkeepAddress>` and `<LogEmitterAddress>` with the addresses of
 Expect output similar to the following in your terminal:
 
 ```bash
-✔ Upkeep registered successfully.
+✔ Upkeep registered and funded with 1 LINK successfully.
 ```
 
 ### Emit a log
@@ -115,7 +118,7 @@ Expect output similar to the following in your terminal:
 Now, you can use your emitter contract to emit a log and initiate the upkeep, which retrieves data for the specified Data Streams feed ID.
 
 ```bash
-npx hardhat emitLog --log-emitter <LogEmitterContractAddress> --network arbitrumSepolia
+npx hardhat emitLog --log-emitter <LogEmitterAddress> --network arbitrumSepolia
 ```
 
 Replace `<LogEmitterContractAddress>` with the address of your `LogEmitter` contract.

@@ -14,3 +14,12 @@ exports.emitLog = require("./emitLog.js")
 
 // Import and export the task for retrieving the last price updated in the StreamsUpkeep contract.
 exports.getLastRetrievedPrice = require("./getLastRetrievedPrice.js")
+
+// Import and export the task for deploying the LogEmitter contract.
+exports.deployLogEmitter = require("./deployment/deployLogEmitter.js")
+
+// Import and export the task for deploying the StreamsUpkeepRegistrar contract.
+exports.deployStreamsUpkeepRegistrar = require("./deployment/deployStreamsUpkeepRegistrar.js")
+
+// Import and export the main deployment task that launches other deployment tasks.
+exports.deployAll = require("./deployment/main.js")
