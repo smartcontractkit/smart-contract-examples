@@ -1,0 +1,26 @@
+{
+  "name": "typescript",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "generate-types": "typechain --target ethers-v6 --out-dir src/typechain-types '../abi/*.json'",
+    "postinstall": "echo 'generate typechain types' && npm run generate-types"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@typechain/ethers-v6": "^0.5.1",
+    "@types/lodash": "^4.14.202",
+    "@types/node": "^20.11.25",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.2"
+  },
+  "dependencies": {
+    "@chainlink/env-enc": "^1.0.5",
+    "ethers": "^6.11.1",
+    "lodash": "^4.17.21"
+  }
+}
