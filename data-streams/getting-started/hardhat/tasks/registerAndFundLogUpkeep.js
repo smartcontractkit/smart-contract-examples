@@ -56,9 +56,9 @@ task("registerAndFundUpkeep", "Registers and funds an upkeep with Chainlink Auto
 
     try {
       await StreamsUpkeepContract.registerAndPredictID(params)
-      spinner.succeed("Upkeep registered and funded with 1 LINK successfully.") // Update spinner on success
+      spinner.succeed("Upkeep registered and funded with 1 LINK successfully.")
     } catch (error) {
-      spinner.fail("Failed to register upkeep.") // Update spinner on failure
+      spinner.fail("Failed to register upkeep.")
       throw error
     }
   })

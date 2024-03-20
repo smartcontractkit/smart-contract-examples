@@ -7,6 +7,10 @@ task("deployAll", "Deploys both LogEmitter and StreamsUpkeepRegistrar contracts"
   spinner.start("Starting deployment of LogEmitter and StreamsUpkeepRegistrar contracts...")
 
   try {
+    // Compile the contracts before deployment
+    spinner.info("Compiling contracts...")
+    await run("compile")
+
     // Deploy the StreamsUpkeepRegistrar contract
     spinner.info("Deploying StreamsUpkeepRegistrar contract...")
     await run("deployStreamsUpkeepRegistrar")
