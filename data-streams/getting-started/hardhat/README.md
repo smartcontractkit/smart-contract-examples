@@ -1,14 +1,12 @@
 # Getting Started with Data Streams
 
-This guide shows you how to read data from a Data Streams feed, verify the answer, and store the answer onchain. This example uses a [Chainlink Automation Log Trigger](https://docs.chain.link/chainlink-automation/guides/log-trigger) to check for events that require data. For this example, the log trigger comes from a simple emitter contract. Chainlink Automation then uses `StreamsLookup` to retrieve a signed report from the Data Streams Engine, return the data in a callback, and run the [`performUpkeep` function](https://docs.chain.link/chainlink-automation/reference/automation-interfaces#performupkeep-function-for-log-triggers) on your registered upkeep contract. The `performUpkeep` function calls the `verify` function on the verifier contract.
+This guide shows you how to read data from a Data Streams feed, verify the answer onchain, and store the answer onchain. This example uses a [Chainlink Automation Log Trigger](https://docs.chain.link/chainlink-automation/guides/log-trigger) to check for events that require data. For this example:
 
-This guide represents an example of using a Chainlink product or service and is provided to help you understand how to
-interact with Chainlink's systems and services so that you can integrate them into your own. This template is provided
-"AS IS" and "AS AVAILABLE" without warranties of any kind, has not been audited, and may be missing key checks or
-error handling to make the usage of the product more clear. Do not use the code in this example in a production
-environment without completing your own audits and application of best practices. Neither Chainlink Labs, the
-Chainlink Foundation, nor Chainlink node operators are responsible for unintended outputs that are generated due to
-errors in code.
+- The log trigger comes from a simple emitter contract.
+- Chainlink Automation then uses `StreamsLookup` to retrieve a signed report from the Data Streams Engine, return the data in a callback, and run the [`performUpkeep` function](https://docs.chain.link/chainlink-automation/reference/automation-interfaces#performupkeep-function-for-log-triggers) on your registered upkeep contract.
+- The `performUpkeep` function calls the `verify` function on the verifier contract.
+
+> :warning: **Disclaimer**: "This tutorial represents an educational example to use a Chainlink system, product, or service and is provided to demonstrate how to interact with Chainlink’s systems, products, and services to integrate them into your own. This template is provided “AS IS” and “AS AVAILABLE” without warranties of any kind, it has not been audited, and it may be missing key checks or error handling to make the usage of the system, product or service more clear. Do not use the code in this example in a production environment without completing your own audits and application of best practices. Neither Chainlink Labs, the Chainlink Foundation, nor Chainlink node operators are responsible for unintended outputs that are generated due to errors in code."
 
 ## Before you begin
 
@@ -34,7 +32,7 @@ This guide uses the [Hardhat](https://hardhat.org/) development environment to d
 
    ```bash
    git clone https://github.com/smartcontractkit/smart-contract-examples.git
-   cd streams-getting-started-hardhat
+   cd data-streams/getting-started/hardhat
    ```
 
 1. Install all the dependencies:
