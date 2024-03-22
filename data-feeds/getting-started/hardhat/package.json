@@ -5,7 +5,6 @@
   "description": "A getting started guide for using Chainlink Data Feeds",
   "scripts": {
     "compile": "hardhat compile",
-    "deploy": "hardhat run scripts/deployment/main.js --network ethereumSepolia",
     "lint": "npm run lint:contracts && npm run format:check",
     "lint:fix": "solhint 'contracts/**/*.sol' --fix",
     "lint:contracts": "solhint 'contracts/*.sol'",
