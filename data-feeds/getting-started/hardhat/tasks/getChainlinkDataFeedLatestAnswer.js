@@ -1,6 +1,6 @@
 const utils = require("../utils")
 
-// Define a Hardhat task named "fetchLatestAnswer" to get the latest answer from the DataConsumerV3 contract.
+// Define a Hardhat task named "getLatestAnswer" to get the latest answer from the DataConsumerV3 contract.
 task("getLatestAnswer", "Fetches the latest Chainlink Data Feed answer from the DataConsumerV3 contract")
   .addParam("dataConsumerV3", "The address of the deployed DataConsumerV3 contract")
   .setAction(async (taskArgs) => {
@@ -13,10 +13,10 @@ task("getLatestAnswer", "Fetches the latest Chainlink Data Feed answer from the 
     spinner.start("Fetching the latest Chainlink Data Feed answer...")
 
     try {
-      // Call the getChainlinkDataFeedLatestAnswer function of the DataConsumerV3 contract to fetch the latest answer.
+      // Call the getChainlinkDataFeedLatestAnswer function of the DataConsumerV3 contract to get the latest answer.
       const latestAnswer = await DataConsumerV3Contract.getChainlinkDataFeedLatestAnswer()
 
-      spinner.succeed(`Latest Chainlink BTC/USD Data Feed answer: ${latestAnswer}`)
+      spinner.succeed(`Latest BTC / USD Data Feed answer: ${latestAnswer}`)
     } catch (error) {
       spinner.fail("Failed to fetch the latest answer.")
       throw error
