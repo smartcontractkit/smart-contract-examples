@@ -31,8 +31,8 @@ task("deployStreamsUpkeepRegistrar", "Deploys the StreamsUpkeepRegistrar contrac
       config.verifierProxyAddress,
       config.linkToken,
       config.automationRegistrarAddress,
-      ["0x00027bbaff688c906a3e20a34fe951715d1018d262a5b66e38eda027a674cd1b"]
-      // This example reads the ID for the basic ETH/USD price report on Arbitrum Sepolia.
+      ["0x000359843a543ee2fe414dc14c7e7920ef10f4372990b79d6361cdc0dd1ba782"]
+      // This example reads the ID for the ETH/USD price report on Arbitrum Sepolia.
       // Find a complete list of IDs at https://docs.chain.link/data-streams/stream-ids
     )
 

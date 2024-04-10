@@ -14,7 +14,7 @@
     "format:fix": "prettier --write ."
   },
   "dependencies": {
-    "@chainlink/contracts": "^0.8.0",
+    "@chainlink/contracts": "1.0.0",
     "@chainlink/env-enc": "^1.0.5",
     "@nomiclabs/hardhat-ethers": "^2.1.1",
     "@nomicfoundation/hardhat-toolbox": "^2.0.0",
