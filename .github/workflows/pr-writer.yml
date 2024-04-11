@@ -31,7 +31,7 @@ jobs:
           # File paths or patterns to exclude from the diff analysis. Use semicolons (;) to separate multiple paths.
           # Example: 'poetry.lock;artifacts/*'
           # WARNING: Not excluding build artifacts may result in a large diff that may exceed the GPT model's token limit.
-          exclude-paths: "package-lock.json;.gitignore;.npmignore;.prettierignore;yarn.lock"
+          exclude-paths: "**/package-lock.json;**/.gitignore;**/.npmignore;**/.prettierignore;**/yarn.lock"
           # Absolute file path to a markdown or text file to append to the PR message (checklist, etc.)
           # Example: '.github/pull_request_append.md'
           pr-append-file: ""
