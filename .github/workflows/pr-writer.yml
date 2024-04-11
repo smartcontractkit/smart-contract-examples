@@ -1,0 +1,40 @@
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review]
+  issue_comment:
+    # Reply to an existing PR to generate description (commenter requires PR write access)
+    # Requires `/gpt-create-pr` commands to invoke
+    types: [created]
+
+jobs:
+  llm-pr-generator:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      repository-projects: read
+    steps:
+      - name: Generate PR description using LLM
+        uses: smartcontractkit/.github/actions/llm-pr-writer@0.3.0 # points to a specific tag (ie. llm-pr-writer@0.2.0)
+        with:
+          # GitHub token used to fetch the PR diff and create a new PR comment.
+          # ${{ secrets.GITHUB_TOKEN }} will be sufficient.
+          gh-token: ${{ secrets.GITHUB_TOKEN }}
+          # OpenAI API Key, used to generate PR descriptions using the GPT model.
+          # Needs to have access to the chat-completion endpoints
+          # Example: ${{ secrets.OPENAI_API_KEY }}
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          # OpenAI model to use for PR description generation. Defaults to 'gpt-3.5-turbo-0125'.
+          # If your repository contains complex logic or expects large diffs, use 'gpt-4-0125-preview' or newer.
+          # Learn more at: https://platform.openai.com/docs/models/overview
+          openai-model: "gpt-4-turbo"
+          # File paths or patterns to exclude from the diff analysis. Use semicolons (;) to separate multiple paths.
+          # Example: 'poetry.lock;artifacts/*'
+          # WARNING: Not excluding build artifacts may result in a large diff that may exceed the GPT model's token limit.
+          exclude-paths: "package-lock.json;.gitignore;.npmignore;.prettierignore;yarn.lock"
+          # Absolute file path to a markdown or text file to append to the PR message (checklist, etc.)
+          # Example: '.github/pull_request_append.md'
+          pr-append-file: ""
+          # ref to smartcontractkit/.github repository to load the prompt from. Defaults to main.
+          # Usually used during development.
+          workflow-ref: ""
