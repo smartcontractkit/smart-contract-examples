@@ -15,7 +15,7 @@ jobs:
       repository-projects: read
     steps:
       - name: Generate PR description using LLM
-        uses: smartcontractkit/.github/actions/llm-pr-writer@0.3.0 # points to a specific tag (ie. llm-pr-writer@0.2.0)
+        uses: smartcontractkit/.github/actions/llm-pr-writer@763b4118dac59b74e3f4aef343918b7f334fb8a0 # points to a specific tag (ie. llm-pr-writer@0.2.0)
         with:
           # GitHub token used to fetch the PR diff and create a new PR comment.
           # ${{ secrets.GITHUB_TOKEN }} will be sufficient.
