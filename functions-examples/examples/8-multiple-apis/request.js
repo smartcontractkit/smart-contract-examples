@@ -21,7 +21,7 @@ const makeRequestSepolia = async () => {
   const routerAddress = "0xb83E47C2bC239B3bf370bc41e1459A34b41238D0";
   const linkTokenAddress = "0x779877A7B0D9E8603169DdbD7836e478b4624789";
   const donId = "fun-ethereum-sepolia-1";
-  const explorerUrl = "https://sepolia.etherscan.io/";
+  const explorerUrl = "https://sepolia.etherscan.io";
   const gatewayUrls = [
     "https://01.functions-gateway.testnet.chain.link/",
     "https://02.functions-gateway.testnet.chain.link/",
