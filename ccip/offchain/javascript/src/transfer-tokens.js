@@ -3,7 +3,7 @@ const {
   getProviderRpcUrl,
   getRouterConfig,
   getPrivateKey,
-  getMessageState,
+  getMessageStatus,
 } = require("./config");
 const { ethers, JsonRpcProvider } = require("ethers");
 const routerAbi = require("../../abi/Router.json");
@@ -322,7 +322,7 @@ const transferTokens = async () => {
         for (let event of events) {
           if (event.args && event.args.messageId === messageId) {
             const state = event.args.state;
-            const status = getMessageState(state);
+            const status = getMessageStatus(state);
             console.log(
               `\n✅Status of message ${messageId} is ${status} - Check the explorer https://ccip.chain.link/msg/${messageId}`
             );
