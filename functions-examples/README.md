@@ -29,4 +29,4 @@ To set up the project, follow these steps:
 1. Set the following variables:
 
 - PRIVATE_KEY
-- POLYGON_MUMBAI_RPC_URL
+- ETHEREUM_SEPOLIA_RPC_URL

@@ -5,9 +5,9 @@ const ethers = require("ethers");
 require("@chainlink/env-enc").config();
 
 const generateOffchainSecretsFile = async () => {
-  // hardcoded for Polygon Mumbai
-  const routerAddress = "0x6E2dc0F9DB014aE19888F539E59285D2Ea04244C";
-  const donId = "fun-polygon-mumbai-1";
+  // hardcoded for Ethereum Sepolia
+  const routerAddress = "0xb83E47C2bC239B3bf370bc41e1459A34b41238D0";
+  const donId = "fun-ethereum-sepolia-1";
 
   const secrets = { apiKey: process.env.COINMARKETCAP_API_KEY };
 
@@ -18,7 +18,7 @@ const generateOffchainSecretsFile = async () => {
       "private key not provided - check your environment variables"
     );
 
-  const rpcUrl = process.env.POLYGON_MUMBAI_RPC_URL; // fetch mumbai RPC URL
+  const rpcUrl = process.env.ETHEREUM_SEPOLIA_RPC_URL; // fetch Sepolia RPC URL
 
   if (!rpcUrl)
     throw new Error(`rpcUrl not provided  - check your environment variables`);
