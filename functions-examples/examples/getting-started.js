@@ -11,11 +11,11 @@ require("@chainlink/env-enc").config();
 const consumerAddress = "0x8dFf78B7EE3128D00E90611FBeD20A71397064D9"; // REPLACE this with your Functions consumer address
 const subscriptionId = 3; // REPLACE this with your subscription ID
 
-// hardcoded for Polygon Mumbai
-const makeRequestMumbai = async () => {
-  const routerAddress = "0x6E2dc0F9DB014aE19888F539E59285D2Ea04244C";
-  const donId = "fun-polygon-mumbai-1";
-  const explorerUrl = "https://mumbai.polygonscan.com";
+// hardcoded for Sepolia testnet
+const makeRequestSepolia = async () => {
+  const routerAddress = "0xb83E47C2bC239B3bf370bc41e1459A34b41238D0";
+  const donId = "fun-ethereum-sepolia-1";
+  const explorerUrl = "https://sepolia.etherscan.io";
 
   const source = `
   // calculate sum off-chain by a DON then return the result
@@ -50,7 +50,7 @@ const makeRequestMumbai = async () => {
       "private key not provided - check your environment variables"
     );
 
-  const rpcUrl = process.env.POLYGON_MUMBAI_RPC_URL; // fetch mumbai RPC URL
+  const rpcUrl = process.env.ETHEREUM_SEPOLIA_RPC_URL; // fetch sepolia RPC URL
 
   if (!rpcUrl)
     throw new Error(`rpcUrl not provided  - check your environment variables`);
@@ -158,7 +158,7 @@ const makeRequestMumbai = async () => {
   })();
 };
 
-makeRequestMumbai().catch((e) => {
+makeRequestSepolia().catch((e) => {
   console.error(e);
   process.exit(1);
 });
