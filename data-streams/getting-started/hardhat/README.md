@@ -1,6 +1,6 @@
 # Getting Started with Data Streams
 
-This guide shows you how to read data from a Data Streams feed, verify the answer onchain, and store the answer onchain. This example uses a [Chainlink Automation Log Trigger](https://docs.chain.link/chainlink-automation/guides/log-trigger) to check for events that require data. For this example:
+This guide shows you how to read data from a Data Streams feed, verify the answer onchain, and store the answer onchain. This example uses the [Streams Trade](https://docs.chain.link/data-streams#streams-trade-using-data-streams-with-chainlink-automation) implementation of Data Streams and a [Chainlink Automation Log Trigger](https://docs.chain.link/chainlink-automation/guides/log-trigger) to check for events that require data. For this example:
 
 - The log trigger comes from a simple emitter contract.
 - Chainlink Automation then uses `StreamsLookup` to retrieve a signed report from the Data Streams Engine, return the data in a callback, and run the [`performUpkeep` function](https://docs.chain.link/chainlink-automation/reference/automation-interfaces#performupkeep-function-for-log-triggers) on your registered upkeep contract.
