@@ -27,16 +27,18 @@ interface Arguments {
 
 const handleArguments = (): Arguments => {
   if (process.argv.length !== 7 && process.argv.length !== 8) {
-    throw new Error("Wrong number of arguments. Expected format: npx ts-node src/transfer-tokens.ts <sourceChain> <destinationChain> <destinationAccount> <tokenAddress> <amount> [feeTokenAddress]");
+    throw new Error(
+      "Wrong number of arguments. Expected format: npx ts-node src/transfer-tokens.ts <sourceChain> <destinationChain> <destinationAccount> <tokenAddress> <amount> [feeTokenAddress]"
+    );
   }
 
   const sourceChain = process.argv[2] as NETWORK;
   const destinationChain = process.argv[3] as NETWORK;
-  const destinationAccount: string = process.argv[4];
-  const tokenAddress: string = process.argv[5];
+  const destinationAccount: string = ethers.getAddress(process.argv[4]);
+  const tokenAddress: string = ethers.getAddress(process.argv[5]);
   const amount: bigint = BigInt(process.argv[6]);
   const feeTokenAddress: string | undefined =
-    process.argv.length === 8 ? process.argv[7] : undefined;
+    process.argv[7] && ethers.getAddress(process.argv[7]);
 
   return {
     sourceChain,
@@ -163,7 +165,7 @@ const transferTokens = async () => {
       value: fees,
     }); // fees are send as value since we are paying the fees in native
   } else {
-    if (tokenAddress.toUpperCase() === feeTokenAddress.toUpperCase()) {
+    if (tokenAddress === feeTokenAddress) {
       // fee token is the same as the token to transfer
       // Amount tokens to approve are transfer amount + fees
       console.log(
@@ -189,9 +191,7 @@ const transferTokens = async () => {
         `Approving router ${sourceRouterAddress} to spend fees ${fees} of feeToken ${feeTokenAddress}\n`
       );
       approvalTx = await erc20Fees.approve(sourceRouterAddress, fees); // 1 approval for the fees token
-      const receiptTmp = await approvalTx.wait(
-        DEFAULT_VERIFICATION_BLOCK_CONFIRMATIONS
-      );
+      await approvalTx.wait(DEFAULT_VERIFICATION_BLOCK_CONFIRMATIONS);
       console.log(`Approval done. Transaction: ${approvalTx.hash}\n`);
     }
 
@@ -235,6 +235,9 @@ const transferTokens = async () => {
     destinationProvider
   );
 
+  // Get the current block number on the destination chain. This will be used to reduce the number of blocks to poll
+  const currentBlockNumber = await destinationProvider.getBlockNumber();
+
   // CHECK DESTINATION CHAIN - POLL UNTIL the messageID is found or timeout
 
   const POLLING_INTERVAL = 60000; // Poll every 60 seconds
@@ -260,7 +263,8 @@ const transferTokens = async () => {
         ](undefined, messageId, undefined, undefined);
 
         const events = await offRampContract.queryFilter(
-          executionStateChangeEvent
+          executionStateChangeEvent,
+          currentBlockNumber
         );
 
         // Check if an event with the specific messageId exists and log its status
