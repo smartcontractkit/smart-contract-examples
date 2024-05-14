@@ -24,10 +24,10 @@ const handleArguments = () => {
 
   const sourceChain = process.argv[2];
   const destinationChain = process.argv[3];
-  const destinationAccount = process.argv[4];
-  const tokenAddress = process.argv[5];
+  const destinationAccount = ethers.getAddress(process.argv[4]);
+  const tokenAddress = ethers.getAddress(process.argv[5]);
   const amount = BigInt(process.argv[6]);
-  const feeTokenAddress = process.argv[7];
+  const feeTokenAddress = process.argv[7] && ethers.getAddress(process.argv[7]);
 
   return {
     sourceChain,
@@ -206,7 +206,7 @@ const transferTokens = async () => {
       value: fees,
     }); // fees are send as value since we are paying the fees in native
   } else {
-    if (tokenAddress.toUpperCase() === feeTokenAddress.toUpperCase()) {
+    if (tokenAddress === feeTokenAddress) {
       // fee token is the same as the token to transfer
       // Amount tokens to approve are transfer amount + fees
       console.log(
@@ -229,6 +229,7 @@ const transferTokens = async () => {
         `Approving router ${sourceRouterAddress} to spend fees ${fees} of feeToken ${feeTokenAddress}\n`
       );
       approvalTx = await erc20Fees.approve(sourceRouterAddress, fees); // 1 approval for the fees token
+      await approvalTx.wait(DEFAULT_VERIFICATION_BLOCK_CONFIRMATIONS); // wait for the transaction to be mined
 
       console.log(`Approval done. Transaction: ${approvalTx.hash}\n`);
     }
@@ -291,6 +292,9 @@ const transferTokens = async () => {
     destinationProvider
   );
 
+  // Get the current block number on the destination chain. This will be used to reduce the number of blocks to poll
+  const currentBlockNumber = await destinationProvider.getBlockNumber();
+
   // CHECK DESTINATION CHAIN - POLL UNTIL the messageID is found or timeout
 
   const POLLING_INTERVAL = 60000; // Poll every 60 seconds
@@ -315,7 +319,8 @@ const transferTokens = async () => {
           "ExecutionStateChanged"
         ](undefined, messageId, undefined, undefined);
         const events = await offRampContract.queryFilter(
-          executionStateChangeEvent
+          executionStateChangeEvent,
+          currentBlockNumber
         );
 
         // Check if an event with the specific messageId exists and log its status
