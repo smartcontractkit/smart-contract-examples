@@ -1,0 +1,21 @@
+{
+  "ArbitrumSepolia_bridge": "0xc201125662bdDB9A52193e563345C25CcD6641b8",
+  "ArbitrumSepolia_burnMintPool": "0x4c964e79b8AEC623BeDf75Fe43D998179F2c52f7",
+  "ArbitrumSepolia_burnMintToken": "0x8B6F6816745eB409f0d8A2eEd3E9dD6Fb4377940",
+  "ArbitrumSepolia_configuration": "0x0829696E956d08f179ae36f4F40698167f449c09",
+  "ArbitrumSepolia_lockReleasePool": "0xc9E837EDd2bb0b613A178ff2D7F4DED09C04D4b6",
+  "ArbitrumSepolia_lockableToken": "0x586db463e50dB53ADc15d2F22f08308aECc171D9",
+  "Fuji_bridge": "0x2E685f521F351781815aF1E075B4Bbd831693368",
+  "Fuji_burnMintPool": "0x4caAc735ECfcAC34db062d655141C915c810857a",
+  "Fuji_burnMintToken": "0x59cc0a2F462aca8b8d2363032b0BBb719c6F0b93",
+  "Fuji_configuration": "0xeF9A5F3bb1eC2f8c0E7bade286D3fE870810e351",
+  "Fuji_lockReleasePool": "0x1D5735D0B79FE88E813A4DB85040B06Ba25Ed8C3",
+  "Fuji_lockableToken": "0xFeb598F3F146d7b785C621c3d931F332De1A8939",
+  "Sepolia_bridge": "0xd9A6e10A3D7247725851EAffD7690B8BD93FAA57",
+  "Sepolia_burnMintPool": "0x909FDa73a1ceDB0Dd8951b6660603dAA65fEA2c1",
+  "Sepolia_burnMintToken": "0x2E58D5f253a791e10d51fE4D8d92D0867bD8a4Bf",
+  "Sepolia_configuration": "0xcd9B7F6D9c2CcaE0FC07847398a1534c7886c05b",
+  "Sepolia_lockReleasePool": "0x96F8d40Bc9354E9A4eb774f0Ba043C90d7c2f14d",
+  "Sepolia_lockableToken": "0xdbFdC1E2E4a2858595c3202530517F6dAcd55999",
+  "completed": true
+}
