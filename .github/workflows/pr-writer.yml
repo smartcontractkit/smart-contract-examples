@@ -15,7 +15,7 @@ jobs:
       repository-projects: read
     steps:
       - name: Generate PR description using LLM
-        uses: smartcontractkit/.github/actions/llm-pr-writer@763b4118dac59b74e3f4aef343918b7f334fb8a0 # points to a specific tag (ie. llm-pr-writer@0.2.0)
+        uses: smartcontractkit/.github/actions/llm-pr-writer@49c3554a9a6886f2ef9c7dc3aa6b1c99a54e3742 # points to a specific tag (ie. llm-pr-writer@0.2.0)
         with:
           # GitHub token used to fetch the PR diff and create a new PR comment.
           # ${{ secrets.GITHUB_TOKEN }} will be sufficient.
@@ -31,7 +31,7 @@ jobs:
           # File paths or patterns to exclude from the diff analysis. Use semicolons (;) to separate multiple paths.
           # Example: 'poetry.lock;artifacts/*'
           # WARNING: Not excluding build artifacts may result in a large diff that may exceed the GPT model's token limit.
-          exclude-paths: "**/package-lock.json;**/.gitignore;**/.npmignore;**/.prettierignore;**/yarn.lock"
+          exclude-paths: "**/package-lock.json;**/.gitignore;**/.npmignore;**/.prettierignore;**/yarn.lock;**/*.png;**/*.jpg;**/*.jpeg;**/*.gif;**/*.bmp;**/*.svg;**/*.webp;**/*.tiff;broadcast/**/*.json"
           # Absolute file path to a markdown or text file to append to the PR message (checklist, etc.)
           # Example: '.github/pull_request_append.md'
           pr-append-file: ""
