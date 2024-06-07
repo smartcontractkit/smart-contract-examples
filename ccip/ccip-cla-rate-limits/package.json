@@ -1,0 +1,10 @@
+{
+  "name": "ccip-cla-rate-limits",
+  "version": "0.0.0",
+  "devDependencies": {
+    "@chainlink/contracts": "^1.1.1",
+    "@chainlink/contracts-ccip": "^1.4.0",
+    "@chainlink/local": "github:smartcontractkit/chainlink-local",
+    "@openzeppelin/contracts": "^5.0.2"
+  }
+}

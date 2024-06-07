@@ -1,0 +1,14 @@
+[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+solc = '0.8.24'
+evm_version = 'paris'
+remappings = [
+    '@chainlink/contracts=node_modules/@chainlink/contracts',
+    '@chainlink/contracts-ccip=node_modules/@chainlink/contracts-ccip',
+    '@chainlink/local=node_modules/@chainlink/local',
+    '@openzeppelin/contracts=node_modules/@openzeppelin/contracts',
+]
+
+# See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
