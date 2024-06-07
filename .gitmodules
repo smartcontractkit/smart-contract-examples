@@ -37,3 +37,6 @@
 [submodule "ccip/token-transfer-using-arbitrary-messaging/lib/openzeppelin-contracts"]
 	path = ccip/token-transfer-using-arbitrary-messaging/lib/openzeppelin-contracts
 	url = https://github.com/OpenZeppelin/openzeppelin-contracts
+[submodule "ccip/ccip-cla-rate-limits/lib/forge-std"]
+	path = ccip/ccip-cla-rate-limits/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
