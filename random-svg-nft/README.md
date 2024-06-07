@@ -25,7 +25,7 @@ Be sure to have installed the following
 git clone https://github.com/smartcontractkit/smart-contract-examples.git
 ```
 
-3. Enter the direcory
+3. Enter the directory
 
 ```
 cd smart-contract-examples/random-svg-nft

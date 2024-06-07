@@ -44,7 +44,7 @@ The project shows how to retrieve asset price from any EVM chain. The price data
    ```sh
    git clone https://github.com/smartcontractkit/smart-contract-examples.git
    ```
-1. Enter the direcory
+1. Enter the directory
    ```sh
    cd pricefeed-golang
    ```

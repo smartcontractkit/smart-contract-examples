@@ -77,7 +77,7 @@ Ensure you have Node.js and npm installed
    ```sh
    git clone https://github.com/smartcontractkit/smart-contract-examples.git
    ```
-1. Enter the direcory
+1. Enter the directory
    ```sh
    cd smart-contract-examples/datafeeds-in-svelte
    ```
