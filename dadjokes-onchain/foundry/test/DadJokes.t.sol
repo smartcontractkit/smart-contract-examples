@@ -48,7 +48,7 @@ contract DadJokesTest is Test {
 
     function testRewardJokeIncorrectRewardAmount() public {
         vm.prank(creator2);
-        vm.expectRevert("Incorrect reward amount for classic");
+        vm.expectRevert("Incorrect reward amount");
         dadJokes.rewardJoke{value: 0.002 ether}(0, 1);
     }
 

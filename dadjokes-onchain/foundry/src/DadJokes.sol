@@ -16,6 +16,14 @@ contract DadJokes {
     uint256 private constant FUNNY_REWARD = 0.005 ether;
     uint256 private constant GROANER_REWARD = 0.01 ether;
 
+    mapping(uint8 => uint256) private rewardAmounts;
+
+    constructor() {
+        rewardAmounts[1] = CLASSIC_REWARD;
+        rewardAmounts[2] = FUNNY_REWARD;
+        rewardAmounts[3] = GROANER_REWARD;
+    }
+
     event JokeAdded(uint256 indexed jokeId, address indexed creator);
     event JokeRewarded(
         uint256 indexed jokeId,
@@ -40,30 +48,10 @@ contract DadJokes {
         require(_rewardType >= 1 && _rewardType <= 3, "Invalid reward type");
         require(!jokes[_index].isDeleted, "Joke has been deleted");
 
-        Joke storage joke = jokes[_index];
-        uint256 rewardAmount;
+        uint256 rewardAmount = rewardAmounts[_rewardType];
+        require(msg.value == rewardAmount, "Incorrect reward amount");
 
-        if (_rewardType == 1) {
-            require(
-                msg.value == CLASSIC_REWARD,
-                "Incorrect reward amount for classic"
-            );
-            rewardAmount = CLASSIC_REWARD;
-        } else if (_rewardType == 2) {
-            require(
-                msg.value == FUNNY_REWARD,
-                "Incorrect reward amount for funny"
-            );
-            rewardAmount = FUNNY_REWARD;
-        } else if (_rewardType == 3) {
-            require(
-                msg.value == GROANER_REWARD,
-                "Incorrect reward amount for groaner"
-            );
-            rewardAmount = GROANER_REWARD;
-        }
-
-        creatorBalances[joke.creator] += rewardAmount;
+        creatorBalances[jokes[_index].creator] += rewardAmount;
         emit JokeRewarded(_index, _rewardType, rewardAmount);
     }
 
