@@ -6,9 +6,6 @@ contract DadJokes {
         string setup;
         string punchline;
         address creator;
-        uint256 classicRewards;
-        uint256 funnyRewards;
-        uint256 groanerRewards;
         bool isDeleted;
     }
 
@@ -30,7 +27,7 @@ contract DadJokes {
 
     function addJoke(string memory _setup, string memory _punchline) public {
         uint256 jokeId = jokes.length;
-        jokes.push(Joke(_setup, _punchline, msg.sender, 0, 0, 0, false));
+        jokes.push(Joke(_setup, _punchline, msg.sender, false));
         emit JokeAdded(jokeId, msg.sender);
     }
 
@@ -51,21 +48,18 @@ contract DadJokes {
                 msg.value == CLASSIC_REWARD,
                 "Incorrect reward amount for classic"
             );
-            joke.classicRewards++;
             rewardAmount = CLASSIC_REWARD;
         } else if (_rewardType == 2) {
             require(
                 msg.value == FUNNY_REWARD,
                 "Incorrect reward amount for funny"
             );
-            joke.funnyRewards++;
             rewardAmount = FUNNY_REWARD;
         } else if (_rewardType == 3) {
             require(
                 msg.value == GROANER_REWARD,
                 "Incorrect reward amount for groaner"
             );
-            joke.groanerRewards++;
             rewardAmount = GROANER_REWARD;
         }
 
@@ -85,9 +79,6 @@ contract DadJokes {
         joke.isDeleted = true;
         joke.setup = "";
         joke.punchline = "";
-        joke.classicRewards = 0;
-        joke.funnyRewards = 0;
-        joke.groanerRewards = 0;
 
         emit JokeDeleted(_index);
     }

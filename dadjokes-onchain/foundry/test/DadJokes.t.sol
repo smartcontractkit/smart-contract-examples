@@ -25,18 +25,12 @@ contract DadJokesTest is Test {
         assertEq(jokes[0].setup, "Why don't scientists trust atoms?");
         assertEq(jokes[0].punchline, "Because they make up everything.");
         assertEq(jokes[0].creator, creator1);
-        assertEq(jokes[0].classicRewards, 0);
-        assertEq(jokes[0].funnyRewards, 0);
-        assertEq(jokes[0].groanerRewards, 0);
         assertEq(jokes[0].isDeleted, false);
     }
 
     function testRewardJoke() public {
         vm.prank(creator2);
         dadJokes.rewardJoke{value: 0.001 ether}(0, 1);
-
-        DadJokes.Joke[] memory jokes = dadJokes.getJokes();
-        assertEq(jokes[0].classicRewards, 1);
         assertEq(dadJokes.creatorBalances(creator1), 0.001 ether);
     }
 
@@ -66,9 +60,6 @@ contract DadJokesTest is Test {
         assertEq(jokes[0].isDeleted, true);
         assertEq(jokes[0].setup, "");
         assertEq(jokes[0].punchline, "");
-        assertEq(jokes[0].classicRewards, 0);
-        assertEq(jokes[0].funnyRewards, 0);
-        assertEq(jokes[0].groanerRewards, 0);
     }
 
     function testDeleteJokeInvalidIndex() public {
