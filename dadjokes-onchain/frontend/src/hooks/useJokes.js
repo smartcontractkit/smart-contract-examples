@@ -13,7 +13,6 @@ const dadJokesContract = getContract({
 });
 
 export const useJokes = () => {
-  console.log("hi");
   // Specify the type of the state
   const [jokes, setJokes] = useState([]);
   useEffect(() => {
@@ -21,7 +20,6 @@ export const useJokes = () => {
       try {
         // Specify the type of the fetched jokes
         const fetchedJokes = await dadJokesContract.read.getJokes();
-        console.log("fetched", fetchedJokes);
         setJokes(fetchedJokes);
       } catch (error) {
         console.error("Error fetching jokes:", error);

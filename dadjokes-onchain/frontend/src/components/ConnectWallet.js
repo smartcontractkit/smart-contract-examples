@@ -31,9 +31,9 @@ export default function WalletButton({ index }) {
     publicClient
   );
   const { isModalOpen, setIsModalOpen, handleSubmit } = useSubmitJoke(
+    publicClient,
     walletClient,
-    dadJokesContract,
-    publicClient
+    dadJokesContract
   );
 
   useEffect(() => {

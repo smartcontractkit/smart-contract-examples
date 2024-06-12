@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { sepolia } from "viem/chains";
 
-export function useSubmitJoke(walletClient, dadJokesContract, publicClient) {
+export function useSubmitJoke(publicClient, walletClient, dadJokesContract) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleSubmit = async (setup, punchline) => {

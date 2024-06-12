@@ -25,6 +25,8 @@ export function useVote(dadJokesContract, walletClient, publicClient) {
       default:
         throw new Error("Invalid reward type");
     }
+    // Simulate the contract call to rewardJoke with the specified index and reward
+    //   this will return a request object that can be used to write the contract.
     const { request } = await publicClient.simulateContract({
       address: dadJokesContract.address,
       abi: dadJokesContract.abi,

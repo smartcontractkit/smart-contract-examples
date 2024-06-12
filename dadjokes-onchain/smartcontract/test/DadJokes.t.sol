@@ -7,11 +7,11 @@ import "../src/DadJokes.sol";
 contract DadJokesTest is Test {
     DadJokes private dadJokes;
     address private creator1 = address(1);
-    address private creator2 = address(2);
+    address private user1 = address(2);
 
     function setUp() public {
         dadJokes = new DadJokes();
-        vm.deal(creator2, 1 ether);
+        vm.deal(user1, 1 ether);
         vm.prank(creator1);
         dadJokes.addJoke(
             "Why don't scientists trust atoms?",
@@ -29,25 +29,25 @@ contract DadJokesTest is Test {
     }
 
     function testRewardJoke() public {
-        vm.prank(creator2);
+        vm.prank(user1);
         dadJokes.rewardJoke{value: 0.001 ether}(0, 1);
         assertEq(dadJokes.creatorBalances(creator1), 0.001 ether);
     }
 
     function testRewardJokeInvalidIndex() public {
-        vm.prank(creator2);
+        vm.prank(user1);
         vm.expectRevert("Invalid joke index");
         dadJokes.rewardJoke{value: 0.001 ether}(1, 1);
     }
 
     function testRewardJokeInvalidRewardType() public {
-        vm.prank(creator2);
-        vm.expectRevert("Invalid reward type");
+        vm.prank(user1);
+        vm.expectRevert("Reward type not between 1 and 3");
         dadJokes.rewardJoke{value: 0.001 ether}(0, 4);
     }
 
     function testRewardJokeIncorrectRewardAmount() public {
-        vm.prank(creator2);
+        vm.prank(user1);
         vm.expectRevert("Incorrect reward amount");
         dadJokes.rewardJoke{value: 0.002 ether}(0, 1);
     }
@@ -55,11 +55,8 @@ contract DadJokesTest is Test {
     function testDeleteJoke() public {
         vm.prank(creator1);
         dadJokes.deleteJoke(0);
-
         DadJokes.Joke[] memory jokes = dadJokes.getJokes();
-        assertEq(jokes[0].isDeleted, true);
-        assertEq(jokes[0].setup, "");
-        assertEq(jokes[0].punchline, "");
+        assertEq(jokes.length, 0);
     }
 
     function testDeleteJokeInvalidIndex() public {
@@ -69,13 +66,13 @@ contract DadJokesTest is Test {
     }
 
     function testDeleteJokeUnauthorized() public {
-        vm.prank(creator2);
+        vm.prank(user1);
         vm.expectRevert("Only the joke creator can delete the joke");
         dadJokes.deleteJoke(0);
     }
 
     function testWithdrawBalance() public {
-        vm.prank(creator2);
+        vm.prank(user1);
         dadJokes.rewardJoke{value: 0.001 ether}(0, 1);
 
         vm.prank(creator1);
@@ -95,7 +92,7 @@ contract DadJokesTest is Test {
         vm.prank(creator1);
         dadJokes.deleteJoke(0);
 
-        vm.prank(creator2);
+        vm.prank(user1);
         vm.expectRevert("Joke has been deleted");
         dadJokes.rewardJoke{value: 0.001 ether}(0, 1);
     }
