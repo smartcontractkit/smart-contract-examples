@@ -1,0 +1,155 @@
+[
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "creator",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "BalanceWithdrawn",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "jokeId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "creator",
+        "type": "address"
+      }
+    ],
+    "name": "JokeAdded",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "jokeId",
+        "type": "uint256"
+      }
+    ],
+    "name": "JokeDeleted",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "jokeId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint8",
+        "name": "rewardType",
+        "type": "uint8"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "rewardAmount",
+        "type": "uint256"
+      }
+    ],
+    "name": "JokeRewarded",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      { "internalType": "string", "name": "_setup", "type": "string" },
+      { "internalType": "string", "name": "_punchline", "type": "string" }
+    ],
+    "name": "addJoke",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "name": "creatorBalances",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "_index", "type": "uint256" }
+    ],
+    "name": "deleteJoke",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getJokes",
+    "outputs": [
+      {
+        "components": [
+          { "internalType": "string", "name": "setup", "type": "string" },
+          { "internalType": "string", "name": "punchline", "type": "string" },
+          { "internalType": "address", "name": "creator", "type": "address" },
+          {
+            "internalType": "uint256",
+            "name": "classicRewards",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "funnyRewards",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "groanerRewards",
+            "type": "uint256"
+          },
+          { "internalType": "bool", "name": "isDeleted", "type": "bool" }
+        ],
+        "internalType": "struct DadJokes.Joke[]",
+        "name": "",
+        "type": "tuple[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "_index", "type": "uint256" },
+      { "internalType": "uint8", "name": "_rewardType", "type": "uint8" }
+    ],
+    "name": "rewardJoke",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "withdrawBalance",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
+]
