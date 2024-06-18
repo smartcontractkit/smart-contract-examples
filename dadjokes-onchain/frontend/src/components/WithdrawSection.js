@@ -1,7 +1,7 @@
 const WithdrawSection = ({ balance, handleWithdraw }) => {
   return (
     <>
-      {((balance !== null && parseFloat(balance) > 0) || !balance) && (
+      {balance !== null && parseFloat(balance) > 0 && (
         <div className="text-2xl">
           Balance: {balance} ETH
           <button
