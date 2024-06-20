@@ -1,0 +1,12 @@
+{
+    "name": "automation-gas-threshold",
+    "version": "1.0.0",
+    "description": "Set a gas price threshold on Automation upkeeps",
+    "main": "index.js",
+    "author": "",
+    "license": "MIT",
+    "dependencies": {
+        "cbor": "^9.0.2",
+        "ethers": "^5.7.2"
+      }
+  }
