@@ -8,7 +8,7 @@ To set up the project, follow these steps:
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/smartcontractkit/automation-gas-threshold
+   git clone https://github.com/smartcontractkit
    ```
 1. Navigate to the directory for this script:
    ```bash
