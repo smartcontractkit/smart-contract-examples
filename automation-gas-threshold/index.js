@@ -10,7 +10,8 @@ const wallet = new ethers.Wallet('0x...privateKey', provider);
 const id = 'YOUR_UPKEEP_ID';
 
 // The string to be encoded, representing your offchain config
-const myString = {"maxGasPrice":2000000000};
+// maxGasPrice is in wei. Do not use quotation marks around the value.
+const offchainConfig = {"maxGasPrice":2000000000};
 
 
 // The contract address and ABI
@@ -41,7 +42,7 @@ const abi = [
 const contract = new ethers.Contract(contractAddress, abi, wallet);
 
 // Encode the string to CBOR
-const encodedConfig = cbor.encode(myString);
+const encodedConfig = cbor.encode(offchainConfig);
 const hexConfig = encodedConfig.toString('hex');
     
 // Add the 0x prefix
