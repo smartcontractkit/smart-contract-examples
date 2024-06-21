@@ -67,10 +67,20 @@ func GenerateAuthHeaders(method string, pathAndParams string, clientId string, u
 }
 
 func FetchSingleReportSingleFeed(feedId string) (SingleReport, error) {
-	baseUrl := os.Getenv("BASE_URL") // Example: api.testnet-dataengine.chain.link
-	clientId := os.Getenv("CLIENT_ID") // Example: "00000000-0000-0000-0000-000000000000"
+	baseUrl := os.Getenv("BASE_URL")         // Example: api.testnet-dataengine.chain.link
+	clientId := os.Getenv("CLIENT_ID")       // Example: "00000000-0000-0000-0000-000000000000"
 	userSecret := os.Getenv("CLIENT_SECRET") // Example: "your-secret"
-	
+
+	if baseUrl == "" {
+		return SingleReport{}, fmt.Errorf("\nBASE_URL is not set")
+	}
+	if clientId == "" {
+		return SingleReport{}, fmt.Errorf("\nCLIENT_ID is not set")
+	}
+	if userSecret == "" {
+		return SingleReport{}, fmt.Errorf("\nCLIENT_SECRET is not set")
+	}
+
 	timestamp := time.Now().UTC().UnixMilli() - 500
 
 	params := url.Values{
@@ -78,6 +88,10 @@ func FetchSingleReportSingleFeed(feedId string) (SingleReport, error) {
 		"timestamp": {fmt.Sprintf("%d", timestamp/1000)},
 	}
 
+	// remove https if included
+	if strings.HasPrefix(baseUrl, "https://") {
+		baseUrl = baseUrl[8:]
+	}
 	req := &http.Request{
 		Method: http.MethodGet,
 		URL: &url.URL{
@@ -118,9 +132,19 @@ func FetchSingleReportSingleFeed(feedId string) (SingleReport, error) {
 }
 
 func FetchSingleReportManyFeeds(feedIds []string) ([]SingleReport, error) {
-	baseUrl := os.Getenv("BASE_URL") //Example: api.testnet-dataengine.chain.link
-	clientId := os.Getenv("CLIENT_ID") // Example: "00000000-0000-0000-0000-000000000000"
+	baseUrl := os.Getenv("BASE_URL")         //Example: api.testnet-dataengine.chain.link
+	clientId := os.Getenv("CLIENT_ID")       // Example: "00000000-0000-0000-0000-000000000000"
 	userSecret := os.Getenv("CLIENT_SECRET") // Example: "your-secret"
+
+	if baseUrl == "" {
+		return []SingleReport{}, fmt.Errorf("\nBASE_URL is not set")
+	}
+	if clientId == "" {
+		return []SingleReport{}, fmt.Errorf("\nCLIENT_ID is not set")
+	}
+	if userSecret == "" {
+		return []SingleReport{}, fmt.Errorf("\nCLIENT_SECRET is not set")
+	}
 
 	timestamp := time.Now().UTC().UnixMilli() - 500
 
@@ -129,6 +153,10 @@ func FetchSingleReportManyFeeds(feedIds []string) ([]SingleReport, error) {
 		"timestamp": {fmt.Sprintf("%d", timestamp/1000)},
 	}
 
+	// remove https if included
+	if strings.HasPrefix(baseUrl, "https://") {
+		baseUrl = baseUrl[8:]
+	}
 	req := &http.Request{
 		Method: http.MethodGet,
 		URL: &url.URL{
