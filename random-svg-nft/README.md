@@ -1,6 +1,6 @@
 # Random Emoji NFT collection on OpenSea
 
-This demo project demonstrates how to create randomly generated on-chain Emoji NFTs using Chainlink VRF and how to host that collection on OpenSea on Rinkeby Testnet.
+This demo project demonstrates how to create randomly generated on-chain Emoji NFTs using Chainlink VRF and how to host that collection on OpenSea on Sepolia Testnet.
 
 ## What we are building
 
@@ -18,7 +18,7 @@ Be sure to have installed the following
 
 ### Installation
 
-1. Get a RPC API Key from a node provider such as [Alchemy](https://www.alchemy.com/), [Infura](https://infura.io/), [Moralis](https://moralis.io/), or [QuickNode](https://www.quicknode.com/). This example uses the RINKEBY Ethereum test network.
+1. Get a RPC API Key from a node provider such as [Alchemy](https://www.alchemy.com/), [Infura](https://infura.io/), [Moralis](https://moralis.io/), or [QuickNode](https://www.quicknode.com/). This example uses the Sepolia Ethereum test network.
 2. Clone the repo
 
 ```
@@ -63,22 +63,22 @@ REPORT_GAS=true yarn test
 yarn coverage
 ```
 
-5. Deploy contract to Rinkeby
+5. Deploy contract to Sepolia
 
-Go to [Chainlink VRF Subscription Managment Page](https://vrf.chain.link/), connect your wallet, create new subscription and fund it. Make sure to have at least 1 Rinkeby LINK in your wallet, you can obtain it from the [Chainlink Faucet](https://faucets.chain.link/arbitrum-rinkeby)
+Go to [Chainlink VRF Subscription Managment Page](https://vrf.chain.link/), connect your wallet, create new subscription and fund it. Make sure to have at least 1 Sepolia LINK in your wallet, you can obtain it from the [Chainlink Faucet](https://faucets.chain.link/arbitrum-sepolia)
 
 Copy the `.env.example` file to a file named `.env`, and put your Private Key, RPC API Key, [Etherscan API Key](https://etherscan.io/apis), and Subscription ID like this
 
 ```shell
 ETHERSCAN_API_KEY=<YOUR ETHERSCAN API>
-RINKEBY_URL=https://eth-rinkeby.alchemyapi.io/v2/<YOUR ALCHEMY KEY>
+SEPOLIA_URL=https://eth-sepolia.alchemyapi.io/v2/<YOUR ALCHEMY KEY>
 PRIVATE_KEY=<YOUR PRIVATE KEY>
 SUBSCRIPTION_ID=<ID>
 ```
 
 After that run the deployment script which will
 
-- deploy your smart contract to the Rinkeby
+- deploy your smart contract to the Sepolia
 - verify it on Etherscan
 
 ```shell
@@ -90,7 +90,7 @@ Lastly, navigate back to the Chainlink VRF Subscription Managment Page and add t
 If the verification process fails because the new contract hasn't been indexed yet on Etherscan, run the next command from your terminal
 
 ```shell
-npx hardhat verify --network rinkeby <CONTRACT_ADDRESS> 0xd89b2bf150e3b9e13446986e571fb9cab24b13cea0a43ea20a6049a85cc807cc <SUBSCRIPTION_ID> 1000000 4 3
+npx hardhat verify --network Sepolia <CONTRACT_ADDRESS> 0xd89b2bf150e3b9e13446986e571fb9cab24b13cea0a43ea20a6049a85cc807cc <SUBSCRIPTION_ID> 1000000 4 3
 ```
 
 ### Minting
