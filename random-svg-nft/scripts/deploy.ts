@@ -4,18 +4,18 @@ async function main() {
   const [deployer] = await ethers.getSigners();
 
   console.log(
-    `Attempting to deploy EmojiNFT smart contract on Rinkeby network from ${deployer.address}`
+    `Attempting to deploy EmojiNFT smart contract on Sepolia network from ${deployer.address}`
   );
 
   const numberOfBlockConfiramtions = 6;
   /**
-   * https://docs.chain.link/docs/vrf-contracts/#rinkeby-testnet
+   * https://docs.chain.link/docs/vrf-contracts/#sepolia-testnet
    *
-   * Rinkeby Faucets
+   * Sepolia Faucets
    *
-   * Testnet LINK is available from https://faucets.chain.link/rinkeby
-   * Testnet ETH is available from: https://faucets.chain.link/rinkeby
-   * Backup Testnet ETH Faucets: https://rinkeby-faucet.com/, https://app.mycrypto.com/faucet
+   * Testnet LINK is available from https://faucets.chain.link/sepolia
+   * Testnet ETH is available from: https://faucets.chain.link/sepolia
+   * Backup Testnet ETH Faucets: https://sepolia-faucet.com/, https://app.mycrypto.com/faucet
    */
   const vrfCoordinator = `0x6168499c0cFfCaCD319c818142124B7A15E857ab`;
   const subscriptionId = process.env.SUBSCRIPTION_ID!;
