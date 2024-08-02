@@ -60,18 +60,25 @@ interface KeeperRegistryInterface {
 }
 
 contract UpkeepIDConditionalExample is AutomationCompatible {
-    // Hardcoded for Eth-Sepolia network
-    LinkTokenInterface public constant LINK = LinkTokenInterface(0x779877A7B0D9E8603169DdbD7836e478b4624789);
-    AutomationRegistrarInterface public constant REGISTRAR =
-        AutomationRegistrarInterface(0xb0E49c5D0d05cbc241d68c05BC5BA1d1B7B72976);
-    KeeperRegistryInterface public constant KEEPER_REGISTRY =
-        KeeperRegistryInterface(0x86EFBD0b6736Bed994962f9797049422A3A8E8Ad);
+    LinkTokenInterface public immutable i_link;
+    AutomationRegistrarInterface public immutable i_registrar;
+    KeeperRegistryInterface public immutable i_keeperRegistry;
 
     uint256 public s_numberOfPerformUpkeepCallsForLatestUpkeep;
     uint256 constant endDate = 1715781439;
     uint256 public s_latestUpkeepId;
     bool public s_isLatestUpkeepPaused;
     bool public s_isLatestUpkeepCancelled;
+
+    // For Eth-Sepolia network
+    // linkToken: 0x779877A7B0D9E8603169DdbD7836e478b4624789
+    // registrar: 0xb0E49c5D0d05cbc241d68c05BC5BA1d1B7B72976
+    // keeperRegistry: 0x86EFBD0b6736Bed994962f9797049422A3A8E8Ad
+    constructor(address linkToken, address registrar, address keeperRegistry) {
+        i_link = LinkTokenInterface(linkToken);
+        i_registrar = AutomationRegistrarInterface(registrar);
+        i_keeperRegistry = KeeperRegistryInterface(keeperRegistry);
+    }
 
     // Note: The upkeep that will be registered here won't be visible in the Automation UI (https://automation.chain.link/) because the adminAddress is being set to the address of this contract (not to any wallet).
     function registerUpkeep(string memory upkeepName, uint96 initialAmount, uint32 gasLimit) external {
@@ -100,13 +107,13 @@ contract UpkeepIDConditionalExample is AutomationCompatible {
             initialAmount
         );
 
-        // LINK must be approved for transfer - this can be done every time or once
+        // LINKs must be approved for transfer - this can be done every time or once
         // with an infinite approval
         if (params.amount < 1e18) {
             revert LessThanMinimumAmount(1e18);
         }
-        LINK.approve(address(REGISTRAR), params.amount);
-        uint256 upkeepID = REGISTRAR.registerUpkeep(params);
+        i_link.approve(address(i_registrar), params.amount);
+        uint256 upkeepID = i_registrar.registerUpkeep(params);
         if (upkeepID != 0) {
             // DEV - Use the upkeepID however you see fit
             s_latestUpkeepId = upkeepID;
@@ -118,22 +125,22 @@ contract UpkeepIDConditionalExample is AutomationCompatible {
     function addFundsToUpkeep(uint96 amount) external {
         if (s_latestUpkeepId == 0) revert UpkeepIsNotRegisteredYet();
         if (s_isLatestUpkeepCancelled) revert UpkeepIsAlreadyCancelled();
-        LINK.approve(address(KEEPER_REGISTRY), amount);
-        KEEPER_REGISTRY.addFunds(s_latestUpkeepId, amount);
+        i_link.approve(address(i_keeperRegistry), amount);
+        i_keeperRegistry.addFunds(s_latestUpkeepId, amount);
     }
 
     function withdrawFundsFromUpkeep(address to) external {
         if (s_latestUpkeepId == 0) revert UpkeepIsNotRegisteredYet();
         if (!s_isLatestUpkeepCancelled) revert UpkeepNeedsToBeCancelledFirst();
 
-        KEEPER_REGISTRY.withdrawFunds(s_latestUpkeepId, to);
+        i_keeperRegistry.withdrawFunds(s_latestUpkeepId, to);
     }
 
     function pauseUpkeep() external {
         if (s_latestUpkeepId == 0) revert UpkeepIsNotRegisteredYet();
         if (s_isLatestUpkeepCancelled) revert UpkeepIsAlreadyCancelled();
         if (s_isLatestUpkeepPaused) revert UpkeepIsAlreadyInPausedState();
-        KEEPER_REGISTRY.pauseUpkeep(s_latestUpkeepId);
+        i_keeperRegistry.pauseUpkeep(s_latestUpkeepId);
         s_isLatestUpkeepPaused = true;
     }
 
@@ -143,20 +150,20 @@ contract UpkeepIDConditionalExample is AutomationCompatible {
         if (!s_isLatestUpkeepPaused) {
             revert UpkeepIsAlreadyInUnpausedOrActiveState();
         }
-        KEEPER_REGISTRY.unpauseUpkeep(s_latestUpkeepId);
+        i_keeperRegistry.unpauseUpkeep(s_latestUpkeepId);
         s_isLatestUpkeepPaused = false;
     }
 
     function editUpkeepGasLimit(uint32 newGasLimit) external {
         if (s_latestUpkeepId == 0) revert UpkeepIsNotRegisteredYet();
         if (s_isLatestUpkeepCancelled) revert UpkeepIsAlreadyCancelled();
-        KEEPER_REGISTRY.setUpkeepGasLimit(s_latestUpkeepId, newGasLimit);
+        i_keeperRegistry.setUpkeepGasLimit(s_latestUpkeepId, newGasLimit);
     }
 
     function cancelUpkeep() external {
         if (s_latestUpkeepId == 0) revert UpkeepIsNotRegisteredYet();
         if (s_isLatestUpkeepCancelled) revert UpkeepIsAlreadyCancelled();
-        KEEPER_REGISTRY.cancelUpkeep(s_latestUpkeepId);
+        i_keeperRegistry.cancelUpkeep(s_latestUpkeepId);
         s_isLatestUpkeepPaused = false;
         s_isLatestUpkeepCancelled = true;
     }

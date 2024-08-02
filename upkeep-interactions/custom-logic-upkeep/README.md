@@ -9,3 +9,9 @@ A solidity contract showcasing the interaction with `AutomationRegistrar` and `K
 ###  upkeepInteractions.js
 
 A script in JS containing the functions to interact with the registered **Custom Logic Upkeep**.
+
+Run the script using this command:
+
+```js
+node upkeepInteractions.js ${KEEPER_REGISTRY_ADDRESS} ${LINK_TOKEN_ADDRESS}
+```

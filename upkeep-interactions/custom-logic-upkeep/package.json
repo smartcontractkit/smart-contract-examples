@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "@chainlink/env-enc": "^1.0.5",
+    "ethers": "^6.13.2"
+  }
+}
