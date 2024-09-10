@@ -5,8 +5,6 @@
 [![Stargazers][stars-shield]][stars-url]
 [![Issues][issues-shield]][issues-url]
 
-
-
 <!-- PROJECT LOGO -->
 <br />
 <div align="center">
@@ -18,8 +16,6 @@
     <a href="https://github.com/smartcontractkit/smart-contract-examples/issues">Request Feature</a>
   </p>
 </div>
-
-
 
 <!-- TABLE OF CONTENTS -->
 <details>
@@ -40,23 +36,26 @@
   </ol>
 </details>
 
-
-
 <!-- ABOUT THE PROJECT -->
+
 ## About The Project
 
-This repo contains example and sample projects, each in their own directory. 
+> **Important Notice**  
+> Please be aware that this repository contains reference and example contracts which may be **unaudited** and could include **hard-coded values**.  
+> Ensure that you review and audit any contracts before using them in production.
+
+This repo contains example and sample projects, each in their own directory.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
-
-
 <!-- GETTING STARTED -->
+
 ## Getting Started
 
 Each directory within this repo will have a `README.md` that details everything you need to run the sample.
 
 ## Downloading A Single Directory
+
 ```sh
 # Create a directory, and enter it
 mkdir smart-contract-examples && cd smart-contract-examples
@@ -81,6 +80,7 @@ git pull origin master
 ```
 
 <!-- CONTRIBUTING -->
+
 ## Contributing
 
 Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
@@ -98,6 +98,7 @@ Don't forget to give the project a star! Thanks again!
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
+
 [contributors-shield]: https://img.shields.io/github/contributors/smartcontractkit/smart-contract-examples.svg?style=for-the-badge
 [contributors-url]: https://github.com/smartcontractkit/smart-contract-examples/graphs/contributors
 [forks-shield]: https://img.shields.io/github/forks/smartcontractkit/smart-contract-examples.svg?style=for-the-badge
