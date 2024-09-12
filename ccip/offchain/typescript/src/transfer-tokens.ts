@@ -9,6 +9,7 @@ import { ethers, JsonRpcProvider } from "ethers";
 import {
   Router__factory,
   OffRamp__factory,
+  OnRamp__factory,
   IERC20Metadata__factory,
 } from "./typechain-types";
 import { Client } from "./typechain-types/Router";
@@ -206,17 +207,22 @@ const transferTokens = async () => {
   // prepare an ethersjs PreparedTransactionRequest
 
   if (!receipt) throw Error("Transaction not mined yet"); // TODO : add a better code to handle this case
-  const call = {
-    from: sendTx.from,
-    to: sendTx.to,
-    data: sendTx.data,
-    gasLimit: sendTx.gasLimit,
-    gasPrice: sendTx.gasPrice,
-    value: sendTx.value,
-    blockTag: receipt.blockNumber - 1, // Simulate a contract call with the transaction data at the block before the transaction
-  };
+  let messageId = "";
+  receipt.logs.forEach((log) => {
+    try {
+      const parsedLog = OnRamp__factory.createInterface().parseLog(log);
+      if (parsedLog && parsedLog.name === "CCIPSendRequested") {
+        messageId = parsedLog.args[0].messageId;
+        console.log(`Message dispatched. Message id: ${messageId}`);
+      }
+    } catch (e) {
+      // ignore errors if the log can't be parsed
+    }
+  });
 
-  const messageId = await provider.call(call);
+  if (!messageId) {
+    throw new Error("Message ID not found in the transaction logs");
+  }
 
   console.log(
     `\n✅ ${amount} of Tokens(${tokenAddress}) Sent to account ${destinationAccount} on destination chain ${destinationChain} using CCIP. Transaction hash ${sendTx.hash} -  Message id is ${messageId}\n`
