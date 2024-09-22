@@ -3,7 +3,7 @@
 This repository contains a list of scripts that can be used to interact with the CCIP Off-Chain Router contract. The scripts are written in JavaScript and can be executed using Node.js:
 
 - [transfer-tokens.js](src/transfer-tokens.js): Transfer tokens from one blockchain to another.
-- [supported-tokens.js](src/supported-tokens.js): Retrieve the list of supported tokens that can be transferred from one blockchain to another.
+- [supported-tokens.js](src/supported-tokens.js): Retrieve the list of supported tokens that can be transferred from one blockchain to another. **Note**: This script is deprecated. A more future proof way will be provided in the future.
 - [get-status.js](src/get-status.js): Retrieve the status of a CCIP transaction.
 
 ## Supported Chains
@@ -44,6 +44,9 @@ You will have to set-up the following variables:
 ## Examples
 
 ### Get the list of supported tokens
+
+> **Deprecation Notice:**  
+> This function is **deprecated** and will be deactivated in future versions. We recommend avoiding its use at this time. An alternative method will be provided in an upcoming release.
 
 In this example, you will interact with the router contract to retrieve the list of supported tokens that can be transferred from your blockchain to a target blockchain.
 

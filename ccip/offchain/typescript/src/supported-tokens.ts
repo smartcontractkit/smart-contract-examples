@@ -2,18 +2,40 @@ import { getProviderRpcUrl, getRouterConfig, NETWORK } from "./config";
 import { JsonRpcProvider } from "ethers";
 import { Router__factory, IERC20Metadata__factory } from "./typechain-types";
 
-// A script is run with two arguments representing the source and target chains
-// Example usage: npx ts-node src/supported-tokens.ts ethereumSepolia avalancheFuji
-
+// Interface for command-line arguments
 interface Arguments {
   sourceChain: NETWORK;
   destinationChain: NETWORK;
 }
 
+// Function to display a deprecation notice
+const displayDeprecationNotice = () => {
+  console.log("\n");
+  console.log("=".repeat(80));
+  console.log("\x1b[31m%s\x1b[0m", "DEPRECATION NOTICE:");
+  console.log(
+    "\x1b[33m%s\x1b[0m",
+    "The function 'getSupportedTokens' is deprecated and will be deactivated in future versions."
+  );
+  console.log(
+    "\x1b[33m%s\x1b[0m",
+    "We recommend avoiding its use at this time."
+  );
+  console.log(
+    "\x1b[33m%s\x1b[0m",
+    "An alternative method will be provided in an upcoming release."
+  );
+  console.log("=".repeat(80));
+  console.log("\n");
+};
+
+// Function to handle command-line arguments
 const handleArguments = (): Arguments => {
   // Check if the correct number of arguments have been passed
   if (process.argv.length !== 4) {
-    throw new Error("Expects 2 arguments. Expected format: npx ts-node src/supported-tokens.ts <sourceChain> <destinationChain>");
+    throw new Error(
+      "Expects 2 arguments. Expected format: npx ts-node src/supported-tokens.ts <sourceChain> <destinationChain>"
+    );
   }
 
   // Retrieve the chain names from command line arguments
@@ -25,6 +47,9 @@ const handleArguments = (): Arguments => {
 
 // Function to fetch and display supported tokens
 const getSupportedTokens = async () => {
+  // Display the deprecation notice
+  displayDeprecationNotice();
+
   // Get the source and target chain names from the command line arguments
   const { sourceChain, destinationChain } = handleArguments();
 
@@ -42,13 +67,14 @@ const getSupportedTokens = async () => {
   // Create a contract instance for the router using its ABI and address
   const sourceRouterContract = Router__factory.connect(routerAddress, provider);
 
+  // Check if the destination chain is supported
   const isChainSupported = await sourceRouterContract.isChainSupported(
     destinationChainSelector
   );
 
   if (!isChainSupported) {
     throw new Error(
-      `Lane ${sourceChain}->${destinationChain} is not supported\n`
+      `Lane ${sourceChain} -> ${destinationChain} is not supported\n`
     );
   }
 
@@ -69,7 +95,7 @@ const getSupportedTokens = async () => {
 
     // Print the token's details
     console.log(
-      `ERC20 token with address ${supportedToken} is ${name} of symbol ${symbol} and decimals ${decimals}\n`
+      `ERC20 token with address ${supportedToken} is ${name} with symbol ${symbol} and decimals ${decimals}\n`
     );
   }
 };
