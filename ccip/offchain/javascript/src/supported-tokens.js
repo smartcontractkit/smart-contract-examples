@@ -4,6 +4,27 @@ const { ethers, JsonRpcProvider } = require("ethers");
 const routerAbi = require("../../abi/Router.json");
 const erc20Abi = require("../../abi/IERC20Metadata.json");
 
+// Function to display a deprecation notice
+const displayDeprecationNotice = () => {
+  console.log("\n");
+  console.log("=".repeat(80));
+  console.log("\x1b[31m%s\x1b[0m", "DEPRECATION NOTICE:");
+  console.log(
+    "\x1b[33m%s\x1b[0m",
+    "The function 'getSupportedTokens' is deprecated and will be deactivated in future versions."
+  );
+  console.log(
+    "\x1b[33m%s\x1b[0m",
+    "We recommend avoiding its use at this time."
+  );
+  console.log(
+    "\x1b[33m%s\x1b[0m",
+    "An alternative method will be provided in an upcoming release."
+  );
+  console.log("=".repeat(80));
+  console.log("\n");
+};
+
 // A script is run with two arguments representing the source and target chains
 // Example usage: node src/supported-tokens.js ethereumSepolia avalancheFuji
 const handleArguments = () => {
@@ -21,6 +42,9 @@ const handleArguments = () => {
 
 // Function to fetch and display supported tokens
 const getSupportedTokens = async () => {
+  // Display the deprecation notice
+  displayDeprecationNotice();
+
   // Get the source and target chain names from the command line arguments
   const { chain, targetChain } = handleArguments();
 
@@ -40,7 +64,7 @@ const getSupportedTokens = async () => {
   const isChainSupported = await router.isChainSupported(targetChainSelector);
 
   if (!isChainSupported) {
-    throw new Error(`Lane ${chain}->${targetChain} is not supported}`);
+    throw new Error(`Lane ${chain}->${targetChain} is not supported`);
   }
 
   // Fetch the list of supported tokens
@@ -58,7 +82,7 @@ const getSupportedTokens = async () => {
 
     // Print the token's details
     console.log(
-      `ERC20 token with address ${supportedToken} is ${name} of symbol ${symbol} and decimals ${decimals}`
+      `ERC20 token with address ${supportedToken} is ${name} with symbol ${symbol} and decimals ${decimals}`
     );
   }
 };
