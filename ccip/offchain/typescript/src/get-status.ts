@@ -6,10 +6,12 @@ import {
 } from "./config";
 import { JsonRpcProvider } from "ethers";
 import { Router__factory, OffRamp__factory } from "./typechain-types";
+import { match } from "assert";
 
 // Command: npx ts-node src/get-status.ts sourceChain destinationChain messageId
-// Examples(sepolia-->Fuji):
+// Examples (sepolia --> Fuji):
 // npx ts-node src/get-status.ts ethereumSepolia avalancheFuji 0x6adcad3b71f62c7fcd45b3145d8d5aebfeb4a7ffacf567c09e5ce509120e8a8d
+
 interface Arguments {
   sourceChain: NETWORK;
   destinationChain: NETWORK;
@@ -19,7 +21,9 @@ interface Arguments {
 const handleArguments = (): Arguments => {
   // Check if the correct number of arguments are passed
   if (process.argv.length !== 5) {
-    throw new Error("Wrong number of arguments. Expected format: npx ts-node src/get-status.ts <sourceChain> <destinationChain> <messageId>");
+    throw new Error(
+      "Wrong number of arguments. Expected format: npx ts-node src/get-status.ts <sourceChain> <destinationChain> <messageId>"
+    );
   }
 
   // Extract the arguments from the command line
@@ -49,11 +53,13 @@ const getStatus = async () => {
   const sourceProvider = new JsonRpcProvider(sourceRpcUrl);
 
   // Retrieve router configuration for the source and destination chains
-  const sourceRouterAddress = getRouterConfig(sourceChain).router;
-  const sourceChainSelector = getRouterConfig(sourceChain).chainSelector;
-  const destinationRouterAddress = getRouterConfig(destinationChain).router;
-  const destinationChainSelector =
-    getRouterConfig(destinationChain).chainSelector;
+  const sourceRouterConfig = getRouterConfig(sourceChain);
+  const destinationRouterConfig = getRouterConfig(destinationChain);
+
+  const sourceRouterAddress = sourceRouterConfig.router.address;
+  const sourceChainSelector = sourceRouterConfig.chainSelector;
+  const destinationRouterAddress = destinationRouterConfig.router.address;
+  const destinationChainSelector = destinationRouterConfig.chainSelector;
 
   // Instantiate the router contract on the source chain
   const sourceRouterContract = Router__factory.connect(
@@ -67,7 +73,7 @@ const getStatus = async () => {
 
   if (!isChainSupported) {
     throw new Error(
-      `Lane ${sourceChain}->${destinationChain} is not supported\n`
+      `Lane ${sourceChain} -> ${destinationChain} is not supported\n`
     );
   }
 
@@ -78,18 +84,25 @@ const getStatus = async () => {
   );
 
   // Fetch the OffRamp contract addresses on the destination chain
-  // Fetch the OffRamp contract addresses on the destination chain
   const offRamps = await destinationRouterContract.getOffRamps();
 
+  // Correctly compare the chain selectors (convert to strings)
   const matchingOffRamps = offRamps.filter(
-    (offRamp) => offRamp.sourceChainSelector === sourceChainSelector
+    (offRamp) =>
+      offRamp.sourceChainSelector.toString() === sourceChainSelector.toString()
   );
 
+  // Initialize a flag to check if the message was found
+  let messageFound = false;
+
+  // Loop through all matching OffRamps
   for (const matchingOffRamp of matchingOffRamps) {
     const offRampContract = OffRamp__factory.connect(
       matchingOffRamp.offRamp,
       destinationProvider
     );
+
+    // Fetch events with the specific messageId
     const events = await offRampContract.queryFilter(
       offRampContract.filters.ExecutionStateChanged(undefined, messageId)
     );
@@ -100,14 +113,17 @@ const getStatus = async () => {
       console.log(
         `Status of message ${messageId} on offRamp ${matchingOffRamp.offRamp} is ${status}\n`
       );
-      return;
+      messageFound = true;
+      break; // Exit the loop since we've found the message
     }
   }
 
-  // If no event found, the message has not yet been processed on the destination chain
-  console.log(
-    `Either the message ${messageId} does not exist OR it has not been processed yet on destination chain\n`
-  );
+  // If no event found in any OffRamp
+  if (!messageFound) {
+    console.log(
+      `Either the message ${messageId} does not exist OR it has not been processed yet on the destination chain\n`
+    );
+  }
 };
 
 // Run the getStatus function and handle any errors

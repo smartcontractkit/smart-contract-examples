@@ -58,9 +58,9 @@ const getStatus = async () => {
   const sourceProvider = new JsonRpcProvider(sourceRpcUrl);
 
   // Get configuration for routers on both chains.
-  const sourceRouterAddress = getRouterConfig(chain).router;
+  const sourceRouterAddress = getRouterConfig(chain).router.address;
   const sourceChainSelector = getRouterConfig(chain).chainSelector;
-  const destinationRouterAddress = getRouterConfig(targetChain).router;
+  const destinationRouterAddress = getRouterConfig(targetChain).router.address;
   const destinationChainSelector = getRouterConfig(targetChain).chainSelector;
 
   // Instantiate router contracts with ethers for both source and destination chains.

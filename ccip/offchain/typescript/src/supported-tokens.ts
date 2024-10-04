@@ -1,33 +1,21 @@
-import { getProviderRpcUrl, getRouterConfig, NETWORK } from "./config";
+import {
+  getProviderRpcUrl,
+  getRouterConfig,
+  NETWORK,
+  getTokenAdminRegistryConfig,
+} from "./config";
 import { JsonRpcProvider } from "ethers";
-import { Router__factory, IERC20Metadata__factory } from "./typechain-types";
+import {
+  Router__factory,
+  IERC20Metadata__factory,
+  TokenAdminRegistry__factory,
+} from "./typechain-types";
 
 // Interface for command-line arguments
 interface Arguments {
   sourceChain: NETWORK;
   destinationChain: NETWORK;
 }
-
-// Function to display a deprecation notice
-const displayDeprecationNotice = () => {
-  console.log("\n");
-  console.log("=".repeat(80));
-  console.log("\x1b[31m%s\x1b[0m", "DEPRECATION NOTICE:");
-  console.log(
-    "\x1b[33m%s\x1b[0m",
-    "The function 'getSupportedTokens' is deprecated and will be deactivated in future versions."
-  );
-  console.log(
-    "\x1b[33m%s\x1b[0m",
-    "We recommend avoiding its use at this time."
-  );
-  console.log(
-    "\x1b[33m%s\x1b[0m",
-    "An alternative method will be provided in an upcoming release."
-  );
-  console.log("=".repeat(80));
-  console.log("\n");
-};
 
 // Function to handle command-line arguments
 const handleArguments = (): Arguments => {
@@ -47,9 +35,6 @@ const handleArguments = (): Arguments => {
 
 // Function to fetch and display supported tokens
 const getSupportedTokens = async () => {
-  // Display the deprecation notice
-  displayDeprecationNotice();
-
   // Get the source and target chain names from the command line arguments
   const { sourceChain, destinationChain } = handleArguments();
 
@@ -59,7 +44,7 @@ const getSupportedTokens = async () => {
   const provider = new JsonRpcProvider(rpcUrl);
 
   // Get the router's address for the specified chain
-  const routerAddress = getRouterConfig(sourceChain).router;
+  const routerAddress = getRouterConfig(sourceChain).router.address;
   // Get the chain selector for the target chain
   const destinationChainSelector =
     getRouterConfig(destinationChain).chainSelector;
@@ -78,10 +63,38 @@ const getSupportedTokens = async () => {
     );
   }
 
-  // Fetch the list of supported tokens
-  const supportedTokens = await sourceRouterContract.getSupportedTokens(
-    destinationChainSelector
-  );
+  // Check if TokenAdminRegistry is present for the source chain
+  const tokenAdminRegistryConfig = getTokenAdminRegistryConfig(sourceChain);
+
+  let supportedTokens: string[] = [];
+
+  if (tokenAdminRegistryConfig) {
+    // TokenAdminRegistry is present, use getAllConfiguredTokens
+    const tokenAdminRegistryAddress = tokenAdminRegistryConfig.address;
+    const tokenAdminRegistryContract = TokenAdminRegistry__factory.connect(
+      tokenAdminRegistryAddress,
+      provider
+    );
+
+    // Handle pagination
+    let startIndex = 0;
+    const maxCount = 100;
+    let tokensBatch: string[] = [];
+
+    do {
+      tokensBatch = await tokenAdminRegistryContract.getAllConfiguredTokens(
+        startIndex,
+        maxCount
+      );
+      supportedTokens.push(...tokensBatch);
+      startIndex = startIndex + tokensBatch.length;
+    } while (tokensBatch.length === maxCount);
+  } else {
+    // TokenAdminRegistry not present, use Router.getSupportedTokens
+    supportedTokens = await sourceRouterContract.getSupportedTokens(
+      destinationChainSelector
+    );
+  }
 
   // For each supported token, print its name, symbol, and decimal precision
   for (const supportedToken of supportedTokens) {
@@ -89,9 +102,11 @@ const getSupportedTokens = async () => {
     const erc20 = IERC20Metadata__factory.connect(supportedToken, provider);
 
     // Fetch the token's name, symbol, and decimal precision
-    const name = await erc20.name();
-    const symbol = await erc20.symbol();
-    const decimals = await erc20.decimals();
+    const [name, symbol, decimals] = await Promise.all([
+      erc20.name(),
+      erc20.symbol(),
+      erc20.decimals(),
+    ]);
 
     // Print the token's details
     console.log(

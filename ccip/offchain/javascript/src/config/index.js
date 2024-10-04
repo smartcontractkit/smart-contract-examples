@@ -1,5 +1,5 @@
 const env = require("./env");
-const router = require("./router");
+const ccip = require("./ccip");
 const offramp = require("./offramp");
 
 // override console.log to disable ethersjs warning when there are duplicates in ABI
@@ -19,7 +19,7 @@ const log = (...args) => {
 console.log = log;
 
 module.exports = {
-  ...router,
+  ...ccip,
   ...env,
   ...offramp,
 };

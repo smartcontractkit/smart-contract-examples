@@ -1,5 +1,5 @@
 export * from "./env";
-export * from "./router";
+export * from "./ccip";
 export * from "./offramp";
 
 // override console.log to disable ethersjs warning when there are duplicates in ABI
