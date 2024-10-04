@@ -1,4 +1,4 @@
-const { supportedNetworks } = require("./router");
+const { supportedNetworks } = require("./ccip");
 
 const getRpcUrlName = (network) =>
   network.replace(/([A-Z])/g, "_$1").toUpperCase() + "_RPC_URL";
