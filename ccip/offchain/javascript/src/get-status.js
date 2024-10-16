@@ -69,6 +69,7 @@ const getStatus = async () => {
     routerAbi,
     sourceProvider
   );
+
   // Check if the destination chain is supported by the source chain's router.
   const isChainSupported = await sourceRouterContract.isChainSupported(
     destinationChainSelector
@@ -85,10 +86,15 @@ const getStatus = async () => {
 
   // Fetch OffRamp contracts associated with the destination router contract.
   const offRamps = await destinationRouterContract.getOffRamps();
+
   // Filter for the OffRamps that match the source chain.
   const matchingOffRamps = offRamps.filter(
-    (offRamp) => offRamp.sourceChainSelector.toString() === sourceChainSelector
+    (offRamp) =>
+      offRamp.sourceChainSelector.toString() === sourceChainSelector.toString()
   );
+
+  // Initialize a flag to determine if the message was found
+  let messageFound = false;
 
   // Check each matching OffRamp for the message ID.
   for (const matchingOffRamp of matchingOffRamps) {
@@ -103,20 +109,23 @@ const getStatus = async () => {
     );
 
     if (events.length > 0) {
-      // If events are found, log the status and exit.
+      // If events are found, log the status and exit the loop.
       const { state } = events[0].args;
       const status = getMessageStatus(state);
       console.log(
         `Status of message ${messageId} on offRamp ${matchingOffRamp.offRamp} is ${status}\n`
       );
-      return;
+      messageFound = true; // Set the flag to indicate that the message was found
+      break; // Exit the loop as we've found the message
     }
   }
 
   // If no events are found, it's likely the message hasn't been processed or doesn't exist on the destination chain.
-  console.log(
-    `Either the message ${messageId} does not exist OR it has not been processed yet on destination chain\n`
-  );
+  if (!messageFound) {
+    console.log(
+      `Either the message ${messageId} does not exist OR it has not been processed yet on destination chain\n`
+    );
+  }
 };
 
 // Execute the getStatus function and catch any errors.
