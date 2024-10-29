@@ -1,0 +1,16 @@
+node_modules/
+
+# Compiler files
+cache/
+out/
+
+# Ignores all broadcast logs except specific exclusions
+/broadcast/*/
+/broadcast/**/dry-run/
+/broadcast/**/31337/
+
+# Docs
+docs/
+
+# Dotenv file
+.env
