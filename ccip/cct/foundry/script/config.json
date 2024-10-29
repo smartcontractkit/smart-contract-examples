@@ -1,0 +1,17 @@
+{
+  "BnMToken": {
+    "name": "BnM KH",
+    "symbol": "BnMkh",
+    "decimals": 18,
+    "initialSupply": 0,
+    "withGetCCIPAdmin": false,
+    "ccipAdminAddress": "0x0000000000000000000000000000000000000000"
+  },
+  "tokenAmountToMint": 1000000000000000000000,
+  "tokenAmountToTransfer": 10000,
+  "feeType": "link",
+  "remoteChains": {
+    "43113": 421614,
+    "421614": 43113
+  }
+}
