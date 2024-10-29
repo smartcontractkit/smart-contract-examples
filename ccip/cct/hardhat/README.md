@@ -14,6 +14,8 @@ Find a list of available tutorials on the Chainlink documentation: [Cross Chain 
 - [applyChainUpdates](#applychainupdates)
 - [mintTokens](#minttokens)
 - [transferTokens](#transfertokens)
+- [getPoolConfig](#getpoolconfig)
+- [updateRateLimiters](#updateratelimiters)
 
 **Safe Multisig**:
 
@@ -468,6 +470,184 @@ npx hardhat transferTokens [parameters]
 - **Message ID**:
   - Once the transfer is dispatched, the transaction logs include a message ID, which can be used to track the status of the transfer on Chainlink's CCIP platform.
   - You can track the status of the transfer on [CCIP Message Explorer](https://ccip.chain.link/msg/{messageId}).
+
+### getPoolConfig
+
+#### Description
+
+Retrieves and displays the configuration for a specific token pool, including supported remote chains, remote pool and token addresses, and the state of inbound and outbound rate limiters. The task provides insights into how tokens are transferred between chains.
+
+#### Usage
+
+```bash
+npx hardhat getPoolConfig --pooladdress <POOL_ADDRESS> --network <NETWORK>
+```
+
+#### Parameters
+
+- Required:
+  - `--pooladdress`: **string**
+    - The address of the token pool whose configuration you want to retrieve.
+
+#### Examples
+
+- Fetch the configuration for a token pool:
+
+  ```bash
+  npx hardhat getPoolConfig --pooladdress 0xYourPoolAddress --network avalancheFuji
+  ```
+
+  This will:
+
+  - Connect to the `TokenPool` contract at the specified address.
+  - Retrieve the supported remote chains, remote pool, and token addresses.
+  - Display the status of the outbound and inbound rate limiters.
+
+#### Output
+
+The task will output the configuration details for each supported remote chain. For each remote chain, the following details are displayed:
+
+- **Remote Pool Address**: The address of the token pool on the remote chain.
+- **Remote Token Address**: The address of the token on the remote chain.
+- **Outbound Rate Limiter**:
+  - **Enabled**: Whether the outbound rate limiter is enabled.
+  - **Capacity**: The maximum number of tokens allowed in the outbound rate limiter.
+  - **Rate**: The rate at which tokens are refilled in the outbound rate limiter (tokens per second).
+- **Inbound Rate Limiter**:
+  - **Enabled**: Whether the inbound rate limiter is enabled.
+  - **Capacity**: The maximum number of tokens allowed in the inbound rate limiter.
+  - **Rate**: The rate at which tokens are refilled in the inbound rate limiter (tokens per second).
+
+Example output:
+
+```bash
+== Logs ==
+Fetching configuration for pool at address: 0xYourPoolAddress
+
+Configuration for Remote Chain: avalanche
+  Allowed: true
+  Remote Pool Address: 0xRemotePoolAddress
+  Remote Token Address: 0xRemoteTokenAddress
+  Outbound Rate Limiter:
+    Enabled: true
+    Capacity: 10000000000000000000
+    Rate: 100000000000000000
+  Inbound Rate Limiter:
+    Enabled: true
+    Capacity: 5000000000000000000
+    Rate: 50000000000000000
+```
+
+### updateRateLimiters
+
+#### Description
+
+The `updateRateLimiters` task modifies the rate limiter settings for an existing token pool. This task allows you to configure both inbound and outbound rate limits for cross-chain token transfers. You can enable or disable rate limiting, set the capacity (max tokens), and configure the rate (tokens per second) for inbound and outbound transfers.
+
+#### Usage
+
+```bash
+npx hardhat updateRateLimiters --pooladdress <POOL_ADDRESS> --remotechain <REMOTE_CHAIN> [parameters]
+```
+
+#### Parameters
+
+- Required:
+  - `--pooladdress`: **string**
+    - The address of the token pool where the rate limiters will be updated.
+  - `--remotechain`: **string**
+    - The remote chain where the rate limiters should be applied. The remote chain is identified by its chain name (e.g., `avalancheFuji`, `arbitrumSepolia`).
+- Optional:
+  - `--ratelimiter`: **string** (default: `"both"`)
+    - Specifies whether to update `"inbound"`, `"outbound"`, or `"both"` rate limiters.
+  - `--outboundratelimitenabled`: **boolean** (default: `false`)
+    - Whether to enable the outbound rate limiter.
+  - `--outboundratelimitcapacity`: **number** (default: `0`)
+    - Maximum number of tokens allowed in the outbound rate limiter (capacity, in wei).
+  - `--outboundratelimitrate`: **number** (default: `0`)
+    - Number of tokens per second refilled into the outbound rate limiter (rate, in wei).
+  - `--inboundratelimitenabled`: **boolean** (default: `false`)
+    - Whether to enable the inbound rate limiter.
+  - `--inboundratelimitcapacity`: **number** (default: `0`)
+    - Maximum number of tokens allowed in the inbound rate limiter (capacity, in wei).
+  - `--inboundratelimitrate`: **number** (default: `0`)
+    - Number of tokens per second refilled into the inbound rate limiter (rate, in wei).
+
+#### Examples
+
+- Update both inbound and outbound rate limiters for a pool on Avalanche Fuji:
+
+  ```bash
+  npx hardhat updateRateLimiters \
+    --pooladdress 0xYourPoolAddress \
+    --remotechain arbitrumSepolia \
+    --ratelimiter both \
+    --outboundratelimitenabled true \
+    --outboundratelimitcapacity 10000000000000000000 \
+    --outboundratelimitrate 100000000000000000 \
+    --inboundratelimitenabled true \
+    --inboundratelimitcapacity 20000000000000000000 \
+    --inboundratelimitrate 100000000000000000 \
+    --network avalancheFuji
+  ```
+
+- Update only the outbound rate limiter for a token pool:
+
+  ```bash
+  npx hardhat updateRateLimiters \
+    --pooladdress 0xYourPoolAddress \
+    --remotechain arbitrumSepolia \
+    --ratelimiter outbound \
+    --outboundratelimitenabled true \
+    --outboundratelimitcapacity 15000000000000000000 \
+    --outboundratelimitrate 50000000000000000 \
+    --network avalancheFuji
+  ```
+
+#### Notes
+
+- **Rate Limiter Selection**: You can specify whether to update only the `outbound`, `inbound`, or `both` rate limiters using the `--ratelimiter` parameter. Each limiter has its own `capacity` and `rate` settings.
+- **Capacity and Rate**: The capacity represents the maximum number of tokens allowed in the rate limiter (bucket), while the rate represents how many tokens per second are added back into the bucket.
+  - **Capacity**: Maximum tokens allowed in the bucket.
+  - **Rate**: The number of tokens refilled per second.
+- **Remote Chain Configuration**: The remote chain's selector is fetched based on the `remotechain` parameter, which identifies the remote chain by its name (e.g., `arbitrumSepolia`, `avalancheFuji`). Ensure the remote chain is supported in the network configuration.
+- **Transaction Confirmation**: The task waits for the transaction to be confirmed on-chain, using the required number of confirmations specified for the network.
+
+#### Output
+
+The task logs the current rate limiter configurations before applying the updates, and it displays the transaction hash and confirmation that the rate limiters were successfully updated.
+
+Example output:
+
+```bash
+== Logs ==
+Current Rate Limiters for token pool: 0xYourPoolAddress
+
+  Outbound Rate Limiter:
+    Enabled: false
+    Capacity: 0
+    Rate: 0
+
+  Inbound Rate Limiter:
+    Enabled: false
+    Capacity: 0
+    Rate: 0
+
+========== Updating Rate Limiters ==========
+
+New Outbound Rate Limiter:
+  Enabled: true
+  Capacity: 10000000000000000000
+  Rate: 100000000000000000
+
+Transaction hash: 0xTransactionHash
+
+Rate limiters updated successfully
+```
+
+#### Verification
+
+After applying the new rate limiter settings, you can verify them using the `getPoolConfig` task.
 
 ## Safe Multisig
 
