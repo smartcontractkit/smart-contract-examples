@@ -18,8 +18,8 @@ task("getLastRetrievedPrice", "Gets the last retrieved price from StreamsUpkeep"
 
     try {
       // Call the automatically generated getter function for the last_retrieved_price public state variable.
-      const s_lastRetrievedPrice = await StreamsUpkeepContract.s_last_retrieved_price()
-      spinner.succeed(`Last Retrieved Price: ${s_lastRetrievedPrice}`) // Display the retrieved price and stop the spinner with a success message.
+      const lastDecodedPrice = await StreamsUpkeepContract.lastDecodedPrice()
+      spinner.succeed(`Last Retrieved Price: ${lastDecodedPrice}`) // Display the retrieved price and stop the spinner with a success message.
     } catch (error) {
       spinner.fail("Failed to retrieve the last price.") // In case of error, stop the spinner with a failure message.
       throw error
