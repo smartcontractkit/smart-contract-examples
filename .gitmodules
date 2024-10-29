@@ -40,3 +40,6 @@
 [submodule "ccip/ccip-cla-rate-limits/lib/forge-std"]
 	path = ccip/ccip-cla-rate-limits/lib/forge-std
 	url = https://github.com/foundry-rs/forge-std
+[submodule "ccip/cct/foundry/lib/forge-std"]
+	path = lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
