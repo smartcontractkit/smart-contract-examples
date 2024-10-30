@@ -2,7 +2,7 @@
 
 This repository contains a collection of Foundry scripts designed to simplify interactions with CCIP 1.5 contracts.
 
-Find a list of available tutorials on the Chainlink documentation: [Cross Chain Tokens (CCT) Tutorials](http://docs.chain.link/ccip/tutorials/cross-chain-tokens#overview).
+Find a list of available tutorials on the Chainlink documentation: [Cross Chain Token (CCT) Tutorials](http://docs.chain.link/ccip/tutorials/cross-chain-tokens#overview).
 
 ## Table of Contents
 
