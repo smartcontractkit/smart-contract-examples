@@ -15,6 +15,8 @@ export enum Chains {
   arbitrumSepolia = "arbitrumSepolia",
   sepolia = "sepolia",
   baseSepolia = "baseSepolia",
+  ethereumMainnet = "ethereumMainnet",
+  arbitrumOne = "arbitrumOne",
 }
 
 export type Configs = {

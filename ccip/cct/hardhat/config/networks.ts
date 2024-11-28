@@ -15,6 +15,20 @@ if (PRIVATE_KEY_2) {
 }
 
 const networks: Networks = {
+  [Chains.ethereumMainnet]: {
+    ...configData.ethereumMainnet,
+    url: process.env.ETHEREUM_MAINNET_RPC_URL || "UNSET",
+    gasPrice: undefined,
+    nonce: undefined,
+    accounts,
+  },
+  [Chains.arbitrumOne]: {
+    ...configData.arbitrumOne,
+    url: process.env.ARBITRUM_ONE_RPC_URL || "UNSET",
+    gasPrice: undefined,
+    nonce: undefined,
+    accounts,
+  },
   [Chains.avalancheFuji]: {
     ...configData.avalancheFuji,
     url: process.env.AVALANCHE_FUJI_RPC_URL || "UNSET",
@@ -51,6 +65,8 @@ const etherscan: EtherscanConfig = {
     [Chains.sepolia]: process.env.ETHERSCAN_API_KEY || "UNSET",
     [Chains.arbitrumSepolia]: process.env.ARBISCAN_API_KEY || "UNSET",
     [Chains.baseSepolia]: process.env.BASESCAN_API_KEY || "UNSET",
+    [Chains.ethereumMainnet]: process.env.ETHERSCAN_API_KEY || "UNSET",
+    [Chains.arbitrumOne]: process.env.ARBISCAN_API_KEY || "UNSET",
   },
   customChains: [
     {

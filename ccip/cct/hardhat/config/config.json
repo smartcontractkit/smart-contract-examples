@@ -1,4 +1,26 @@
 {
+  "ethereumMainnet": {
+    "chainId": 1,
+    "chainSelector": "5009297550715157269",
+    "router": "0x80226fc0Ee2b096224EeAc085Bb9a8cba1146f7D",
+    "rmnProxy": "0x411dE17f12D1A34ecC7F45f49844626267c75e81",
+    "tokenAdminRegistry": "0xb22764f98dD05c789929716D677382Df22C05Cb6",
+    "registryModuleOwnerCustom": "0x13022e3e6C77524308BD56AEd716E88311b2E533",
+    "link": "0x514910771AF9Ca656af840dff83E8264EcF986CA",
+    "confirmations": 2,
+    "nativeCurrencySymbol": "ETH"
+  },
+  "arbitrumOne": {
+    "chainId": 42161,
+    "chainSelector": "4949039107694359620",
+    "router": "0x141fa059441E0ca23ce184B6A78bafD2A517DdE8",
+    "rmnProxy": "0xC311a21e6fEf769344EB1515588B9d535662a145",
+    "tokenAdminRegistry": "0x39AE1032cF4B334a1Ed41cdD0833bdD7c7E7751E",
+    "registryModuleOwnerCustom": "0x818792C958Ac33C01c58D5026cEc91A86e9071d7",
+    "link": "0xf97f4df75117a78c1A5a0DBb814Af92458539FB4",
+    "confirmations": 2,
+    "nativeCurrencySymbol": "ETH"
+  },
   "avalancheFuji": {
     "chainId": 43113,
     "chainSelector": "14767482510784806043",
