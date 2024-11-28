@@ -17,14 +17,14 @@ if (PRIVATE_KEY_2) {
 const networks: Networks = {
   [Chains.ethereumMainnet]: {
     ...configData.ethereumMainnet,
-    url: process.env.ETHEREUM_MAINNET_RPC_URL || "UNSET",
+    url: process.env.ETHEREUM_RPC_URL || "UNSET",
     gasPrice: undefined,
     nonce: undefined,
     accounts,
   },
   [Chains.arbitrumOne]: {
     ...configData.arbitrumOne,
-    url: process.env.ARBITRUM_ONE_RPC_URL || "UNSET",
+    url: process.env.ARBITRUM_RPC_URL || "UNSET",
     gasPrice: undefined,
     nonce: undefined,
     accounts,
