@@ -22,6 +22,7 @@ Find a list of available tutorials on the Chainlink documentation: [Cross-Chain 
 - [updateAllowList](#updateallowlist)
 - [transferTokenAdminRole](#transfertokenadminrole)
 - [acceptTokenAdminRole](#accepttokenadminrole)
+- [getCurrentRateLimits](#getcurrentratelimits)
 
 **Safe Multisig**:
 
@@ -862,6 +863,74 @@ npx hardhat acceptTokenAdminRole \
 - **Verification**:
   - The task verifies that the signer is the pending administrator before attempting to accept the role.
   - Once accepted, the role transfer is complete and cannot be reversed without another transfer process.
+
+### getCurrentRateLimits
+
+#### Description
+
+Gets the current rate limiter states for a specific chain from a token pool. This task provides detailed information about both inbound and outbound rate limits, including current token amounts and last update times.
+
+#### Usage
+
+```bash
+npx hardhat getCurrentRateLimits [parameters]
+```
+
+#### Parameters
+
+- Required:
+  - `--pooladdress`: **string**
+    - The address of the token pool to query.
+  - `--remotechain`: **string**
+    - The remote blockchain to check rate limits for.
+
+#### Examples
+
+```bash
+npx hardhat getCurrentRateLimits \
+  --pooladdress 0xYourPoolAddress \
+  --remotechain avalanche \
+  --network avalancheFuji
+```
+
+#### Output Example
+
+```
+Rate Limiter States for Chain: avalanche
+Pool Address: 0xYourPoolAddress
+Chain Selector: 14767482510784806043
+
+Outbound Rate Limiter:
+  Enabled: true
+  Capacity: 1000000000000000000000
+  Rate: 100000000000000000
+  Tokens: 950000000000000000000
+  Last Updated: 1701555555
+
+Inbound Rate Limiter:
+  Enabled: true
+  Capacity: 1000000000000000000000
+  Rate: 100000000000000000
+  Tokens: 980000000000000000000
+  Last Updated: 1701555555
+```
+
+##### Notes
+
+- **Rate Limits**:
+  - All token amounts are displayed in the smallest unit (wei)
+  - Capacity: Maximum amount that can be transferred at once
+  - Rate: Tokens added to the capacity per second
+  - Tokens: Currently available tokens for transfer
+  - Last Updated: Unix timestamp of the last rate limit update
+
+- **Chain Configuration**:
+  - The task automatically resolves chain selectors from the network configuration
+  - Supports all chains configured in the network settings
+
+- **Error Handling**:
+  - Validates both local and remote chain configurations
+  - Provides clear error messages for invalid addresses or missing configurations
 
 ## Safe Multisig
 
