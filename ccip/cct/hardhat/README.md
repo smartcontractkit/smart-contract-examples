@@ -1095,7 +1095,7 @@ npx hardhat acceptOwnershipFromSafe [parameters]
 
 #### Description
 
-Deploys a token pool via a Safe multisig wallet and transfers ownership to the Safe. The pool can be either a Burn & Mint or a Lock & Release pool.
+Deploys a Burn & Mint token pool via a Safe multisig wallet and transfers ownership to the Safe.
 
 #### Usage
 
@@ -1111,48 +1111,39 @@ npx hardhat deployTokenPoolWithSafe [parameters]
   - `--safeaddress`: **string**
     - The address of the Safe that will own the pool.
 - Optional:
-  - `--pooltype`: **string** (default: `"burnMint"`)
-    - Specifies the type of pool to deploy. Options:
-      - `"burnMint"`: A pool that supports burning and minting of tokens.
-      - `"lockRelease"`: A pool that supports locking and releasing tokens.
   - `--localtokendecimals`: **integer** (default: `18`)
     - The number of decimals for the token on this chain.
-  - `--acceptliquidity`: **boolean** (default: `false`)
-    - Indicates if liquidity should be accepted in the pool. This option only applies to the `"lockRelease"` pool type.
   - `--verifycontract`: **boolean** (default: `false`)
     - If set to `true`, the contract will be verified on a blockchain explorer like Etherscan.
 
 #### Examples
 
 ```bash
-# Deploy a basic BurnMint pool
+# Deploy a pool with default decimals
 npx hardhat deployTokenPoolWithSafe \
   --tokenaddress 0xYourTokenAddress \
   --safeaddress 0xYourSafeAddress \
   --network avalancheFuji
 
-# Deploy a LockRelease pool with custom decimals and liquidity acceptance
+# Deploy a pool with custom decimals and verify
 npx hardhat deployTokenPoolWithSafe \
   --tokenaddress 0xYourTokenAddress \
   --safeaddress 0xYourSafeAddress \
-  --pooltype lockRelease \
   --localtokendecimals 8 \
-  --acceptliquidity true \
+  --verifycontract true \
   --network avalancheFuji
 ```
 
 ##### Notes
 
 - **Safe Transaction**:
-
   - The task creates and executes a Safe transaction to deploy the pool.
   - The Safe becomes the owner of the deployed pool.
   - Requires multiple signatures if the Safe's threshold is greater than 1.
 
 - **Token Decimals**:
-
   - The `localtokendecimals` parameter must match the actual decimals of the token contract.
-  - This is validated during deployment to ensure correct cross-chain token amount calculations.
+  - This is crucial for proper cross-chain token amount calculations.
 
 - **Network Configuration**:
   - The task automatically uses the RMN proxy and router addresses configured for the network.
