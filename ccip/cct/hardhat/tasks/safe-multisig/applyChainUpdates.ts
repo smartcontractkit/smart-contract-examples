@@ -12,7 +12,6 @@ import { HttpNetworkConfig } from "hardhat/types"; // Import Hardhat's HttpNetwo
 interface ConfigurePoolArgs {
   pooladdress: string; // The address of the pool to be configured
   remotechain: string; // The identifier of the remote blockchain network
-  allowed: boolean; // Whether the remote chain is allowed for token transfers
   remotepooladdresses: string; // Comma-separated list of remote pool addresses
   remotetokenaddress: string; // The address of the token on the remote chain
   outboundratelimitenabled: boolean; // Indicates if the outbound rate limiter is enabled
@@ -29,12 +28,6 @@ task("applyChainUpdatesFromSafe", "Configure pool via Safe")
   // Add task parameters with descriptions and default values (if applicable)
   .addParam("pooladdress", "The address of the pool")
   .addParam("remotechain", "The remote chain")
-  .addOptionalParam(
-    "allowed",
-    "Whether the remote chain is allowed",
-    true,
-    types.boolean
-  )
   .addParam(
     "remotepooladdresses",
     "The remote pool addresses (comma-separated)"
@@ -82,7 +75,6 @@ task("applyChainUpdatesFromSafe", "Configure pool via Safe")
     const {
       pooladdress: poolAddress,
       remotechain: remoteChain,
-      allowed,
       remotepooladdresses: remotePoolAddressesStr,
       remotetokenaddress: remoteTokenAddress,
       outboundratelimitenabled: outboundRateLimitEnabled,

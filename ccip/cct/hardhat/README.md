@@ -452,6 +452,7 @@ Gets the complete configuration of a token pool, including chain configurations,
 #### Output
 
 The task now displays:
+
 - Basic pool information:
   - Rate Limit Admin address
   - Router address
@@ -745,6 +746,7 @@ npx hardhat transferTokenAdminRole \
 ##### Notes
 
 - **Two-Step Process**:
+
   - This task only initiates the transfer. The new admin must call `acceptTokenAdminRole` to complete the transfer.
   - The current admin remains in control until the new admin accepts the role.
 
@@ -781,10 +783,12 @@ npx hardhat acceptTokenAdminRole \
 ##### Notes
 
 - **Pending Administrator**:
+
   - Only the address that was set as the new admin in `transferTokenAdminRole` can execute this task.
   - The task will fail if the signer is not the pending administrator for the token.
 
 - **TokenAdminRegistry**:
+
   - The task automatically uses the TokenAdminRegistry contract address configured for the network.
   - The registry maintains the administrator roles for all tokens in the system.
 
@@ -955,7 +959,7 @@ npx hardhat acceptOwnershipFromSafe [parameters]
 
 #### Description
 
-Deploys a new token pool (Burn & Mint) and transfers ownership to a Safe multisig wallet. This task allows you to deploy a token pool that manages a specific token and assign ownership to a Safe account.
+Deploys a token pool via a Safe multisig wallet and transfers ownership to the Safe. The pool can be either a Burn & Mint or a Lock & Release pool.
 
 #### Usage
 
@@ -967,30 +971,56 @@ npx hardhat deployTokenPoolWithSafe [parameters]
 
 - Required:
   - `--tokenaddress`: **string**
-    - The address of the token to be managed by the pool.
+    - The address of the token to be associated with the pool.
   - `--safeaddress`: **string**
-    - The address of the Safe multisig wallet that will take ownership of the deployed token pool.
+    - The address of the Safe that will own the pool.
 - Optional:
+  - `--pooltype`: **string** (default: `"burnMint"`)
+    - Specifies the type of pool to deploy. Options:
+      - `"burnMint"`: A pool that supports burning and minting of tokens.
+      - `"lockRelease"`: A pool that supports locking and releasing tokens.
+  - `--localtokendecimals`: **integer** (default: `18`)
+    - The number of decimals for the token on this chain.
+  - `--acceptliquidity`: **boolean** (default: `false`)
+    - Indicates if liquidity should be accepted in the pool. This option only applies to the `"lockRelease"` pool type.
   - `--verifycontract`: **boolean** (default: `false`)
     - If set to `true`, the contract will be verified on a blockchain explorer like Etherscan.
 
 #### Examples
 
-- Deploy a token pool and transfer ownership to a Safe:
-
-  ```bash
-  npx hardhat deployTokenPoolWithSafe --tokenaddress 0xYourTokenAddress --safeaddress 0xYourSafeAddress --network avalancheFuji
-  ```
-
-- Deploy and verify a token pool, then transfer ownership to a Safe:
-
-  ```bash
-  npx hardhat deployTokenPoolWithSafe \
+```bash
+# Deploy a basic BurnMint pool
+npx hardhat deployTokenPoolWithSafe \
   --tokenaddress 0xYourTokenAddress \
   --safeaddress 0xYourSafeAddress \
-  --verifycontract true \
   --network avalancheFuji
-  ```
+
+# Deploy a LockRelease pool with custom decimals and liquidity acceptance
+npx hardhat deployTokenPoolWithSafe \
+  --tokenaddress 0xYourTokenAddress \
+  --safeaddress 0xYourSafeAddress \
+  --pooltype lockRelease \
+  --localtokendecimals 8 \
+  --acceptliquidity true \
+  --network avalancheFuji
+```
+
+##### Notes
+
+- **Safe Transaction**:
+
+  - The task creates and executes a Safe transaction to deploy the pool.
+  - The Safe becomes the owner of the deployed pool.
+  - Requires multiple signatures if the Safe's threshold is greater than 1.
+
+- **Token Decimals**:
+
+  - The `localtokendecimals` parameter must match the actual decimals of the token contract.
+  - This is validated during deployment to ensure correct cross-chain token amount calculations.
+
+- **Network Configuration**:
+  - The task automatically uses the RMN proxy and router addresses configured for the network.
+  - These addresses are fetched from the network configuration file.
 
 ### claimAndAcceptAdminRoleFromSafe
 
@@ -1136,8 +1166,8 @@ npx hardhat applyChainUpdatesFromSafe [parameters]
     - The address of the pool to be configured.
   - `--remotechain`: **string**
     - The identifier of the remote blockchain network.
-  - `--remotepooladdress`: **string**
-    - The address of the remote token pool.
+  - `--remotepooladdresses`: **string**
+    - Comma-separated list of remote pool addresses.
   - `--remotetokenaddress`: **string**
     - The address of the token on the remote chain.
   - `--safeaddress`: **string**
@@ -1158,32 +1188,38 @@ npx hardhat applyChainUpdatesFromSafe [parameters]
 
 #### Examples
 
-- Configure a pool with default settings:
-
-  ```bash
-  npx hardhat applyChainUpdatesFromSafe \
+```bash
+# Configure a pool with multiple remote pools and rate limits
+npx hardhat applyChainUpdatesFromSafe \
   --pooladdress 0xYourPoolAddress \
   --remotechain avalanche \
-  --remotepooladdress 0xRemotePoolAddress \
-  --remotetokenaddress 0xRemoteTokenAddress \
-  --safeaddress 0xYourSafeAddress \
-  --network avalancheFuji
-  ```
-
-- Configure a pool with rate limits enabled:
-
-  ```bash
-  npx hardhat applyChainUpdatesFromSafe \
-  --pooladdress 0xYourPoolAddress \
-  --remotechain avalanche \
-  --remotepooladdress 0xRemotePoolAddress \
+  --remotepooladdresses "0xPool1,0xPool2" \
   --remotetokenaddress 0xRemoteTokenAddress \
   --safeaddress 0xYourSafeAddress \
   --outboundratelimitenabled true \
-  --outboundratelimitcapacity 10000 \
-  --outboundratelimitrate 500 \
-  --inboundratelimitenabled true \
-  --inboundratelimitcapacity 5000 \
-  --inboundratelimitrate 250 \
+  --outboundratelimitcapacity 1000000000000000000000 \
+  --outboundratelimitrate 100000000000000000 \
   --network avalancheFuji
-  ```
+```
+
+##### Notes
+
+- **Safe Transaction**:
+
+  - The task creates a Safe transaction that requires multiple signatures.
+  - Both PRIVATE_KEY and PRIVATE_KEY_2 environment variables must be set.
+  - The transaction is signed by both owners before execution.
+
+- **Multiple Remote Pools**:
+
+  - You can specify multiple remote pool addresses using a comma-separated list.
+  - This is useful for handling pool upgrades while maintaining support for inflight messages.
+
+- **Rate Limiting**:
+
+  - Configure both inbound and outbound rate limits to control token flow between chains.
+  - Rate limits are specified in the smallest token unit (wei).
+
+- **Network Configuration**:
+  - Chain selectors and other network details are automatically fetched from the network configuration.
+  - The task validates all addresses and chain configurations before creating the Safe transaction.
