@@ -10,20 +10,44 @@ contract GetPoolConfig is Script {
         // Instantiate the TokenPool contract
         TokenPool poolContract = TokenPool(poolAddress);
 
+        console.log("Fetching configuration for pool at address:", poolAddress);
+
+        // Get additional pool information
+        address rateLimitAdmin = poolContract.getRateLimitAdmin();
+        bool allowListEnabled = poolContract.getAllowListEnabled();
+        address[] memory allowList = poolContract.getAllowList();
+        address router = poolContract.getRouter();
+        address token = address(poolContract.getToken());
+
+        console.log("\nPool Basic Information:");
+        console.log("  Rate Limit Admin:", rateLimitAdmin);
+        console.log("  Router Address:", router);
+        console.log("  Token Address:", token);
+        console.log("  Allow List Enabled:", allowListEnabled);
+        if (allowListEnabled) {
+            console.log("  Allow List Addresses:");
+            for (uint256 j = 0; j < allowList.length; j++) {
+                console.log("    ", j + 1, ":", allowList[j]);
+            }
+        }
+
         // Fetch the list of supported chains
         uint64[] memory remoteChains = poolContract.getSupportedChains();
-
-        console.log("Fetching configuration for pool at address:", poolAddress);
 
         for (uint256 i = 0; i < remoteChains.length; i++) {
             uint64 chainSelector = remoteChains[i];
 
-            // Get remote pool and token addresses
-            bytes memory remotePoolAddressEncoded = poolContract.getRemotePool(chainSelector);
+            // Get remote pools and token addresses
+            bytes[] memory remotePoolsEncoded = poolContract.getRemotePools(chainSelector);
             bytes memory remoteTokenAddressEncoded = poolContract.getRemoteToken(chainSelector);
 
-            // Decode the remote pool and token addresses
-            address remotePoolAddress = abi.decode(remotePoolAddressEncoded, (address));
+            // Decode the remote pools addresses
+            address[] memory remotePoolAddresses = new address[](remotePoolsEncoded.length);
+            for (uint256 j = 0; j < remotePoolsEncoded.length; j++) {
+                remotePoolAddresses[j] = abi.decode(remotePoolsEncoded[j], (address));
+            }
+
+            // Decode the remote token address
             address remoteTokenAddress = abi.decode(remoteTokenAddressEncoded, (address));
 
             // Get rate limiter states
@@ -32,11 +56,16 @@ contract GetPoolConfig is Script {
             RateLimiter.TokenBucket memory inboundRateLimiterState =
                 poolContract.getCurrentInboundRateLimiterState(chainSelector);
 
-            // Get human-readable chain name (if possible)
+            // Display the configuration
             console.log("\nConfiguration for Remote Chain:", uint256(chainSelector));
+            console.log("  Allowed: true"); // All chains in getSupportedChains() are considered allowed
 
-            console.log("  Allowed: true"); // Since all chains in getSupportedChains() are considered allowed
-            console.log("  Remote Pool Address:", remotePoolAddress);
+            // Log all remote pool addresses
+            console.log("  Remote Pool Addresses:");
+            for (uint256 j = 0; j < remotePoolAddresses.length; j++) {
+                console.log("    ", j + 1, ":", remotePoolAddresses[j]);
+            }
+
             console.log("  Remote Token Address:", remoteTokenAddress);
 
             // Outbound Rate Limiter

@@ -34,6 +34,7 @@ contract DeployLockReleaseTokenPool is Script {
         // Deploy the LockReleaseTokenPool contract associated with the token
         LockReleaseTokenPool tokenPool = new LockReleaseTokenPool(
             IERC20(tokenAddress),
+            18, // The number of decimals of the token
             new address[](0), // Empty array for initial operators
             rmnProxy,
             false, // Set acceptLiquidity to false

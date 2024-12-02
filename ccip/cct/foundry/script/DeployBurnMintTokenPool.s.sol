@@ -37,6 +37,7 @@ contract DeployBurnMintTokenPool is Script {
         // Deploy the BurnMintTokenPool contract associated with the token
         BurnMintTokenPool tokenPool = new BurnMintTokenPool(
             token,
+            18, // The number of decimals of the token
             new address[](0), // Empty array for initial operators
             rmnProxy,
             router
