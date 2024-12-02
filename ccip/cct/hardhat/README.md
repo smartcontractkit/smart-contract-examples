@@ -447,22 +447,89 @@ npx hardhat transferTokens [parameters]
 
 #### Description
 
-Gets the complete configuration of a token pool, including chain configurations, rate limits, and pool information.
+Gets the complete configuration of a token pool, including chain configurations, rate limits, and pool information. This task provides a comprehensive view of the pool's settings and supported chains.
+
+#### Usage
+
+```bash
+npx hardhat getPoolConfig [parameters]
+```
+
+#### Parameters
+
+- Required:
+  - `--pooladdress`: **string**
+    - The address of the token pool to query.
+
+#### Examples
+
+```bash
+npx hardhat getPoolConfig --pooladdress 0xYourPoolAddress --network avalancheFuji
+```
 
 #### Output
 
-The task now displays:
+The task displays:
 
-- Basic pool information:
+- Basic Pool Information:
   - Rate Limit Admin address
   - Router address
   - Token address
   - Allow List status and addresses (if enabled)
-- For each supported chain:
+
+- For Each Supported Chain:
+  - Chain name and selector
   - Remote pool addresses (can be multiple per chain)
   - Remote token address
-  - Rate limiter configurations
-  - Chain status
+  - Outbound Rate Limiter:
+    - Enabled status
+    - Capacity
+    - Rate
+  - Inbound Rate Limiter:
+    - Enabled status
+    - Capacity
+    - Rate
+
+Example output:
+```
+Pool Basic Information:
+  Rate Limit Admin: 0x1234...5678
+  Router Address: 0xabcd...ef01
+  Token Address: 0x9876...5432
+  Allow List Enabled: true
+  Allow List Addresses:
+    1: 0xaaaa...bbbb
+    2: 0xcccc...dddd
+
+Configuration for Remote Chain: avalanche (14767482510784806043)
+  Remote Pool Addresses:
+    1: 0x1111...2222
+    2: 0x3333...4444
+  Remote Token Address: 0x5555...6666
+  Outbound Rate Limiter:
+    Enabled: true
+    Capacity: 1000000000000000000000
+    Rate: 100000000000000000
+  Inbound Rate Limiter:
+    Enabled: true
+    Capacity: 1000000000000000000000
+    Rate: 100000000000000000
+```
+
+##### Notes
+
+- **Chain Names**: 
+  - The task attempts to resolve chain selectors to human-readable names using the network configuration.
+  - Falls back to displaying the raw selector if the chain name is not found.
+
+- **Rate Limits**:
+  - All rate limit values are displayed in the token's smallest unit (wei).
+  - The capacity represents the maximum amount that can be transferred at once.
+  - The rate indicates how many tokens are added to the capacity per second.
+
+- **Remote Pools**:
+  - Multiple remote pools may be displayed for each chain if upgrades have occurred.
+  - All listed pools are valid for handling cross-chain messages.
 
 ### updateRateLimiters
 
