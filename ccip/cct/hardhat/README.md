@@ -273,7 +273,7 @@ npx hardhat setPool [parameters]
 
 #### Description
 
-Configures a token pool's chain settings, including cross-chain rate limits and remote pool configurations.
+Configures a token pool's chain settings, including cross-chain rate limits and remote pool configurations. Adding a chain through this task automatically enables it for cross-chain transfers.
 
 #### Parameters
 
@@ -287,8 +287,6 @@ Configures a token pool's chain settings, including cross-chain rate limits and 
   - `--remotetokenaddress`: **string**
     - The address of the token on the remote chain.
 - Optional:
-  - `--allowed`: **boolean** (default: `true`)
-    - Whether the remote chain is allowed for transfers.
   - `--outboundratelimitenabled`: **boolean** (default: `false`)
     - Enables or disables the outbound rate limiter.
   - `--outboundratelimitcapacity`: **integer** (default: `0`)
@@ -305,18 +303,23 @@ Configures a token pool's chain settings, including cross-chain rate limits and 
 #### Examples
 
 ```bash
-# Configure with multiple remote pools
+# Configure a chain with multiple remote pools
 npx hardhat applyChainUpdates \
   --pooladdress 0xYourPoolAddress \
   --remotechain avalanche \
   --remotepooladdresses "0xPool1,0xPool2" \
   --remotetokenaddress 0xRemoteTokenAddress \
+  --outboundratelimitenabled true \
+  --outboundratelimitcapacity 1000000000000000000000 \
+  --outboundratelimitrate 100000000000000000 \
   --network avalancheFuji
 ```
 
 ##### Notes
 
-- **Multiple Remote Pools**: You can now specify multiple remote pool addresses for the same chain selector, which is useful for handling pool upgrades while maintaining support for inflight messages.
+- **Chain Activation**: Adding a chain through this task automatically enables it for cross-chain transfers.
+- **Multiple Remote Pools**: You can specify multiple remote pool addresses for the same chain selector, which is useful for handling pool upgrades while maintaining support for inflight messages.
+- **Rate Limiting**: Configure both inbound and outbound rate limits to control token flow between chains.
 - **Remote Pool Management**: Use `addRemotePool` and `removeRemotePool` tasks for more granular control over remote pool configurations.
 
 ### mintTokens
@@ -1140,8 +1143,6 @@ npx hardhat applyChainUpdatesFromSafe [parameters]
   - `--safeaddress`: **string**
     - The address of the Safe multisig wallet that will execute the transaction.
 - Optional:
-  - `--allowed`: **boolean** (default: `true`)
-    - Specifies whether the remote chain is allowed for cross-chain token transfers.
   - `--outboundratelimitenabled`: **boolean** (default: `false`)
     - Enables or disables the outbound rate limiter.
   - `--outboundratelimitcapacity`: **integer** (default: `0`)

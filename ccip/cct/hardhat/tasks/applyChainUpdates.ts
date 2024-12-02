@@ -4,7 +4,6 @@ import { Chains, networks, logger } from "../config";
 interface ConfigurePoolArgs {
   pooladdress: string;
   remotechain: string;
-  allowed: boolean;
   remotepooladdresses: string;
   remotetokenaddress: string;
   outboundratelimitenabled: boolean;
@@ -19,17 +18,11 @@ interface ConfigurePoolArgs {
 task("applyChainUpdates", "Initialize a pool configuration")
   .addParam("pooladdress", "The address of the pool") // Address of the token pool
   .addParam("remotechain", "The remote chain") // The remote blockchain that the source pool will interact with
-  .addOptionalParam(
-    "allowed", // Whether the remote chain is allowed for cross-chain transfers
-    "Whether the remote chain is allowed",
-    true,
-    types.boolean
-  )
   .addParam(
-    "remotepooladdresses", // Comma-separated list of remote pool addresses that can handle the token
+    "remotepooladdresses",
     "The remote pool addresses (comma-separated)"
   )
-  .addParam("remotetokenaddress", "The remote token address") // The address of the token on the remote chain
+  .addParam("remotetokenaddress", "The remote token address")
   .addOptionalParam(
     "outboundratelimitenabled", // Enables outbound rate limits (control the flow of tokens leaving this chain)
     "Whether the outbound rate limit is enabled (Outbound)",
@@ -70,7 +63,6 @@ task("applyChainUpdates", "Initialize a pool configuration")
     const {
       pooladdress: poolAddress,
       remotechain: remoteChain,
-      allowed,
       remotepooladdresses: remotePoolAddressesStr,
       remotetokenaddress: remoteTokenAddress,
       outboundratelimitenabled: outboundRateLimitEnabled,
@@ -134,20 +126,20 @@ task("applyChainUpdates", "Initialize a pool configuration")
       remoteChainSelector: BigInt(remoteChainSelector),
       remotePoolAddresses: remotePoolAddresses.map((addr) =>
         new hre.ethers.AbiCoder().encode(["address"], [addr])
-      ), // Array of encoded addresses for all pools that can handle this token on the remote chain
+      ),
       remoteTokenAddress: new hre.ethers.AbiCoder().encode(
         ["address"],
         [remoteTokenAddress]
-      ), // Encode the remote token address that these pools will handle
+      ),
       outboundRateLimiterConfig: {
-        isEnabled: outboundRateLimitEnabled, // Configure outbound rate limits
-        capacity: BigInt(outboundRateLimitCapacity), // Maximum tokens that can be sent at once
-        rate: BigInt(outboundRateLimitRate), // Rate at which the capacity refills
+        isEnabled: outboundRateLimitEnabled,
+        capacity: BigInt(outboundRateLimitCapacity),
+        rate: BigInt(outboundRateLimitRate),
       },
       inboundRateLimiterConfig: {
-        isEnabled: inboundRateLimitEnabled, // Configure inbound rate limits
-        capacity: BigInt(inboundRateLimitCapacity), // Maximum tokens that can be received at once
-        rate: BigInt(inboundRateLimitRate), // Rate at which the capacity refills
+        isEnabled: inboundRateLimitEnabled,
+        capacity: BigInt(inboundRateLimitCapacity),
+        rate: BigInt(inboundRateLimitRate),
       },
     };
 
