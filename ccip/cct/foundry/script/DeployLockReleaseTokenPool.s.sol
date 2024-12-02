@@ -5,8 +5,8 @@ import {Script, console} from "forge-std/Script.sol";
 import {HelperUtils} from "./utils/HelperUtils.s.sol"; // Utility functions for JSON parsing and chain info
 import {HelperConfig} from "./HelperConfig.s.sol"; // Network configuration helper
 import {LockReleaseTokenPool} from "@chainlink/contracts-ccip/src/v0.8/ccip/pools/LockReleaseTokenPool.sol";
-import {BurnMintERC677} from "@chainlink/contracts-ccip/src/v0.8/shared/token/ERC677/BurnMintERC677.sol";
-import {IBurnMintERC20} from "@chainlink/contracts-ccip/src/v0.8/shared/token/ERC20/IBurnMintERC20.sol";
+import {IERC20} from
+    "@chainlink/contracts-ccip/src/v0.8/vendor/openzeppelin-solidity/v4.8.3/contracts/interfaces/IERC20.sol";
 
 contract DeployLockReleaseTokenPool is Script {
     function run() external {
@@ -29,14 +29,11 @@ contract DeployLockReleaseTokenPool is Script {
         require(tokenAddress != address(0), "Invalid token address");
         require(router != address(0) && rmnProxy != address(0), "Router or RMN Proxy not defined for this network");
 
-        // Cast the token address to the IBurnMintERC20 interface
-        IBurnMintERC20 token = IBurnMintERC20(tokenAddress);
-
         vm.startBroadcast();
 
         // Deploy the LockReleaseTokenPool contract associated with the token
         LockReleaseTokenPool tokenPool = new LockReleaseTokenPool(
-            token,
+            IERC20(tokenAddress),
             new address[](0), // Empty array for initial operators
             rmnProxy,
             false, // Set acceptLiquidity to false
@@ -44,10 +41,6 @@ contract DeployLockReleaseTokenPool is Script {
         );
 
         console.log("Lock & Release token pool deployed to:", address(tokenPool));
-
-        // Grant mint and burn roles to the token pool on the token contract
-        BurnMintERC677(tokenAddress).grantMintAndBurnRoles(address(tokenPool));
-        console.log("Granted mint and burn roles to token pool:", address(tokenPool));
 
         vm.stopBroadcast();
 
