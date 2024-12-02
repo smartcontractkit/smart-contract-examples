@@ -14,3 +14,5 @@ import "./getCurrentRateLimits";
 import "./setRateLimitAdmin";
 import "./acceptAdminRole";
 import "./transferTokenAdminRole";
+import "./addRemotePool";
+import "./removeRemotePool";
