@@ -6,6 +6,7 @@ interface DeployTokenPoolTaskArgs {
   verifycontract: boolean; // Boolean flag indicating if the contract should be verified on a blockchain explorer
   tokenaddress: string; // The address of the token that the pool will manage
   safeaddress: string; // The address of the Safe multisig account that will own the token pool
+  localtokendecimals?: number; // Optional parameter for token decimals, defaults to 18
 }
 
 // Define the Hardhat task for deploying a token pool and transferring ownership to a Safe account
@@ -21,12 +22,19 @@ task(
     false, // Default value is false, indicating that verification is not mandatory
     types.boolean // Type of parameter is boolean
   )
+  .addOptionalParam(
+    "localtokendecimals",
+    "Local token decimals (defaults to 18)", // Optional parameter for token decimals
+    18,
+    types.int
+  )
   .setAction(async (taskArgs: DeployTokenPoolTaskArgs, hre) => {
     // Destructuring task arguments
     const {
       verifycontract: verifyContract,
       tokenaddress: tokenAddress,
       safeaddress: safeAddress,
+      localtokendecimals: localTokenDecimals = 18, // Default to 18 if not provided
     } = taskArgs;
 
     // Retrieve the current network name from the Hardhat runtime environment
@@ -58,9 +66,10 @@ task(
     }
 
     try {
-      // Deploy the Token Pool contract
+      // Deploy the Token Pool contract with localTokenDecimals
       const tokenPool = await TokenPool.deploy(
         tokenAddress, // Address of the token managed by the pool
+        localTokenDecimals, // Number of decimals for the token
         [], // Empty array for additional parameters (in this case, no extra addresses)
         rmnProxy, // Address of the RMN Proxy contract
         router // Address of the Router contract
@@ -89,7 +98,13 @@ task(
         try {
           await hre.run("verify:verify", {
             address: tokenPoolAddress,
-            constructorArguments: [tokenAddress, [], rmnProxy, router],
+            constructorArguments: [
+              tokenAddress,
+              localTokenDecimals,
+              [],
+              rmnProxy,
+              router,
+            ],
           });
           logger.info("Token pool contract deployed and verified");
         } catch (error) {

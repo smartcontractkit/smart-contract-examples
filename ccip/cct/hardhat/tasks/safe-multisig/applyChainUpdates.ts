@@ -13,7 +13,7 @@ interface ConfigurePoolArgs {
   pooladdress: string; // The address of the pool to be configured
   remotechain: string; // The identifier of the remote blockchain network
   allowed: boolean; // Whether the remote chain is allowed for token transfers
-  remotepooladdress: string; // The address of the remote token pool
+  remotepooladdresses: string; // Comma-separated list of remote pool addresses
   remotetokenaddress: string; // The address of the token on the remote chain
   outboundratelimitenabled: boolean; // Indicates if the outbound rate limiter is enabled
   outboundratelimitcapacity: number; // Maximum capacity for the outbound rate limiter
@@ -35,7 +35,10 @@ task("applyChainUpdatesFromSafe", "Configure pool via Safe")
     true,
     types.boolean
   )
-  .addParam("remotepooladdress", "The remote pool address")
+  .addParam(
+    "remotepooladdresses",
+    "The remote pool addresses (comma-separated)"
+  )
   .addParam("remotetokenaddress", "The remote token address")
   .addOptionalParam(
     "outboundratelimitenabled",
@@ -80,7 +83,7 @@ task("applyChainUpdatesFromSafe", "Configure pool via Safe")
       pooladdress: poolAddress,
       remotechain: remoteChain,
       allowed,
-      remotepooladdress: remotePoolAddress,
+      remotepooladdresses: remotePoolAddressesStr,
       remotetokenaddress: remoteTokenAddress,
       outboundratelimitenabled: outboundRateLimitEnabled,
       outboundratelimitcapacity: outboundRateLimitCapacity,
@@ -121,9 +124,14 @@ task("applyChainUpdatesFromSafe", "Configure pool via Safe")
       throw new Error(`Invalid remote token address: ${remoteTokenAddress}`);
     }
 
-    // Validate the provided remote pool address
-    if (!hre.ethers.isAddress(remotePoolAddress)) {
-      throw new Error(`Invalid remote pool address: ${remotePoolAddress}`);
+    // Parse and validate the comma-separated remote pool addresses
+    const remotePoolAddresses = remotePoolAddressesStr
+      .split(",")
+      .map((addr) => addr.trim());
+    for (const addr of remotePoolAddresses) {
+      if (!hre.ethers.isAddress(addr)) {
+        throw new Error(`Invalid remote pool address: ${addr}`);
+      }
     }
 
     // Validate the provided Safe address
@@ -160,30 +168,31 @@ task("applyChainUpdatesFromSafe", "Configure pool via Safe")
     // Build the chain update object with provided rate limits and remote settings
     const chainUpdate = {
       remoteChainSelector: BigInt(remoteChainSelector), // Chain selector for the remote blockchain
-      allowed, // Whether transfers to this remote chain are allowed
-      remotePoolAddress: new hre.ethers.AbiCoder().encode(
-        ["address"],
-        [remotePoolAddress]
-      ), // Encode the remote pool address
+      remotePoolAddresses: remotePoolAddresses.map((addr) =>
+        new hre.ethers.AbiCoder().encode(["address"], [addr])
+      ), // Array of encoded addresses for all pools that can handle this token
       remoteTokenAddress: new hre.ethers.AbiCoder().encode(
         ["address"],
         [remoteTokenAddress]
-      ), // Encode the remote token address
+      ), // Encode the remote token address that these pools will handle
       outboundRateLimiterConfig: {
         isEnabled: outboundRateLimitEnabled, // Whether outbound rate limiting is enabled
-        capacity: BigInt(outboundRateLimitCapacity), // Capacity for the outbound rate limiter
-        rate: BigInt(outboundRateLimitRate), // Rate at which tokens are refilled in the outbound bucket
+        capacity: BigInt(outboundRateLimitCapacity), // Maximum tokens that can be sent at once
+        rate: BigInt(outboundRateLimitRate), // Rate at which the capacity refills
       },
       inboundRateLimiterConfig: {
         isEnabled: inboundRateLimitEnabled, // Whether inbound rate limiting is enabled
-        capacity: BigInt(inboundRateLimitCapacity), // Capacity for the inbound rate limiter
-        rate: BigInt(inboundRateLimitRate), // Rate at which tokens are refilled in the inbound bucket
+        capacity: BigInt(inboundRateLimitCapacity), // Maximum tokens that can be received at once
+        rate: BigInt(inboundRateLimitRate), // Rate at which the capacity refills
       },
     };
 
     logger.info(
       `Configuring pool at address: ${poolAddress} for remote chain ${remoteChain}`
     );
+    logger.info(`Remote chain selector: ${remoteChainSelector}`);
+    logger.info(`Remote pool addresses: ${remotePoolAddresses.join(", ")}`);
+    logger.info(`Remote token address: ${remoteTokenAddress}`);
 
     // Import the TokenPool factory to interact with the token pool contract
     const { TokenPool__factory } = await import("../../typechain-types");
@@ -195,7 +204,7 @@ task("applyChainUpdatesFromSafe", "Configure pool via Safe")
     // Encode the transaction data to apply chain updates to the token pool
     const setPoolData = poolContract.interface.encodeFunctionData(
       "applyChainUpdates",
-      [[chainUpdate]]
+      [[], [chainUpdate]] // Empty array for removals, array with single update
     );
 
     // Create Safe signers using the Safe Protocol Kit

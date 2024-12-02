@@ -5,7 +5,7 @@ interface ConfigurePoolArgs {
   pooladdress: string;
   remotechain: string;
   allowed: boolean;
-  remotepooladdress: string;
+  remotepooladdresses: string;
   remotetokenaddress: string;
   outboundratelimitenabled: boolean;
   outboundratelimitcapacity: number;
@@ -25,7 +25,10 @@ task("applyChainUpdates", "Initialize a pool configuration")
     true,
     types.boolean
   )
-  .addParam("remotepooladdress", "The remote pool address") // The address of the pool on the remote chain
+  .addParam(
+    "remotepooladdresses", // Comma-separated list of remote pool addresses that can handle the token
+    "The remote pool addresses (comma-separated)"
+  )
   .addParam("remotetokenaddress", "The remote token address") // The address of the token on the remote chain
   .addOptionalParam(
     "outboundratelimitenabled", // Enables outbound rate limits (control the flow of tokens leaving this chain)
@@ -68,7 +71,7 @@ task("applyChainUpdates", "Initialize a pool configuration")
       pooladdress: poolAddress,
       remotechain: remoteChain,
       allowed,
-      remotepooladdress: remotePoolAddress,
+      remotepooladdresses: remotePoolAddressesStr,
       remotetokenaddress: remoteTokenAddress,
       outboundratelimitenabled: outboundRateLimitEnabled,
       outboundratelimitcapacity: outboundRateLimitCapacity,
@@ -92,13 +95,23 @@ task("applyChainUpdates", "Initialize a pool configuration")
       throw new Error(`Remote chain ${remoteChain} not found in config`);
     }
 
-    // Get the remote chain's selector, which is used in cross-chain transfers
+    // Get the remote chain's selector
     const remoteChainSelector = remoteNetworkConfig.chainSelector;
     if (remoteChainSelector === undefined) {
       throw new Error(`chainSelector is not defined for ${remoteChain}`);
     }
 
-    // Validate the pool, remote token, and remote pool addresses
+    // Parse and validate the comma-separated remote pool addresses
+    const remotePoolAddresses = remotePoolAddressesStr
+      .split(",")
+      .map((addr) => addr.trim());
+    for (const addr of remotePoolAddresses) {
+      if (!hre.ethers.isAddress(addr)) {
+        throw new Error(`Invalid remote pool address: ${addr}`);
+      }
+    }
+
+    // Validate the pool and remote token addresses
     if (!hre.ethers.isAddress(poolAddress)) {
       throw new Error(`Invalid pool address: ${poolAddress}`);
     }
@@ -107,11 +120,7 @@ task("applyChainUpdates", "Initialize a pool configuration")
       throw new Error(`Invalid remote token address: ${remoteTokenAddress}`);
     }
 
-    if (!hre.ethers.isAddress(remotePoolAddress)) {
-      throw new Error(`Invalid remote pool address: ${remotePoolAddress}`);
-    }
-
-    // Get the signer to interact with the pool contract
+    // Get the signer
     const signerAddress = (await hre.ethers.getSigners())[0];
 
     // Load the TokenPool contract factory
@@ -120,41 +129,43 @@ task("applyChainUpdates", "Initialize a pool configuration")
     // Connect to the TokenPool contract
     const poolContract = TokenPool__factory.connect(poolAddress, signerAddress);
 
-    // Prepare the configuration for the chain update, including rate limits and pool connections
+    // Prepare the chain update according to the TokenPool.ChainUpdateStruct format
     const chainUpdate = {
       remoteChainSelector: BigInt(remoteChainSelector),
-      allowed, // Whether the remote chain is allowed for transfers
-      remotePoolAddress: new hre.ethers.AbiCoder().encode(
-        ["address"],
-        [remotePoolAddress]
-      ), // Encode the remote pool address
+      remotePoolAddresses: remotePoolAddresses.map((addr) =>
+        new hre.ethers.AbiCoder().encode(["address"], [addr])
+      ), // Array of encoded addresses for all pools that can handle this token on the remote chain
       remoteTokenAddress: new hre.ethers.AbiCoder().encode(
         ["address"],
         [remoteTokenAddress]
-      ), // Encode the remote token address
+      ), // Encode the remote token address that these pools will handle
       outboundRateLimiterConfig: {
         isEnabled: outboundRateLimitEnabled, // Configure outbound rate limits
-        capacity: BigInt(outboundRateLimitCapacity),
-        rate: BigInt(outboundRateLimitRate),
+        capacity: BigInt(outboundRateLimitCapacity), // Maximum tokens that can be sent at once
+        rate: BigInt(outboundRateLimitRate), // Rate at which the capacity refills
       },
       inboundRateLimiterConfig: {
         isEnabled: inboundRateLimitEnabled, // Configure inbound rate limits
-        capacity: BigInt(inboundRateLimitCapacity),
-        rate: BigInt(inboundRateLimitRate),
+        capacity: BigInt(inboundRateLimitCapacity), // Maximum tokens that can be received at once
+        rate: BigInt(inboundRateLimitRate), // Rate at which the capacity refills
       },
     };
 
-    // Log the configuration and apply the chain update to the pool contract
+    // Log the configuration and apply the chain update
     logger.info(`Applying chain update to pool at address: ${poolAddress}`);
-    const tx = await poolContract.applyChainUpdates([chainUpdate]);
+    logger.info(`Remote chain: ${remoteChain} (${remoteChainSelector})`);
+    logger.info(`Remote pool addresses: ${remotePoolAddresses.join(", ")}`);
+    logger.info(`Remote token address: ${remoteTokenAddress}`);
 
-    // Retrieve the number of confirmations required from the network config
+    // Call applyChainUpdates with empty array for removals and array with single update
+    const tx = await poolContract.applyChainUpdates([], [chainUpdate]);
+
+    // Wait for confirmations
     const { confirmations } = networkConfig;
     if (confirmations === undefined) {
       throw new Error(`confirmations is not defined for ${networkName}`);
     }
 
-    // Wait for the transaction to be confirmed
     await tx.wait(confirmations);
     logger.info(`Chain update applied successfully`);
   });
