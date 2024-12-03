@@ -7,11 +7,11 @@ import {HelperUtils} from "./utils/HelperUtils.s.sol";
 
 library RateLimiter {
     struct State {
+        uint128 tokens;
+        uint32 lastUpdated;
         bool isEnabled;
-        uint256 capacity;
-        uint256 rate;
-        uint256 tokens;
-        uint256 lastUpdated;
+        uint128 capacity;
+        uint128 rate;
     }
 }
 
@@ -47,34 +47,46 @@ contract GetCurrentRateLimits is Script {
         // Instantiate the TokenPool contract
         ITokenPool poolContract = ITokenPool(poolAddress);
 
-        // Fetch both rate limiter states
+        // Fetch outbound rate limiter state
+        RateLimiter.State memory outboundState;
         try poolContract.getCurrentOutboundRateLimiterState(remoteChainSelector) returns (
-            RateLimiter.State memory outboundState
+            RateLimiter.State memory _outboundState
         ) {
-            // Fetch inbound rate limiter state
-            RateLimiter.State memory inboundState = poolContract.getCurrentInboundRateLimiterState(remoteChainSelector);
-
-            // Display the rate limiter configurations
-            console.log("\nRate Limiter States for Chain Selector:", uint256(remoteChainSelector));
-            console.log("Pool Address:", poolAddress);
-
-            // Display outbound rate limiter configuration
-            console.log("\nOutbound Rate Limiter:");
-            console.log("  Enabled:", outboundState.isEnabled);
-            console.log("  Capacity:", uint256(outboundState.capacity));
-            console.log("  Rate:", uint256(outboundState.rate));
-            console.log("  Tokens:", uint256(outboundState.tokens));
-            console.log("  Last Updated:", uint256(outboundState.lastUpdated));
-
-            // Display inbound rate limiter configuration
-            console.log("\nInbound Rate Limiter:");
-            console.log("  Enabled:", inboundState.isEnabled);
-            console.log("  Capacity:", uint256(inboundState.capacity));
-            console.log("  Rate:", uint256(inboundState.rate));
-            console.log("  Tokens:", uint256(inboundState.tokens));
-            console.log("  Last Updated:", uint256(inboundState.lastUpdated));
+            outboundState = _outboundState;
         } catch {
-            console.log("Error fetching rate limits for chain selector:", uint256(remoteChainSelector));
+            console.log("Error fetching outbound rate limits for chain selector:", uint256(remoteChainSelector));
+            return;
         }
+
+        // Fetch inbound rate limiter state
+        RateLimiter.State memory inboundState;
+        try poolContract.getCurrentInboundRateLimiterState(remoteChainSelector) returns (
+            RateLimiter.State memory _inboundState
+        ) {
+            inboundState = _inboundState;
+        } catch {
+            console.log("Error fetching inbound rate limits for chain selector:", uint256(remoteChainSelector));
+            return;
+        }
+
+        // Display the rate limiter configurations
+        console.log("\nRate Limiter States for Chain Selector:", uint256(remoteChainSelector));
+        console.log("Pool Address:", poolAddress);
+
+        // Display outbound rate limiter configuration
+        console.log("\nOutbound Rate Limiter:");
+        console.log("  Tokens:", uint256(outboundState.tokens));
+        console.log("  Last Updated:", uint256(outboundState.lastUpdated));
+        console.log("  Enabled:", outboundState.isEnabled);
+        console.log("  Capacity:", uint256(outboundState.capacity));
+        console.log("  Rate:", uint256(outboundState.rate));
+
+        // Display inbound rate limiter configuration
+        console.log("\nInbound Rate Limiter:");
+        console.log("  Tokens:", uint256(inboundState.tokens));
+        console.log("  Last Updated:", uint256(inboundState.lastUpdated));
+        console.log("  Enabled:", inboundState.isEnabled);
+        console.log("  Capacity:", uint256(inboundState.capacity));
+        console.log("  Rate:", uint256(inboundState.rate));
     }
 }
