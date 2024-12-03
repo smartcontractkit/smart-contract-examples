@@ -28,16 +28,7 @@ interface ITokenPool {
 }
 
 contract GetCurrentRateLimits is Script {
-    function run(address poolAddress) external {
-        // Construct the path to the configuration file
-        string memory root = vm.projectRoot();
-        string memory configPath = string.concat(root, "/script/config.json");
-
-        // Read the remoteChainId from config.json based on the current chain ID
-        uint256 remoteChainId = HelperUtils.getUintFromJson(
-            vm, configPath, string.concat(".remoteChains.", HelperUtils.uintToStr(block.chainid))
-        );
-
+    function run(address poolAddress, uint256 remoteChainId) external {
         // Instantiate HelperConfig
         HelperConfig helperConfig = new HelperConfig();
 
