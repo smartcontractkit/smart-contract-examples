@@ -9,7 +9,7 @@
   },
   "tokenAmountToMint": 1000000000000000000000,
   "tokenAmountToTransfer": 10000,
-  "feeType": "link",
+  "feeType": "native",
   "remoteChains": {
     "43113": 421614,
     "421614": 43113

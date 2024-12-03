@@ -9,6 +9,18 @@ contract UpdateAllowList is Script {
         // Validate the pool address
         require(poolAddress != address(0), "Invalid pool address");
 
+        // Instantiate the TokenPool contract
+        TokenPool poolContract = TokenPool(poolAddress);
+
+        // Check if allow list is enabled for this pool
+        bool allowListEnabled = poolContract.getAllowListEnabled();
+        if (!allowListEnabled) {
+            console.log("Allow list is not enabled for pool at", poolAddress);
+            console.log("This pool was deployed without allow list functionality.");
+            console.log("To use allow list, you need to deploy a new pool with initial allow list addresses.");
+            return;
+        }
+
         // Validate all addresses in both lists
         for (uint256 i = 0; i < addressesToAdd.length; i++) {
             require(addressesToAdd[i] != address(0), "Invalid address in add list");
@@ -16,13 +28,6 @@ contract UpdateAllowList is Script {
         for (uint256 i = 0; i < addressesToRemove.length; i++) {
             require(addressesToRemove[i] != address(0), "Invalid address in remove list");
         }
-
-        // Instantiate the TokenPool contract
-        TokenPool poolContract = TokenPool(poolAddress);
-
-        // Verify that the allow list feature is enabled for this pool
-        bool allowListEnabled = poolContract.getAllowListEnabled();
-        require(allowListEnabled, "Allow list is not enabled for this pool");
 
         // Log the operations being performed
         console.log("Updating allow list for pool at", poolAddress);
