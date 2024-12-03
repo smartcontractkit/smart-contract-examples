@@ -7,16 +7,23 @@ Find a list of available tutorials on the Chainlink documentation: [Cross-Chain 
 ## Table of Contents
 
 - [Setup](#setup)
-- [deployToken](#deploytoken)
+- [AcceptAdminRole](#acceptadminrole)
+- [AcceptTokenAdminRole](#accepttokenadminrole)
+- [AddRemotePool](#addremotepool)
+- [ApplyChainUpdates](#applychainupdates)
+- [ClaimAdmin](#claimadmin)
 - [DeployBurnMintTokenPool](#deployburnminttokenpool)
 - [DeployLockReleaseTokenPool](#deploylockreleasetokenpool)
-- [ClaimAdmin](#claimadmin)
-- [AcceptAdminRole](#acceptadminrole)
-- [SetPool](#setpool)
-- [ApplyChainUpdates](#applychainupdates)
-- [MintTokens](#minttokens)
-- [TransferTokens](#transfertokens)
+- [DeployToken](#deploytoken)
+- [GetCurrentRateLimits](#getcurrentratelimits)
 - [GetPoolConfig](#getpoolconfig)
+- [MintTokens](#minttokens)
+- [RemoveRemotePool](#removeremotepool)
+- [SetPool](#setpool)
+- [SetRateLimitAdmin](#setratelimitadmin)
+- [TransferTokenAdminRole](#transfertokenadminrole)
+- [TransferTokens](#transfertokens)
+- [UpdateAllowList](#updateallowlist)
 - [UpdateRateLimiters](#updateratelimiters)
 
 ---
@@ -41,7 +48,7 @@ Example `config.json` file:
   },
   "tokenAmountToMint": 1000000000000000000000,
   "tokenAmountToTransfer": 10000,
-  "feeType": "link",
+  "feeType": "native",
   "remoteChains": {
     "43113": 421614,
     "421614": 43113
@@ -94,7 +101,298 @@ Variables to configure:
 source .env
 ```
 
-## deployToken
+## AcceptAdminRole
+
+### Description
+
+Accepts the admin role for a deployed token via the `TokenAdminRegistry` contract. This script reads the token address from a JSON file and uses the `TokenAdminRegistry` contract to accept the admin role if the signer is the pending administrator for the token.
+
+### Usage
+
+```bash
+forge script script/AcceptAdminRole.s.sol --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast
+```
+
+### Config Parameters
+
+The script pulls the token address from a previously deployed token in a JSON file located in the `script/output/` folder. The `TokenAdminRegistry` address is fetched from the `HelperConfig.s.sol` file.
+
+- **Deployed Token Address**: The token address is read from the output file corresponding to the current chain (e.g., `deployedToken_avalancheFuji.json`).
+- **TokenAdminRegistry Address**: The `TokenAdminRegistry` address is retrieved based on the network settings in `HelperConfig.s.sol`.
+
+### Examples
+
+- Accept the admin role for a token:
+
+  ```bash
+  forge script script/AcceptAdminRole.s.sol --rpc-url $RPC_URL_FUJI --private-key $PRIVATE_KEY --broadcast
+  ```
+
+  This will:
+
+  - Retrieve the deployed token address from the JSON file for the Fuji network.
+  - Check if the current signer is the pending administrator.
+  - Accept the admin role for the token if the signer is the pending administrator.
+
+### Notes
+
+- **Config-based Execution**: The script automatically retrieves the token address from the JSON file generated during token deployment. Ensure the token is deployed before running this script.
+- **Pending Administrator Check**: The script ensures that only the pending administrator (specified in the token config) can accept the admin role. If the signer is not the pending administrator, the script will fail.
+- **Chain Name**: The script automatically determines the current chain based on the `block.chainid` and uses the appropriate JSON file for the deployed token address.
+
+## AcceptTokenAdminRole
+
+### Description
+
+Accepts the admin role for a specified token via the `TokenAdminRegistry` contract. This script requires the token address as an input parameter and uses the `TokenAdminRegistry` to accept the admin role if the signer is the pending administrator for the token.
+
+### Usage
+
+```bash
+forge script script/AcceptTokenAdminRole.s.sol --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast --sig "run(address)" -- <TOKEN_ADDRESS>
+```
+
+### Config Parameters
+
+- **Token Address**: The address of the token for which you want to accept the admin role. This is passed as an argument to the script.
+- **TokenAdminRegistry Address**: Retrieved from the network configuration in `HelperConfig.s.sol`.
+
+### Examples
+
+- Accept the admin role for a token on Avalanche Fuji:
+
+  ```bash
+  forge script script/AcceptTokenAdminRole.s.sol --rpc-url $RPC_URL_FUJI --private-key $PRIVATE_KEY --broadcast --sig "run(address)" -- 0xYourTokenAddress
+  ```
+
+  This will:
+
+  - Retrieve the `TokenAdminRegistry` address from the network configuration.
+  - Check if the current signer (from `PRIVATE_KEY`) is the pending administrator for the specified token.
+  - Accept the admin role for the token if the signer is the pending administrator.
+
+### Notes
+
+- **Token Address as Input**: Unlike `AcceptAdminRole`, this script requires the token address as a command-line argument.
+- **Signer Verification**: The script ensures that only the pending administrator (derived from `PRIVATE_KEY`) can accept the admin role. If the signer is not the pending administrator, the script will fail.
+- **Environment Variables**: Ensure that `PRIVATE_KEY` is set in your environment variables.
+- **Chain Configuration**: The script uses `HelperConfig.s.sol` to get the `TokenAdminRegistry` address for the current network.
+
+## AddRemotePool
+
+### Description
+
+Adds a remote pool to a local token pool's configuration, enabling cross-chain interactions with the specified remote pool. This script updates the local `TokenPool` contract by adding the address of the remote pool associated with a remote chain.
+
+### Usage
+
+```bash
+forge script script/AddRemotePool.s.sol --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast \
+  --sig "run(address,uint256,address)" -- <POOL_ADDRESS> <REMOTE_CHAIN_ID> <REMOTE_POOL_ADDRESS>
+```
+
+### Parameters
+
+- **poolAddress**: The address of the local `TokenPool` contract where the remote pool will be added.
+- **remoteChainId**: The chain ID of the remote blockchain where the remote pool is deployed.
+- **remotePoolAddress**: The address of the remote pool contract on the remote chain.
+
+### Examples
+
+- Add a remote pool to a local pool on Avalanche Fuji, specifying a remote pool on Arbitrum Sepolia:
+
+  ```bash
+  forge script script/AddRemotePool.s.sol --rpc-url $RPC_URL_FUJI --private-key $PRIVATE_KEY --broadcast \
+    --sig "run(address,uint256,address)" -- \
+    0xYourLocalPoolAddress \
+    421613 \
+    0xYourRemotePoolAddressOnArbitrumSepolia
+  ```
+
+  This will:
+
+  - Retrieve the `remoteChainSelector` corresponding to the `REMOTE_CHAIN_ID` using the network configuration.
+  - Call `addRemotePool` on the local pool contract to add the remote pool.
+
+### Notes
+
+- **Network Configuration**: The script uses `HelperConfig.s.sol` and `HelperUtils.s.sol` to map `remoteChainId` to a `remoteChainSelector`. Ensure that the remote chain ID is configured in `HelperConfig.s.sol`.
+- **Permissions**: The account executing the script must have the necessary permissions (e.g., owner) to call `addRemotePool` on the `TokenPool` contract.
+- **Encoded Address**: The remote pool address is encoded before being sent to the `addRemotePool` function. Ensure that the address provided is correct.
+
+## ApplyChainUpdates
+
+### Description
+
+Configures cross-chain parameters for a token pool, including remote pool addresses and rate limiting settings for token transfers between chains. This script reads the necessary information from `config.json` and JSON files containing the deployed pool and token addresses for the local and remote chains.
+
+### Usage
+
+```bash
+forge script script/ApplyChainUpdates.s.sol --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast --verify
+```
+
+### Config Parameters
+
+The script pulls the pool and token addresses from previously deployed pool and token JSON files located in the `script/output/` folder. The cross-chain configuration (e.g., chain selector) is fetched from the `HelperConfig.s.sol` file.
+
+- **Deployed Local Pool Address**: The pool address is read from the output file corresponding to the current chain (e.g., `deployedTokenPool_avalancheFuji.json`).
+- **Deployed Remote Pool Address**: The remote pool address is read from the JSON file corresponding to the remote chain (e.g., `deployedTokenPool_arbitrumSepolia.json`).
+- **Deployed Remote Token Address**: The remote token address is read from the JSON file corresponding to the remote chain (e.g., `deployedToken_arbitrumSepolia.json`).
+- **Remote Chain Selector**: The chain selector for the remote chain is fetched based on the network configuration in `HelperConfig.s.sol`.
+- **Rate Limiter Configuration**: The script allows configuring rate limiting for both inbound and outbound transfers. By default, rate limiting is disabled in this script.
+
+### Examples
+
+- Apply chain updates for cross-chain token transfers:
+
+  ```bash
+  forge script script/ApplyChainUpdates.s.sol --rpc-url $RPC_URL_FUJI --private-key $PRIVATE_KEY --broadcast --verify
+  ```
+
+  This will:
+
+  - Retrieve the local pool address and remote pool/token addresses from their respective JSON files.
+  - Configure the token pool for cross-chain transfers between the local and remote chains.
+  - Set up rate limit configurations for token transfers (if enabled).
+
+### Notes
+
+- **Config-based Execution**: The script automatically retrieves the token and pool addresses from the JSON files generated during their respective deployments. Ensure both the local and remote pools/tokens are deployed before running this script.
+- **Chain Name**: The script automatically determines the current and remote chain based on the `block.chainid` and the `remoteChains` field in `config.json`.
+- **Rate Limiting**: The script allows for configuring rate limiting (inbound and outbound) for token transfers. By default, rate limiting is disabled, but it can be enabled by modifying the script's rate limiter configurations.
+
+## ClaimAdmin
+
+### Description
+
+Claims the admin role for a deployed token contract using either the `CCIP admin` or the standard `owner()` function, depending on the token's configuration. This script reads the token and admin information from the `config.json` file and interacts with the `RegistryModuleOwnerCustom` contract to claim the admin role.
+
+### Usage
+
+```bash
+forge script script/ClaimAdmin.s.sol --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast --verify
+```
+
+### Config Parameters
+
+The script pulls the token and admin details from the `config.json` file and the deployed token address from a JSON file located in the `script/output/` folder.
+
+- **Deployed Token Address**: The token address is read from the output file corresponding to the current chain (e.g., `deployedToken_avalancheFuji.json`).
+- **With CCIP Admin**: The script checks the `withGetCCIPAdmin` field in `config.json` to determine whether to claim admin via the CCIP admin (`getCCIPAdmin()` function) or the `owner()` function.
+- **Admin Address**: The admin address is read from the `config.json` file (`ccipAdminAddress` field).
+
+### Examples
+
+- Claim admin role using the `owner()` function:
+
+  ```bash
+  forge script script/ClaimAdmin.s.sol --rpc-url $RPC_URL_FUJI --private-key $PRIVATE_KEY --broadcast --verify
+  ```
+
+  This will:
+
+  - Retrieve the deployed token address from the JSON file for the Fuji network.
+  - Claim admin using the `owner()` function.
+
+- Claim admin role using the `getCCIPAdmin()` function:
+
+  Ensure that the `withGetCCIPAdmin` and `ccipAdminAddress` fields are properly set in the `config.json` file.
+
+  ```bash
+  forge script script/ClaimAdmin.s.sol --rpc-url $RPC_URL_FUJI --private-key $PRIVATE_KEY --broadcast --verify
+  ```
+
+  This will:
+
+  - Retrieve the deployed token address from the JSON file for the Fuji network.
+  - Claim admin using the `getCCIPAdmin()` function.
+
+### Notes
+
+- **Config-based Deployment**: The script automatically retrieves the token address and admin settings from the JSON and config files. Ensure the token is deployed and the config is properly set before running this script.
+- **CCIP Admin or Owner**: Depending on the value of `withGetCCIPAdmin` in the `config.json` file, the script will either claim admin using the `CCIP admin` or the `owner()` function.
+- **Chain Name**: The script automatically determines the current chain based on the `block.chainid` and uses the appropriate JSON file for the deployed token address.
+
+## DeployBurnMintTokenPool
+
+### Description
+
+Deploys a new `BurnMintTokenPool` contract and associates it with an already deployed token. This script reads the token address from a JSON file, deploys the token pool, and assigns mint and burn roles to the pool on the token contract.
+
+### Usage
+
+```bash
+forge script script/DeployBurnMintTokenPool.s.sol --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast --verify
+```
+
+### Config Parameters
+
+The script pulls the token address from a previously deployed token in a JSON file located in the `script/output/` folder. The network configuration (router and RMN proxy addresses) is also fetched from the `HelperConfig.s.sol` file.
+
+- **Deployed Token Address**: The token address is read from the output file corresponding to the current chain (e.g., `deployedToken_avalancheFuji.json`).
+- **Router and RMN Proxy**: The router and RMN proxy addresses are retrieved based on the network settings in `HelperConfig.s.sol`.
+
+### Examples
+
+- Deploy a token pool:
+
+  ```bash
+  forge script script/DeployBurnMintTokenPool.s.sol --rpc-url $RPC_URL_FUJI --private-key $PRIVATE_KEY --broadcast --verify
+  ```
+
+  This will:
+
+  - Retrieve the deployed token address from the JSON file for the Fuji network.
+  - Deploy the `BurnMintTokenPool` contract.
+  - Grant mint and burn roles to the token pool.
+
+### Notes
+
+- **Config-based Deployment**: The script automatically retrieves the token address from the JSON file generated during token deployment. Ensure the token is deployed before running this script.
+- **Grant Mint & Burn Roles**: After deploying the token pool, the script automatically grants mint and burn roles to the pool on the token contract.
+- **Chain Name**: The script automatically determines the current chain based on the `block.chainid` and saves the deployed token pool address in a file located in `script/output/`.
+
+## DeployLockReleaseTokenPool
+
+### Description
+
+Deploys a new `LockReleaseTokenPool` contract and associates it with an already deployed token. This script reads the token address from a JSON file, deploys the token pool, and saves the pool address to a JSON file for future reference.
+
+### Usage
+
+```bash
+forge script script/DeployLockReleaseTokenPool.s.sol --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast --verify
+```
+
+### Config Parameters
+
+The script pulls the token address from a previously deployed token in a JSON file located in the `script/output/` folder. The network configuration (router and RMN proxy addresses) is fetched from the `HelperConfig.s.sol` file.
+
+- **Deployed Token Address**: The token address is read from the output file corresponding to the current chain (e.g., `deployedToken_avalancheFuji.json`).
+- **Router and RMN Proxy**: The router and RMN proxy addresses are retrieved based on the network settings in `HelperConfig.s.sol`.
+
+### Examples
+
+- Deploy a `LockReleaseTokenPool`:
+
+  ```bash
+  forge script script/DeployLockReleaseTokenPool.s.sol --rpc-url $RPC_URL_FUJI --private-key $PRIVATE_KEY --broadcast --verify
+  ```
+
+  This will:
+
+  - Retrieve the deployed token address from the JSON file for the Fuji network.
+  - Deploy the `LockReleaseTokenPool` contract.
+  - Save the deployed pool address to a JSON file for future reference.
+
+### Notes
+
+- **Config-based Deployment**: The script automatically retrieves the token address from the JSON file generated during token deployment. Ensure the token is deployed before running this script.
+- **Chain Name**: The script automatically determines the current chain based on the `block.chainid` and saves the deployed token pool address in a file located in `script/output/`.
+- **Accept Liquidity**: In the script, `acceptLiquidity` is set to `false`. If you want the pool to accept liquidity, you may need to modify this parameter in the script.
+
+## DeployToken
 
 ### Description
 
@@ -158,181 +456,193 @@ The script pulls its configuration from the `config.json` file located in the `s
 
 - **Config-based Deployment**: All deployment parameters are pulled from `config.json`, so ensure that the file is correctly set before running the script.
 - **Chain Name**: The script automatically determines the current chain based on the `block.chainid` and saves the deployed token address in a file located in `script/output/`.
-- **Broadcast & Verification**: The `--broadcast` flag will deploy the contract on-chain. The `--verify` flag will attempt to verify the contract on a blockchain explorer (e.g., Etherscan, Arbiscan). Ensure that you have the proper API keys in your environment variables.
 - **Grant Mint & Burn Roles**: After deployment, mint and burn roles are automatically granted to the deployer's address.
 
-## DeployBurnMintTokenPool
+## GetCurrentRateLimits
 
 ### Description
 
-Deploys a new `BurnMintTokenPool` contract and associates it with an already deployed token. The script reads the token address from a JSON file and configures the pool for minting and burning operations. It also grants mint and burn roles to the token pool on the token contract.
+Retrieves and displays the current inbound and outbound rate limiter states for a given `TokenPool` contract and a specified remote chain. This script helps you monitor the rate limiter configurations, including tokens, last updated time, enabled status, capacity, and rate.
 
 ### Usage
 
 ```bash
-forge script script/DeployBurnMintTokenPool.s.sol --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast --verify
+forge script script/GetCurrentRateLimits.s.sol:GetCurrentRateLimits --rpc-url $RPC_URL --sig "run(address,uint256)" -- <POOL_ADDRESS> <REMOTE_CHAIN_ID>
 ```
 
-### Config Parameters
+### Parameters
 
-The script pulls the token address from a previously deployed token in a JSON file located in the `script/output/` folder. The network configuration (router and RMN proxy addresses) is also fetched from the `HelperConfig.s.sol` file.
-
-- **Deployed Token Address**: The token address is read from the output file corresponding to the current chain (e.g., `deployedToken_avalancheFuji.json`).
-- **Router and RMN Proxy**: The router and RMN proxy addresses are retrieved based on the network settings in `HelperConfig.s.sol`.
+- **poolAddress**: The address of the `TokenPool` contract for which you want to retrieve the rate limiter states.
+- **remoteChainId**: The chain ID of the remote chain whose rate limiter states you want to query.
 
 ### Examples
 
-- Deploy a token pool:
+- Get current rate limits for a pool on Avalanche Fuji with a remote chain of Arbitrum Sepolia:
 
   ```bash
-  forge script script/DeployBurnMintTokenPool.s.sol --rpc-url $RPC_URL_FUJI --private-key $PRIVATE_KEY --broadcast --verify
+  forge script script/GetCurrentRateLimits.s.sol:GetCurrentRateLimits \
+    --rpc-url $RPC_URL_FUJI \
+    --sig "run(address,uint256)" -- \
+    0xYourPoolAddressOnFuji \
+    421613
   ```
 
   This will:
 
-  - Retrieve the deployed token address from the JSON file for the Fuji network.
-  - Deploy the `BurnMintTokenPool` contract.
-  - Grant mint and burn roles to the token pool.
+  - Retrieve the `remoteChainSelector` corresponding to `421613` (Arbitrum Sepolia) using the network configuration.
+  - Fetch and display the current inbound and outbound rate limiter states for the specified pool and remote chain.
 
 ### Notes
 
-- **Config-based Deployment**: The script automatically retrieves the token address from the JSON file generated during token deployment. Ensure the token is deployed before running this script.
-- **Grant Mint & Burn Roles**: After deploying the token pool, the script automatically grants mint and burn roles to the pool on the token contract.
-- **Chain Name**: The script automatically determines the current chain based on the `block.chainid` and saves the deployed token pool address in a file located in `script/output/`.
-- **Broadcast & Verification**: The `--broadcast` flag will deploy the contract on-chain. The `--verify` flag will attempt to verify the contract on a blockchain explorer (e.g., Etherscan, Arbiscan). Ensure that you have the proper API keys in your environment variables.
+- **Network Configuration**: The script uses `HelperConfig.s.sol` and `HelperUtils.s.sol` to map `remoteChainId` to a `remoteChainSelector`. Ensure that the remote chain ID is configured in `HelperConfig.s.sol`.
+- **Output**: The script outputs the rate limiter states, including tokens, last updated timestamp, enabled status, capacity, and rate for both inbound and outbound rate limiters.
 
-## DeployLockReleaseTokenPool
+## GetPoolConfig
 
 ### Description
 
-Deploys a new `LockReleaseTokenPool` contract and associates it with an already deployed token. The script reads the token address from a JSON file and configures the pool for lock and release operations. It also grants mint and burn roles to the token pool on the token contract.
+Retrieves and displays the current configuration for a deployed token pool, including supported remote chains, remote pool and token addresses, rate limiter settings for both inbound and outbound transfers, and other pool information such as the rate limit admin and allow list settings.
 
 ### Usage
 
 ```bash
-forge script script/DeployLockReleaseTokenPool.s.sol --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast --verify
+forge script script/GetPoolConfig.s.sol:GetPoolConfig --rpc-url $RPC_URL --sig "run(address)" -- <POOL_ADDRESS>
 ```
 
-### Config Parameters
+### Parameters
 
-The script pulls the token address from a previously deployed token in a JSON file located in the `script/output/` folder. The network configuration (router and RMN proxy addresses) is also fetched from the `HelperConfig.s.sol` file.
-
-- **Deployed Token Address**: The token address is read from the output file corresponding to the current chain (e.g., `deployedToken_avalancheFuji.json`).
-- **Router and RMN Proxy**: The router and RMN proxy addresses are retrieved based on the network settings in `HelperConfig.s.sol`.
+- **poolAddress**: The address of the token pool for which you want to retrieve the configuration.
 
 ### Examples
 
-- Deploy a token pool:
+- Check the pool configuration for a token pool on Avalanche Fuji:
 
   ```bash
-  forge script script/DeployLockReleaseTokenPool.s.sol --rpc-url $RPC_URL_FUJI --private-key $PRIVATE_KEY --broadcast --verify
+  forge script script/GetPoolConfig.s.sol:GetPoolConfig \
+    --rpc-url $RPC_URL_FUJI \
+    --sig "run(address)" -- \
+    0xYourPoolAddressOnFuji
   ```
 
   This will:
 
-  - Retrieve the deployed token address from the JSON file for the Fuji network.
-  - Deploy the `LockReleaseTokenPool` contract.
-  - Grant mint and burn roles to the token pool.
+  - Fetch the current configuration of the pool, including remote chains, rate limiter settings, and associated remote pool and token addresses.
+  - Display additional pool information such as rate limit admin, router address, token address, and allow list settings.
+
+- Check the pool configuration for a token pool on Arbitrum Sepolia:
+
+  ```bash
+  forge script script/GetPoolConfig.s.sol:GetPoolConfig \
+    --rpc-url $RPC_URL_ARBITRUM_SEPOLIA \
+    --sig "run(address)" -- \
+    0xYourPoolAddressOnArbitrumSepolia
+  ```
 
 ### Notes
 
-- **Config-based Deployment**: The script automatically retrieves the token address from the JSON file generated during token deployment. Ensure the token is deployed before running this script.
-- **Grant Mint & Burn Roles**: After deploying the token pool, the script automatically grants mint and burn roles to the pool on the token contract.
-- **Chain Name**: The script automatically determines the current chain based on the `block.chainid` and saves the deployed token pool address in a file located in `script/output/`.
-- **Broadcast & Verification**: The `--broadcast` flag will deploy the contract on-chain. The `--verify` flag will attempt to verify the contract on a blockchain explorer (e.g., Etherscan, Arbiscan). Ensure that you have the proper API keys in your environment variables.
+- **Detailed Output**: The script outputs detailed information about the pool configuration, including:
 
-## ClaimAdmin
+  - **Rate Limit Admin**: The address that can manage rate limiter settings.
+  - **Router Address**: The CCIP router address associated with the pool.
+  - **Token Address**: The address of the token associated with the pool.
+  - **Allow List**: Whether the allow list is enabled and the list of allowed addresses if it is.
+  - **Remote Chains Configuration**: For each supported remote chain, the script displays:
+
+    - **Remote Pool Addresses**: All remote pool addresses associated with the remote chain.
+    - **Remote Token Address**: The address of the remote token.
+    - **Rate Limiter Settings**: Enabled status, capacity, and rate for both inbound and outbound rate limiters.
+
+- **Supported Chains**: The script uses `getSupportedChains()` to list all chains the pool supports for cross-chain token transfers.
+
+- **Environment Setup**: Ensure your environment variables, such as `RPC_URL`, are properly set before running the command.
+
+- **No Transactions**: This script only reads data from the blockchain and does not broadcast any transactions. You do not need to provide a private key.
+
+- **Adjustments**: If you want to check the configuration on different networks or for different pools, update the `--rpc-url` and `<POOL_ADDRESS>` accordingly.
+
+## MintTokens
 
 ### Description
 
-Claims the admin role for a deployed token contract using either the `CCIP admin` or the standard `owner()` function, depending on the token's configuration. This script reads the token and admin information from the `config.json` file and interacts with the `RegistryModuleOwnerCustom` contract to claim the admin role.
+The `MintTokens` script mints a specified amount of tokens to the sender's address. The amount to mint is pulled from the `config.json` file, and the token address is retrieved from a JSON file corresponding to the current chain.
 
 ### Usage
 
 ```bash
-forge script script/ClaimAdmin.s.sol --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast --verify
+forge script script/MintTokens.s.sol --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast
 ```
 
 ### Config Parameters
 
-The script pulls the token and admin details from the `config.json` file and the deployed token address from a JSON file located in the `script/output/` folder.
+The script pulls the token address from a previously deployed token in a JSON file located in the `script/output/` folder. The mint amount is specified in the `config.json` file.
 
 - **Deployed Token Address**: The token address is read from the output file corresponding to the current chain (e.g., `deployedToken_avalancheFuji.json`).
-- **With CCIP Admin**: The script checks the `withGetCCIPAdmin` field in `config.json` to determine whether to claim admin via the CCIP admin (`getCCIPAdmin()` function) or the `owner()` function.
-- **Admin Address**: The admin address is read from the `config.json` file (`ccipAdminAddress` field).
+- **Mint Amount**: The amount of tokens to mint is read from the `config.json` file (`tokenAmountToMint` field).
 
 ### Examples
 
-- Claim admin role using the `owner()` function:
+- Mint tokens:
 
   ```bash
-  forge script script/ClaimAdmin.s.sol --rpc-url $RPC_URL_FUJI --private-key $PRIVATE_KEY --broadcast --verify
+  forge script script/MintTokens.s.sol --rpc-url $RPC_URL_FUJI --private-key $PRIVATE_KEY --broadcast
   ```
 
   This will:
 
   - Retrieve the deployed token address from the JSON file for the Fuji network.
-  - Claim admin using the `owner()` function.
-
-- Claim admin role using the `getCCIPAdmin()` function:
-
-  Ensure that the `withGetCCIPAdmin` and `ccipAdminAddress` fields are properly set in the `config.json` file.
-
-  ```bash
-  forge script script/ClaimAdmin.s.sol --rpc-url $RPC_URL_FUJI --private-key $PRIVATE_KEY --broadcast --verify
-  ```
-
-  This will:
-
-  - Retrieve the deployed token address from the JSON file for the Fuji network.
-  - Claim admin using the `getCCIPAdmin()` function.
+  - Mint the specified amount of tokens (from `config.json`) to the sender's address.
 
 ### Notes
 
-- **Config-based Deployment**: The script automatically retrieves the token address and admin settings from the JSON and config files. Ensure the token is deployed and the config is properly set before running this script.
-- **CCIP Admin or Owner**: Depending on the value of `withGetCCIPAdmin` in the `config.json` file, the script will either claim admin using the `CCIP admin` or the `owner()` function.
+- **Config-based Execution**: The script retrieves the token address from the JSON file generated during token deployment and reads the amount to mint from `config.json`. Ensure the token is deployed and `tokenAmountToMint` is properly set before running this script.
+- **Receiver Address**: The tokens are minted to the address of the sender (the address executing the script).
 - **Chain Name**: The script automatically determines the current chain based on the `block.chainid` and uses the appropriate JSON file for the deployed token address.
-- **Broadcast & Verification**: The `--broadcast` flag will deploy the contract on-chain. The `--verify` flag will attempt to verify the contract on a blockchain explorer (e.g., Etherscan, Arbiscan). Ensure that you have the proper API keys in your environment variables.
 
-## AcceptAdminRole
+## RemoveRemotePool
 
 ### Description
 
-Accepts the admin role for a deployed token contract. This script reads the token address from a JSON file and uses the `TokenAdminRegistry` contract to accept the admin role if the sender is the pending administrator for the token.
+Removes a remote pool from a local `TokenPool` contract's configuration, effectively disabling cross-chain interactions with the specified remote pool.
+
+**Warning**: Removing a remote pool will reject all inflight transactions from that pool.
 
 ### Usage
 
 ```bash
-forge script script/AcceptAdminRole.s.sol --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast --verify
+forge script script/RemoveRemotePool.s.sol --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast \
+  --sig "run(address,uint256,address)" -- <POOL_ADDRESS> <REMOTE_CHAIN_ID> <REMOTE_POOL_ADDRESS>
 ```
 
-### Config Parameters
+### Parameters
 
-The script pulls the token address from a previously deployed token in a JSON file located in the `script/output/` folder. The network configuration (TokenAdminRegistry address) is fetched from the `HelperConfig.s.sol` file.
-
-- **Deployed Token Address**: The token address is read from the output file corresponding to the current chain (e.g., `deployedToken_avalancheFuji.json`).
-- **TokenAdminRegistry Address**: The `TokenAdminRegistry` address is retrieved based on the network settings in `HelperConfig.s.sol`.
+- **poolAddress**: The address of the local `TokenPool` contract from which the remote pool will be removed.
+- **remoteChainId**: The chain ID of the remote blockchain where the remote pool is deployed.
+- **remotePoolAddress**: The address of the remote pool contract on the remote chain to be removed.
 
 ### Examples
 
-- Accept the admin role for a token:
+- Remove a remote pool from a local pool on Avalanche Fuji, specifying a remote pool on Arbitrum Sepolia:
 
   ```bash
-  forge script script/AcceptAdminRole.s.sol --rpc-url $RPC_URL_FUJI --private-key $PRIVATE_KEY --broadcast --verify
+  forge script script/RemoveRemotePool.s.sol --rpc-url $RPC_URL_FUJI --private-key $PRIVATE_KEY --broadcast \
+    --sig "run(address,uint256,address)" -- \
+    0xYourLocalPoolAddress \
+    421613 \
+    0xYourRemotePoolAddressOnArbitrumSepolia
   ```
 
   This will:
 
-  - Retrieve the deployed token address from the JSON file for the Fuji network.
-  - Check if the current signer is the pending administrator.
-  - Accept the admin role for the token if the signer is the pending administrator.
+  - Retrieve the `remoteChainSelector` corresponding to the `REMOTE_CHAIN_ID` using the network configuration.
+  - Check that the signer (from `PRIVATE_KEY`) is the owner of the local `TokenPool` contract.
+  - Call `removeRemotePool` on the local pool contract to remove the specified remote pool.
 
 ### Notes
 
-- **Config-based Execution**: The script automatically retrieves the token address from the JSON file generated during token deployment and checks the `TokenAdminRegistry` to verify the pending administrator.
-- **Pending Administrator Check**: The script ensures that only the pending administrator (specified in the token config) can accept the admin role. If the signer is not the pending administrator, the script will fail.
-- **Chain Name**: The script automatically determines the current chain based on the `block.chainid` and uses the appropriate JSON file for the deployed token address.
-- **Broadcast & Verification**: The `--broadcast` flag will deploy the transaction on-chain. The `--verify` flag will attempt to verify the transaction on a blockchain explorer (e.g., Etherscan, Arbiscan). Ensure that you have the proper API keys in your environment variables.
+- **Network Configuration**: The script uses `HelperConfig.s.sol` and `HelperUtils.s.sol` to map `remoteChainId` to a `remoteChainSelector`. Ensure that the remote chain ID is configured in `HelperConfig.s.sol`.
+- **Permissions**: The account executing the script must be the owner of the `TokenPool` contract to call `removeRemotePool`.
+- **Impact of Removal**: Removing a remote pool will reject all inflight transactions from that pool. Use this operation with caution.
+- **Encoded Address**: The remote pool address is encoded before being sent to the `removeRemotePool` function. Ensure that the address provided is correct.
 
 ## SetPool
 
@@ -372,88 +682,92 @@ The script pulls the token and pool addresses from previously deployed token and
 - **Config-based Execution**: The script automatically retrieves the token and pool addresses from the JSON files generated during their respective deployments. Ensure both the token and pool are deployed before running this script.
 - **Admin Check**: The script checks the token's administrator using the `TokenAdminRegistry` to ensure the correct administrator is performing the operation.
 - **Chain Name**: The script automatically determines the current chain based on the `block.chainid` and uses the appropriate JSON files for the deployed token and pool addresses.
-- **Broadcast & Verification**: The `--broadcast` flag will deploy the transaction on-chain. The `--verify` flag will attempt to verify the transaction on a blockchain explorer (e.g., Etherscan, Arbiscan). Ensure that you have the proper API keys in your environment variables.
 
-## ApplyChainUpdates
+## SetRateLimitAdmin
 
 ### Description
 
-The `ApplyChainUpdates` script configures cross-chain parameters for a token pool, including remote pool addresses and rate limiting settings for token transfers between chains. The script reads the necessary information from `config.json` and JSON files containing the deployed pool and token addresses for the local and remote chains.
+Sets the rate limit administrator for a specified `TokenPool` contract. This script allows the owner of the `TokenPool` to assign a new address that will have the authority to manage rate limiter configurations.
 
 ### Usage
 
 ```bash
-forge script script/ApplyChainUpdates.s.sol --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast --verify
+forge script script/SetRateLimitAdmin.s.sol --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast \
+  --sig "run(address,address)" -- <POOL_ADDRESS> <ADMIN_ADDRESS>
 ```
 
-### Config Parameters
+### Parameters
 
-The script pulls the pool and token addresses from previously deployed pool and token JSON files located in the `script/output/` folder. The cross-chain configuration (e.g., chain selector) is fetched from the `HelperConfig.s.sol` file.
-
-- **Deployed Local Pool Address**: The pool address is read from the output file corresponding to the current chain (e.g., `deployedTokenPool_avalancheFuji.json`).
-- **Deployed Remote Pool Address**: The remote pool address is read from the JSON file corresponding to the remote chain (e.g., `deployedTokenPool_arbitrumSepolia.json`).
-- **Deployed Remote Token Address**: The remote token address is read from the JSON file corresponding to the remote chain (e.g., `deployedToken_arbitrumSepolia.json`).
-- **Remote Chain Selector**: The chain selector for the remote chain is fetched based on the network configuration in `HelperConfig.s.sol`.
+- **poolAddress**: The address of the `TokenPool` contract for which you want to set the rate limit admin.
+- **adminAddress**: The address that will be assigned as the new rate limit administrator.
 
 ### Examples
 
-- Apply chain updates for cross-chain token transfers:
+- Set the rate limit admin for a pool on Avalanche Fuji:
 
   ```bash
-  forge script script/ApplyChainUpdates.s.sol --rpc-url $RPC_URL_FUJI --private-key $PRIVATE_KEY --broadcast --verify
+  forge script script/SetRateLimitAdmin.s.sol --rpc-url $RPC_URL_FUJI --private-key $PRIVATE_KEY --broadcast \
+    --sig "run(address,address)" -- \
+    0xYourPoolAddress \
+    0xNewAdminAddress
   ```
 
   This will:
 
-  - Retrieve the local pool address and remote pool/token addresses from their respective JSON files.
-  - Configure the token pool for cross-chain transfers between the local and remote chains.
-  - Set up rate limit configurations for token transfers (if enabled).
+  - Validate the provided pool and admin addresses.
+  - Check that the signer (from `PRIVATE_KEY`) is the owner of the `TokenPool` contract.
+  - Call `setRateLimitAdmin` on the `TokenPool` contract to assign the new admin address.
 
 ### Notes
 
-- **Config-based Execution**: The script automatically retrieves the token and pool addresses from the JSON files generated during their respective deployments. Ensure both the local and remote pools/tokens are deployed before running this script.
-- **Chain Name**: The script automatically determines the current and remote chain based on the `block.chainid` and the `remoteChains` field in `config.json`.
-- **Rate Limiting**: The script allows for configuring rate limiting (inbound and outbound) for token transfers. By default, rate limiting is disabled, but it can be enabled by setting the appropriate fields in the script.
-- **Broadcast & Verification**: The `--broadcast` flag will deploy the transaction on-chain. The `--verify` flag will attempt to verify the transaction on a blockchain explorer (e.g., Etherscan, Arbiscan). Ensure that you have the proper API keys in your environment variables.
+- **Permissions**: Only the owner of the `TokenPool` contract can set the rate limit admin. The script ensures that the signer (from `PRIVATE_KEY`) is the owner.
+- **Valid Addresses**: Both `poolAddress` and `adminAddress` must be valid, non-zero addresses. The script will fail if either is invalid.
+- **Impact**: Setting a new rate limit admin transfers the authority to manage rate limiter configurations to the new admin address. Use this operation carefully.
 
-## MintTokens
+## TransferTokenAdminRole
 
 ### Description
 
-The `MintTokens` script mints a specified amount of tokens to the sender's address. The amount to mint is pulled from the `config.json` file, and the token address is retrieved from a JSON file corresponding to the current chain.
+Initiates the transfer of the admin role for a specified token to a new administrator via the `TokenAdminRegistry` contract. This script allows the current admin to propose a new admin for the token. The new admin must call `acceptAdminRole` to complete the transfer.
 
 ### Usage
 
 ```bash
-forge script script/MintTokens.s.sol --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast
+forge script script/TransferTokenAdminRole.s.sol --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast \
+  --sig "run(address,address)" -- <TOKEN_ADDRESS> <NEW_ADMIN_ADDRESS>
 ```
 
-### Config Parameters
+### Parameters
 
-The script pulls the token address from a previously deployed token in a JSON file located in the `script/output/` folder. The mint amount is specified in the `config.json` file.
-
-- **Deployed Token Address**: The token address is read from the output file corresponding to the current chain (e.g., `deployedToken_avalancheFuji.json`).
-- **Mint Amount**: The amount of tokens to mint is read from the `config.json` file (`tokenAmountToMint` field).
+- **tokenAddress**: The address of the token for which you want to transfer the admin role.
+- **newAdmin**: The address of the new administrator who will assume the admin role after accepting it.
 
 ### Examples
 
-- Mint tokens:
+- Transfer the admin role of a token on Avalanche Fuji to a new admin:
 
   ```bash
-  forge script script/MintTokens.s.sol --rpc-url $RPC_URL_FUJI --private-key $PRIVATE_KEY --broadcast
+  forge script script/TransferTokenAdminRole.s.sol --rpc-url $RPC_URL_FUJI --private-key $PRIVATE_KEY --broadcast \
+    --sig "run(address,address)" -- \
+    0xYourTokenAddress \
+    0xNewAdminAddress
   ```
 
   This will:
 
-  - Retrieve the deployed token address from the JSON file for the Fuji network.
-  - Mint the specified amount of tokens (from `config.json`) to the sender's address.
+  - Retrieve the `TokenAdminRegistry` address from the network configuration.
+  - Validate the provided token and new admin addresses.
+  - Execute the `transferAdminRole` function on the `TokenAdminRegistry` contract to initiate the admin role transfer.
+  - Note that the new admin must call `acceptAdminRole` to complete the transfer.
 
 ### Notes
 
-- **Config-based Execution**: The script retrieves the token address from the JSON file generated during token deployment and reads the amount to mint from `config.json`. Ensure the token is deployed and `tokenAmountToMint` is properly set before running this script.
-- **Receiver Address**: The tokens are minted to the address of the sender (the address executing the script).
-- **Chain Name**: The script automatically determines the current chain based on the `block.chainid` and uses the appropriate JSON file for the deployed token address.
-- **Broadcast**: The `--broadcast` flag will deploy the transaction on-chain. Ensure that you have the proper RPC URL and private key in your environment variables.
+- **Permissions**: Only the current admin of the token can initiate the transfer of the admin role. The script uses the signer (from `PRIVATE_KEY`) to execute the transaction.
+- **Two-Step Process**: Transferring the admin role is a two-step process:
+  1. The current admin calls `transferAdminRole` to propose the new admin.
+  2. The new admin calls `acceptAdminRole` to accept the admin role.
+- **Valid Addresses**: Both `tokenAddress` and `newAdmin` must be valid, non-zero addresses. The script will fail if either is invalid.
+- **Network Configuration**: The script retrieves the `TokenAdminRegistry` address from `HelperConfig.s.sol`. Ensure your network configurations are correctly set up.
 
 ## TransferTokens
 
@@ -496,82 +810,76 @@ The script pulls the token address, transfer amount, and fee type from the `conf
   - **Native tokens**: Set `feeType` to `"native"` to pay fees in ETH, AVAX, etc.
   - **LINK tokens**: Set `feeType` to `"link"` to pay fees in LINK tokens.
 - **Chain Name**: The script automatically determines the current chain based on the `block.chainid` and uses the appropriate JSON file for the deployed token address and the `remoteChains` section in `config.json` for the destination chain.
-- **Broadcast & Verification**: The `--broadcast` flag will deploy the transaction on-chain. The `--verify` flag will attempt to verify the transaction on a blockchain explorer (e.g., Etherscan, Arbiscan). Ensure that you have the proper API keys in your environment variables.
 
-## GetPoolConfig
+## UpdateAllowList
 
 ### Description
 
-The `GetPoolConfig` script retrieves and displays the current configuration for a deployed token pool, including supported remote chains, remote pool and token addresses, and rate limiter settings for both inbound and outbound transfers.
+Updates the allow list for a specified `TokenPool` contract by adding and/or removing addresses. This script allows the pool owner to manage the list of addresses that are allowed to interact with the pool, provided that the allow list functionality is enabled for the pool.
 
 ### Usage
 
 ```bash
-forge script ./script/GetPoolConfig.s.sol:GetPoolConfig --rpc-url $RPC_URL --sig "run(address)" -- <POOL_ADDRESS>
+forge script script/UpdateAllowList.s.sol --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast \
+  --sig "run(address,address[],address[])" -- <POOL_ADDRESS> [<ADDRESSES_TO_ADD>] [<ADDRESSES_TO_REMOVE>]
 ```
 
 ### Parameters
 
-- **poolAddress**: The address of the token pool for which you want to retrieve the configuration.
+- **poolAddress**: The address of the `TokenPool` contract whose allow list you want to update.
+- **addressesToAdd**: An array of addresses to add to the allow list.
+- **addressesToRemove**: An array of addresses to remove from the allow list.
 
 ### Examples
 
-- Check the pool configuration for a token pool on Avalanche Fuji:
+- Update the allow list for a pool on Avalanche Fuji, adding two addresses and removing one:
 
   ```bash
-  forge script ./script/GetPoolConfig.s.sol:GetPoolConfig \
-    --rpc-url $RPC_URL_FUJI \
-    --sig "run(address)" -- \
-    0x2734f31DDbB5d317893E9Aa65A387DD9C6147e9d
+  forge script script/UpdateAllowList.s.sol --rpc-url $RPC_URL_FUJI --private-key $PRIVATE_KEY --broadcast \
+    --sig "run(address,address[],address[])" -- \
+    0xYourPoolAddress \
+    '[0xAddressToAdd1,0xAddressToAdd2]' \
+    '[0xAddressToRemove]'
   ```
 
   This will:
 
-  - Fetch the current configuration of the pool, including remote chains, rate limiter settings, and associated remote pool and token addresses.
-
-- Check the pool configuration for a token pool on Arbitrum Sepolia:
-
-  ```bash
-  forge script ./script/GetPoolConfig.s.sol:GetPoolConfig \
-    --rpc-url $RPC_URL_ARBITRUM_SEPOLIA \
-    --sig "run(address)" -- \
-    0x1dc7b609fb12CF512e93a273627e9f35C6f4dd81
-  ```
-
-### Output
-
-The script will output the configuration for the specified pool. For each remote chain supported by the pool, the output includes:
-
-- **Remote Pool Address**
-- **Remote Token Address**
-- **Outbound Rate Limiter** (enabled status, capacity, and rate)
-- **Inbound Rate Limiter** (enabled status, capacity, and rate)
-
-Example output:
-
-```bash
-== Logs ==
-Fetching configuration for pool at address: 0x2734f31DDbB5d317893E9Aa65A387DD9C6147e9d
-
-Configuration for Remote Chain: 3478487238524512106
-    Allowed: true
-    Remote Pool Address: 0x1dc7b609fb12CF512e93a273627e9f35C6f4dd81
-    Remote Token Address: 0x410399aa04B05Acbda2bFc3462C3192BE21163aB
-    Outbound Rate Limiter:
-      Enabled: false
-      Capacity: 0
-      Rate: 0
-    Inbound Rate Limiter:
-      Enabled: false
-      Capacity: 0
-      Rate: 0
-```
+  - Check if the allow list is enabled for the specified pool.
+  - Validate the addresses to add and remove.
+  - Update the allow list by adding the specified addresses and removing the specified addresses.
 
 ### Notes
 
-- **Rate Limiters**: If rate limiting is enabled, the configuration includes the capacity and rate for both inbound and outbound transfers. If the rate limiters are disabled, their capacity and rate are set to `0`.
-- **Supported Chains**: The script uses `getSupportedChains()` to list all chains the pool supports for cross-chain token transfers.
-- **Broadcast & Environment Setup**: The command will retrieve information on-chain. Ensure your environment variables, such as `PRIVATE_KEY` and `RPC_URL`, are properly set before running the command.
+- **Allow List Must Be Enabled**: The pool must have been deployed with allow list functionality enabled. If the allow list is not enabled, the script will inform you, and you will need to deploy a new pool with allow list functionality.
+- **Valid Addresses**: All addresses in both the `addressesToAdd` and `addressesToRemove` lists must be valid, non-zero addresses. The script will fail if any invalid addresses are provided.
+- **Permissions**: Only the owner of the `TokenPool` contract can update the allow list. The script uses the signer (from `PRIVATE_KEY`) to execute the transaction.
+- **Address Input Format**: When passing arrays of addresses in the command line, ensure they are formatted correctly. Depending on your shell, you may need to enclose the arrays in single quotes and format them as comma-separated lists without spaces.
+
+  For example:
+
+  ```bash
+  '[0xAddress1,0xAddress2,0xAddress3]'
+  ```
+
+- **Example with No Addresses to Remove**: If you only want to add addresses and not remove any, you can pass an empty array for `addressesToRemove`:
+
+  ```bash
+  forge script script/UpdateAllowList.s.sol --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast \
+    --sig "run(address,address[],address[])" -- \
+    0xYourPoolAddress \
+    "[0x45C90FBb5acC1a5c156a401B56Fea55e69E7669d,0x2C961E991aeCbF15224f20b175bdB340c42806D4]" \
+    "[]"
+  ```
+
+- **Example with No Addresses to Add**: If you only want to remove addresses and not add any, you can pass an empty array for `addressesToAdd`:
+
+  ```bash
+  forge script script/UpdateAllowList.s.sol --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast \
+    --sig "run(address,address[],address[])" -- \
+    0xYourPoolAddress \
+    '[]' \
+    '[0xAddressToRemove]'
+  ```
 
 ## UpdateRateLimiters
 
@@ -582,12 +890,10 @@ The `UpdateRateLimiters` script allows you to modify the rate limiter settings f
 ### Usage
 
 ```bash
-forge script ./script/UpdateRateLimiters.s.sol:UpdateRateLimiters \
-  --rpc-url <RPC_URL_NETWORK> \
-  -vvv --broadcast \
-  --sig "run(address,uint64,uint8,bool,uint128,uint128,bool,uint128,uint128)" -- \
+forge script script/UpdateRateLimiters.s.sol --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast \
+  --sig "run(address,uint256,uint8,bool,uint128,uint128,bool,uint128,uint128)" -- \
   <POOL_ADDRESS> \
-  <REMOTE_CHAIN_SELECTOR> \
+  <REMOTE_CHAIN_ID> \
   <RATE_LIMITER_TO_UPDATE> \
   <OUTBOUND_RATE_LIMIT_ENABLED> \
   <OUTBOUND_RATE_LIMIT_CAPACITY> \
@@ -600,7 +906,7 @@ forge script ./script/UpdateRateLimiters.s.sol:UpdateRateLimiters \
 ### Parameters
 
 - **poolAddress**: The address of the token pool being configured.
-- **remoteChainSelector**: The chain selector for the remote blockchain to which the pool is linked.
+- **remoteChainId**: The chain ID of the remote blockchain to which the pool is linked.
 - **rateLimiterToUpdate**: Specifies which rate limiters to update:
   - `0` for outbound
   - `1` for inbound
@@ -617,12 +923,10 @@ forge script ./script/UpdateRateLimiters.s.sol:UpdateRateLimiters \
 - Update both inbound and outbound rate limiters for a pool on Avalanche Fuji:
 
   ```bash
-  forge script ./script/UpdateRateLimiters.s.sol:UpdateRateLimiters \
-    --rpc-url $RPC_URL_FUJI \
-    -vvv --broadcast \
-    --sig "run(address,uint64,uint8,bool,uint128,uint128,bool,uint128,uint128)" -- \
+  forge script script/UpdateRateLimiters.s.sol --rpc-url $RPC_URL_FUJI --private-key $PRIVATE_KEY --broadcast \
+    --sig "run(address,uint256,uint8,bool,uint128,uint128,bool,uint128,uint128)" -- \
     <POOL_ADDRESS> \
-    3478487238524512106 \
+    43113 \
     2 \
     true \
     10000000000000000000 \
@@ -635,18 +939,16 @@ forge script ./script/UpdateRateLimiters.s.sol:UpdateRateLimiters \
   This will:
 
   - Enable both outbound and inbound rate limiters.
-  - Set the outbound rate limit to a capacity of 10 tokens and a rate of 0.1 token per second.
-  - Set the inbound rate limit to a capacity of 20 tokens and a rate of 0.1 token per second.
+  - Set the outbound rate limit to a capacity of **10 tokens** and a rate of **0.1 token per second**.
+  - Set the inbound rate limit to a capacity of **20 tokens** and a rate of **0.1 token per second**.
 
 - Update only the outbound rate limiter:
 
   ```bash
-  forge script ./script/UpdateRateLimiters.s.sol:UpdateRateLimiters \
-    --rpc-url $RPC_URL_FUJI \
-    -vvv --broadcast \
-    --sig "run(address,uint64,uint8,bool,uint128,uint128,bool,uint128,uint128)" -- \
+  forge script script/UpdateRateLimiters.s.sol --rpc-url $RPC_URL_FUJI --private-key $PRIVATE_KEY --broadcast \
+    --sig "run(address,uint256,uint8,bool,uint128,uint128,bool,uint128,uint128)" -- \
     <POOL_ADDRESS> \
-    3478487238524512106 \
+    43113 \
     0 \
     true \
     10000000000000000000 \
@@ -656,13 +958,16 @@ forge script ./script/UpdateRateLimiters.s.sol:UpdateRateLimiters \
     0
   ```
 
+  This will:
+
+  - Enable the outbound rate limiter.
+  - Set the outbound rate limit to a capacity of **10 tokens** and a rate of **0.1 token per second**.
+  - Disable the inbound rate limiter (values for capacity and rate are ignored).
+
 ### Notes
 
-- **Rate Limiter Configuration**: This script can be used to update the inbound or outbound rate limiters, or both. If one of the rate limiters is not being updated, the corresponding fields should be set to `false`, and the capacity and rate will be ignored.
+- **Rate Limiter Configuration**: You can update the inbound, outbound, or both rate limiters by setting the `rateLimiterToUpdate` parameter accordingly. If a rate limiter is not being updated, its corresponding parameters should be set to default or ignored.
 - **Capacity and Rate**: The capacity represents the maximum number of tokens allowed in the rate limiter (bucket), while the rate represents how many tokens per second are refilled into the bucket.
-- **Chain Selector**: The `remoteChainSelector` identifies the remote chain for which the rate limiters are being updated. This value is retrieved from the network configuration in the `HelperConfig.s.sol` file.
-- **Broadcast**: The `--broadcast` flag will deploy the transaction on-chain. Ensure that you have the correct RPC URL and private key in your environment variables.
-
-### Verification
-
-After applying the new rate limiter settings, you can use the `GetPoolConfig` script to verify that the changes have been applied successfully.
+- **Units**: Capacities and rates are specified in the smallest unit of the token (e.g., Wei for ETH). Ensure that the values are appropriate for your token's decimals and desired rate limits.
+- **Chain Selector Mapping**: The script uses `HelperConfig.s.sol` and `HelperUtils.s.sol` to map `remoteChainId` to a `remoteChainSelector`. Ensure that the `remoteChainId` is configured in your network settings.
+- **Permissions**: The account executing the script must have the necessary permissions (e.g., owner or rate limit admin) to call `setChainRateLimiterConfig` on the `TokenPool` contract.
