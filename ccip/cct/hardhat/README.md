@@ -89,7 +89,7 @@ npx hardhat deployToken [parameters]
   --network avalancheFuji
   ```
 
-- Deploy a token with an maxsupply supply and verify the contract:
+- Deploy a token with a maximum supply and verify the contract:
   ```bash
   npx hardhat deployToken \
   --name "My Token" \
@@ -106,7 +106,7 @@ npx hardhat deployToken [parameters]
   - If `--withgetccipadmin` is set to `true`, you must provide a valid `--ccipadminaddress`.
   - The CCIP admin address is responsible for managing certain administrative functions of the token.
 
-- **Initial Supply**:
+- **Maximum Supply**:
 
   - The `--maxsupply` is specified in the smallest unit (wei). For a token with 18 decimals, 1 token equals `1e18` wei.
 
@@ -473,6 +473,7 @@ npx hardhat getPoolConfig --pooladdress 0xYourPoolAddress --network avalancheFuj
 The task displays:
 
 - Basic Pool Information:
+
   - Rate Limit Admin address
   - Router address
   - Token address
@@ -492,6 +493,7 @@ The task displays:
     - Rate
 
 Example output:
+
 ```
 Pool Basic Information:
   Rate Limit Admin: 0x1234...5678
@@ -519,11 +521,13 @@ Configuration for Remote Chain: avalanche (14767482510784806043)
 
 ##### Notes
 
-- **Chain Names**: 
+- **Chain Names**:
+
   - The task attempts to resolve chain selectors to human-readable names using the network configuration.
   - Falls back to displaying the raw selector if the chain name is not found.
 
 - **Rate Limits**:
+
   - All rate limit values are displayed in the token's smallest unit (wei).
   - The capacity represents the maximum amount that can be transferred at once.
   - The rate indicates how many tokens are added to the capacity per second.
@@ -918,6 +922,7 @@ Inbound Rate Limiter:
 ##### Notes
 
 - **Rate Limits**:
+
   - All token amounts are displayed in the smallest unit (wei)
   - Capacity: Maximum amount that can be transferred at once
   - Rate: Tokens added to the capacity per second
@@ -925,6 +930,7 @@ Inbound Rate Limiter:
   - Last Updated: Unix timestamp of the last rate limit update
 
 - **Chain Configuration**:
+
   - The task automatically resolves chain selectors from the network configuration
   - Supports all chains configured in the network settings
 
@@ -1027,7 +1033,7 @@ npx hardhat deployTokenWithSafe [parameters]
   --network avalancheFuji
   ```
 
-- Deploy a token with an initial supply and verify the contract, and transfer ownership to a Safe:
+- Deploy a token with a maximum supply and verify the contract, and transfer ownership to a Safe:
 
   ```bash
   npx hardhat deployTokenWithSafe \
@@ -1049,7 +1055,7 @@ npx hardhat deployTokenWithSafe [parameters]
 
   - If `--withgetccipadmin` is set to `true`, you must provide a valid `--ccipadminaddress`.
 
-- **Initial Supply**:
+- **Maximum Supply**:
 
   - The `--maxsupply` is specified in the smallest unit (wei). For a token with 18 decimals, 1 token equals `1e18` wei.
 
@@ -1137,11 +1143,13 @@ npx hardhat deployTokenPoolWithSafe \
 ##### Notes
 
 - **Safe Transaction**:
+
   - The task creates and executes a Safe transaction to deploy the pool.
   - The Safe becomes the owner of the deployed pool.
   - Requires multiple signatures if the Safe's threshold is greater than 1.
 
 - **Token Decimals**:
+
   - The `localtokendecimals` parameter must match the actual decimals of the token contract.
   - This is crucial for proper cross-chain token amount calculations.
 
