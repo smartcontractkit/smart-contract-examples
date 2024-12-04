@@ -12,7 +12,7 @@ interface DeployTokenTaskArgs {
   name: string; // The name of the token
   symbol: string; // The symbol of the token
   decimals: number; // The number of decimal places the token supports
-  initialsupply: bigint; // The initial supply of tokens to be created upon deployment
+  maxsupply: bigint; // The maximum supply of tokens. When maxSupply is 0, the supply is unlimited
   verifycontract: boolean; // Whether to verify the contract on a blockchain explorer
 }
 
@@ -29,7 +29,7 @@ task("deployTokenWithSafe", "Deploys a token")
   .addParam("name", "The name of the token") // Adds a mandatory parameter "name" for the token's name
   .addParam("symbol", "The symbol of the token") // Adds a mandatory parameter "symbol" for the token's symbol
   .addOptionalParam("decimals", "The number of decimals", 18, types.int) // Adds an optional parameter "decimals" with a default value of 18
-  .addOptionalParam("initialsupply", "The initial supply", 0, types.bigint) // Adds an optional parameter "initialsupply" with a default value of 0
+  .addOptionalParam("maxsupply", "The maximum supply", 0, types.bigint) // Adds an optional parameter "maxSupply" with a default value of 0
   .addOptionalParam(
     "verifycontract",
     "Verify the contract on Blockchain scan",
@@ -43,7 +43,7 @@ task("deployTokenWithSafe", "Deploys a token")
       name,
       symbol,
       decimals,
-      initialsupply: initialSupply,
+      maxsupply: maxSupply,
       withgetccipadmin: withGetCCIPAdmin,
       ccipadminaddress: ccipAdminAddress,
       verifycontract: verifyContract,
@@ -97,7 +97,7 @@ task("deployTokenWithSafe", "Deploys a token")
         name,
         symbol,
         decimals,
-        initialSupply
+        maxSupply
       )) as BurnMintERC677WithCCIPAdmin;
     } else {
       // If withGetCCIPAdmin is false, deploy the basic BurnMintERC677 contract with owner() function
@@ -110,7 +110,7 @@ task("deployTokenWithSafe", "Deploys a token")
         name,
         symbol,
         decimals,
-        initialSupply
+        maxSupply
       )) as BurnMintERC677;
     }
 
@@ -141,7 +141,7 @@ task("deployTokenWithSafe", "Deploys a token")
         try {
           await hre.run("verify:verify", {
             address: tokenAddress,
-            constructorArguments: [name, symbol, decimals, initialSupply],
+            constructorArguments: [name, symbol, decimals, maxSupply],
           });
           logger.info("Token contract deployed and verified");
         } catch (error) {

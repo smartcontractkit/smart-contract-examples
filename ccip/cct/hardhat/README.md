@@ -65,8 +65,8 @@ npx hardhat deployToken [parameters]
     - The address of the CCIP admin. Required if `--withgetccipadmin` is `true`.
   - `--decimals`: **integer** (default: `18`)
     - The number of decimals the token uses.
-  - `--initialsupply`: **bigint** (default: `0`)
-    - The initial supply of tokens (in the smallest unit, according to `decimals`).
+  - `--maxsupply`: **bigint** (default: `0`)
+    - The maximum supply of tokens (in the smallest unit, according to `decimals`). When maxSupply is 0, the supply is unlimited.
   - `--verifycontract`: **boolean** (default: `false`)
     - If set to `true`, the contract will be verified on a blockchain explorer like Etherscan.
 
@@ -89,12 +89,12 @@ npx hardhat deployToken [parameters]
   --network avalancheFuji
   ```
 
-- Deploy a token with an initial supply and verify the contract:
+- Deploy a token with an maxsupply supply and verify the contract:
   ```bash
   npx hardhat deployToken \
   --name "My Token" \
   --symbol "MTK" \
-  --initialsupply 1000000000000000000000 \
+  --maxsupply 1000000000000000000000 \
   --verifycontract true \
   --network avalancheFuji
   ```
@@ -108,7 +108,7 @@ npx hardhat deployToken [parameters]
 
 - **Initial Supply**:
 
-  - The `--initialsupply` is specified in the smallest unit (wei). For a token with 18 decimals, 1 token equals `1e18` wei.
+  - The `--maxsupply` is specified in the smallest unit (wei). For a token with 18 decimals, 1 token equals `1e18` wei.
 
 - **Contract Verification**:
   - The `--verifycontract` option verifies the contract on a blockchain explorer.
@@ -1002,8 +1002,8 @@ npx hardhat deployTokenWithSafe [parameters]
     - The address of the CCIP admin. Required if `--withgetccipadmin` is `true`.
   - `--decimals`: **integer** (default: `18`)
     - The number of decimals the token uses.
-  - `--initialsupply`: **bigint** (default: `0`)
-    - The initial supply of tokens (in the smallest unit, according to `decimals`).
+  - `--maxsupply`: **bigint** (default: `0`)
+    - The maximum supply of tokens (in the smallest unit, according to `decimals`). When maxSupply is 0, the supply is unlimited.
   - `--verifycontract`: **boolean** (default: `false`)
     - If set to `true`, the contract will be verified on a blockchain explorer like Etherscan.
 
@@ -1034,7 +1034,7 @@ npx hardhat deployTokenWithSafe [parameters]
   --safeaddress 0xYourSafeAddress \
   --name "My Token" \
   --symbol "MTK" \
-  --initialsupply 1000000000000000000000 \
+  --maxsupply 1000000000000000000000 \
   --verifycontract true \
   --network avalancheFuji
   ```
@@ -1051,7 +1051,7 @@ npx hardhat deployTokenWithSafe [parameters]
 
 - **Initial Supply**:
 
-  - The `--initialsupply` is specified in the smallest unit (wei). For a token with 18 decimals, 1 token equals `1e18` wei.
+  - The `--maxsupply` is specified in the smallest unit (wei). For a token with 18 decimals, 1 token equals `1e18` wei.
 
 ### acceptOwnershipFromSafe
 
