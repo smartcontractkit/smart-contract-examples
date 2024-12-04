@@ -32,7 +32,7 @@ Find a list of available tutorials on the Chainlink documentation: [Cross-Chain 
 
 ### Config File Overview
 
-The `config.json` file within the `script` directory defines the key parameters used by all scripts. You can customize the token name, symbol, supply, and cross-chain settings, among other fields.
+The `config.json` file within the `script` directory defines the key parameters used by all scripts. You can customize the token name, symbol, maximum supply, and cross-chain settings, among other fields.
 
 Example `config.json` file:
 
@@ -42,7 +42,7 @@ Example `config.json` file:
     "name": "BnM KH",
     "symbol": "BnMkh",
     "decimals": 18,
-    "initialSupply": 0,
+    "maxSupply": 0,
     "withGetCCIPAdmin": false,
     "ccipAdminAddress": "0x0000000000000000000000000000000000000000"
   },
@@ -63,7 +63,7 @@ The `config.json` file contains the following parameters:
 | `name`                  | The name of the token you are going to deploy. Replace `"BnM KH"` with your desired token name.                                                                                                                                                                                                                                                          |
 | `symbol`                | The symbol of the token. Replace `"BnMkh"` with your desired token symbol.                                                                                                                                                                                                                                                                               |
 | `decimals`              | The number of decimals for the token (usually `18` for standard ERC tokens).                                                                                                                                                                                                                                                                             |
-| `initialSupply`         | The initial token supply. Set this to `0` if you prefer to mint tokens later.                                                                                                                                                                                                                                                                            |
+| `maxSupply`             | The maximum supply of tokens (in the smallest unit, according to `decimals`). When maxSupply is 0, the supply is unlimited.                                                                                                                                                                                                                              |
 | `withGetCCIPAdmin`      | A boolean to determine whether the token contract has a `getCCIPAdmin()` function. If set to `true`, a CCIP admin is required. When `false`, token admin registration will use the token `owner()` function.                                                                                                                                             |
 | `ccipAdminAddress`      | The address of the CCIP admin, only applicable if `withgetccipadmin` is set to `true`.                                                                                                                                                                                                                                                                   |
 | ---                     | -----                                                                                                                                                                                                                                                                                                                                                    |
@@ -411,7 +411,7 @@ The script pulls its configuration from the `config.json` file located in the `s
 - **`BnMToken.name`**: The name of the token to be deployed.
 - **`BnMToken.symbol`**: The symbol of the token.
 - **`BnMToken.decimals`**: The number of decimals for the token.
-- **`BnMToken.initialSupply`**: The initial supply of tokens. Set this to `0` if you prefer to mint tokens later.
+- **`BnMToken.maxSupply`**: The maximum supply of tokens (in the smallest unit, according to `decimals`). When `maxSupply` is 0, the supply is unlimited.
 - **`BnMToken.withGetCCIPAdmin`**: Boolean flag to determine whether the token contract has a `getCCIPAdmin()` function. If `true`, the token will include CCIP admin functionality.
 - **`BnMToken.ccipAdminAddress`**: The address of the CCIP admin (only required if `withGetCCIPAdmin` is `true`). Defaults to the deployer's address if not provided.
 
@@ -431,16 +431,16 @@ The script pulls its configuration from the `config.json` file located in the `s
   forge script script/DeployToken.s.sol --rpc-url $RPC_URL_FUJI --private-key $PRIVATE_KEY --broadcast --verify
   ```
 
-- Deploy a token with an initial supply:
+- Deploy a token with a maximum supply:
 
-  Update the `initialSupply` field in `config.json` to the desired value:
+  Update the `maxSupply` field in `config.json` to the desired value (in the smallest unit, according to `decimals`):
 
   ```json
   "BnMToken": {
   "name": "BnM KH",
   "symbol": "BnMkh",
   "decimals": 18,
-  "initialSupply": 1000000000000000000000,
+  "maxSupply": 1000000000000000000000,
   "withGetCCIPAdmin": false,
   "ccipAdminAddress": "0x0000000000000000000000000000000000000000"
   }

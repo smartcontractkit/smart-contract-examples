@@ -3,7 +3,7 @@
     "name": "BnM KH",
     "symbol": "BnMkh",
     "decimals": 18,
-    "initialSupply": 0,
+    "maxSupply": 0,
     "withGetCCIPAdmin": false,
     "ccipAdminAddress": "0x0000000000000000000000000000000000000000"
   },
