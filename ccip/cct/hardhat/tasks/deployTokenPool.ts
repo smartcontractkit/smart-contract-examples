@@ -12,6 +12,7 @@ interface DeployTokenPoolTaskArgs {
   tokenaddress: string;
   pooltype: string; // 'burnMint' or 'lockRelease'
   acceptliquidity?: boolean; // Optional, defaults to false
+  localtokendecimals?: number; // Optional, defaults to 18
 }
 
 // Task to deploy a Token Pool (BurnMintTokenPool or LockReleaseTokenPool)
@@ -35,12 +36,19 @@ task("deployTokenPool", "Deploys a token pool")
     false,
     types.boolean
   )
+  .addOptionalParam(
+    "localtokendecimals",
+    "Local token decimals (defaults to 18)",
+    18,
+    types.int
+  )
   .setAction(async (taskArgs: DeployTokenPoolTaskArgs, hre) => {
     const {
       verifycontract: verifyContract,
       tokenaddress: tokenAddress,
       pooltype: poolType,
       acceptliquidity: acceptLiquidity,
+      localtokendecimals: localTokenDecimals = 18, // Default to 18 if not provided
     } = taskArgs;
     const networkName = hre.network.name as Chains;
 
@@ -72,14 +80,21 @@ task("deployTokenPool", "Deploys a token pool")
           TokenPoolContractName.BurnMintTokenPool
         );
 
-        // Deploy BurnMintTokenPool
+        // Deploy BurnMintTokenPool with localTokenDecimals
         tokenPool = await TokenPoolFactory.deploy(
           tokenAddress,
+          localTokenDecimals,
           [], // Allowlist (empty array)
           rmnProxy,
           router
         );
-        constructorArgs.push(tokenAddress, [], rmnProxy, router);
+        constructorArgs.push(
+          tokenAddress,
+          localTokenDecimals,
+          [],
+          rmnProxy,
+          router
+        );
       } else if (poolType === PoolType.lockRelease) {
         // Load the contract factory for LockReleaseTokenPool
         const TokenPoolFactory = await hre.ethers.getContractFactory(
@@ -89,9 +104,10 @@ task("deployTokenPool", "Deploys a token pool")
         // Set default acceptLiquidity to false if not provided
         const acceptLiquidityValue = acceptLiquidity ?? false;
 
-        // Deploy LockReleaseTokenPool
+        // Deploy LockReleaseTokenPool with localTokenDecimals
         tokenPool = await TokenPoolFactory.deploy(
           tokenAddress,
+          localTokenDecimals,
           [], // Allowlist (empty array)
           rmnProxy,
           acceptLiquidityValue,
@@ -99,6 +115,7 @@ task("deployTokenPool", "Deploys a token pool")
         );
         constructorArgs.push(
           tokenAddress,
+          localTokenDecimals,
           [],
           rmnProxy,
           acceptLiquidityValue,

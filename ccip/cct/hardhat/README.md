@@ -16,6 +16,13 @@ Find a list of available tutorials on the Chainlink documentation: [Cross-Chain 
 - [transferTokens](#transfertokens)
 - [getPoolConfig](#getpoolconfig)
 - [updateRateLimiters](#updateratelimiters)
+- [addRemotePool](#addremotepool)
+- [removeRemotePool](#removeremotepool)
+- [setRateLimitAdmin](#setratelimitadmin)
+- [updateAllowList](#updateallowlist)
+- [transferTokenAdminRole](#transfertokenadminrole)
+- [acceptTokenAdminRole](#accepttokenadminrole)
+- [getCurrentRateLimits](#getcurrentratelimits)
 
 **Safe Multisig**:
 
@@ -58,8 +65,8 @@ npx hardhat deployToken [parameters]
     - The address of the CCIP admin. Required if `--withgetccipadmin` is `true`.
   - `--decimals`: **integer** (default: `18`)
     - The number of decimals the token uses.
-  - `--initialsupply`: **bigint** (default: `0`)
-    - The initial supply of tokens (in the smallest unit, according to `decimals`).
+  - `--maxsupply`: **bigint** (default: `0`)
+    - The maximum supply of tokens (in the smallest unit, according to `decimals`). When maxSupply is 0, the supply is unlimited.
   - `--verifycontract`: **boolean** (default: `false`)
     - If set to `true`, the contract will be verified on a blockchain explorer like Etherscan.
 
@@ -82,12 +89,12 @@ npx hardhat deployToken [parameters]
   --network avalancheFuji
   ```
 
-- Deploy a token with an initial supply and verify the contract:
+- Deploy a token with a maximum supply and verify the contract:
   ```bash
   npx hardhat deployToken \
   --name "My Token" \
   --symbol "MTK" \
-  --initialsupply 1000000000000000000000 \
+  --maxsupply 1000000000000000000000 \
   --verifycontract true \
   --network avalancheFuji
   ```
@@ -99,9 +106,9 @@ npx hardhat deployToken [parameters]
   - If `--withgetccipadmin` is set to `true`, you must provide a valid `--ccipadminaddress`.
   - The CCIP admin address is responsible for managing certain administrative functions of the token.
 
-- **Initial Supply**:
+- **Maximum Supply**:
 
-  - The `--initialsupply` is specified in the smallest unit (wei). For a token with 18 decimals, 1 token equals `1e18` wei.
+  - The `--maxsupply` is specified in the smallest unit (wei). For a token with 18 decimals, 1 token equals `1e18` wei.
 
 - **Contract Verification**:
   - The `--verifycontract` option verifies the contract on a blockchain explorer.
@@ -110,13 +117,7 @@ npx hardhat deployToken [parameters]
 
 #### Description
 
-Deploys a new token pool, which can either be a Burn & Mint or a Lock & Release token pool. These pools enable token management features like burning, minting, or locking and releasing tokens. The task also supports contract verification and optional liquidity acceptance for the Lock & Release pool type.
-
-#### Usage
-
-```bash
-npx hardhat deployTokenPool [parameters]
-```
+Deploys a new token pool, which can either be a Burn & Mint or a Lock & Release token pool. These pools enable token management features like burning, minting, or locking and releasing tokens.
 
 #### Parameters
 
@@ -128,6 +129,8 @@ npx hardhat deployTokenPool [parameters]
     - Specifies the type of pool to deploy. Options:
       - `"burnMint"`: A pool that supports burning and minting of tokens.
       - `"lockRelease"`: A pool that supports locking and releasing tokens.
+  - `--localtokendecimals`: **integer** (default: `18`)
+    - The number of decimals for the token on this chain.
   - `--acceptliquidity`: **boolean** (default: `false`)
     - Indicates if liquidity should be accepted in the pool. This option only applies to the `"lockRelease"` pool type.
   - `--verifycontract`: **boolean** (default: `false`)
@@ -135,26 +138,20 @@ npx hardhat deployTokenPool [parameters]
 
 #### Examples
 
-- Deploy and verify a Burn & Mint token pool:
+```bash
+# Deploy with custom token decimals
+npx hardhat deployTokenPool \
+  --tokenaddress 0xYourTokenAddress \
+  --localtokendecimals 8 \
+  --network avalancheFuji
 
-  ```bash
-  npx hardhat deployTokenPool --tokenaddress 0xYourTokenAddress --verifycontract true --network avalancheFuji
-  ```
-
-- Deploy a Lock & Release token pool with liquidity acceptance:
-
-  ```bash
-  npx hardhat deployTokenPool \
+# Deploy a Lock & Release pool with liquidity acceptance
+npx hardhat deployTokenPool \
   --tokenaddress 0xYourTokenAddress \
   --pooltype lockRelease \
   --acceptliquidity true \
   --network avalancheFuji
-  ```
-
-##### Notes
-
-- **Liquidity Acceptance**:
-  - The `--acceptliquidity` parameter only applies to the `lockRelease` pool type.
+```
 
 ### claimAdmin
 
@@ -277,78 +274,54 @@ npx hardhat setPool [parameters]
 
 #### Description
 
-Initializes a pool configuration by setting up cross-chain parameters and rate limits for a token pool. This task allows you to configure the interaction between the pool on the source chain and a remote chain, including rate limiting for token transfers.
-
-#### Usage
-
-```bash
-npx hardhat applyChainUpdates [parameters]
-```
+Configures a token pool's chain settings, including cross-chain rate limits and remote pool configurations. Adding a chain through this task automatically enables it for cross-chain transfers.
 
 #### Parameters
 
 - Required:
-
   - `--pooladdress`: **string**
-    - The address of the pool on the source chain.
+    - The address of the pool to be configured.
   - `--remotechain`: **string**
-    - The remote chain that the pool will interact with.
-  - `--remotepooladdress`: **string**
-    - The address of the pool on the remote chain.
+    - The remote blockchain network.
+  - `--remotepooladdresses`: **string**
+    - Comma-separated list of remote pool addresses.
   - `--remotetokenaddress`: **string**
     - The address of the token on the remote chain.
-
 - Optional:
-  - `--allowed`: **boolean** (default: `true`)
-    - Specifies whether the remote chain is allowed for cross-chain transfers.
   - `--outboundratelimitenabled`: **boolean** (default: `false`)
-    - Enables or disables outbound rate limits, controlling the flow of tokens leaving the source chain.
+    - Enables or disables the outbound rate limiter.
   - `--outboundratelimitcapacity`: **integer** (default: `0`)
-    - Maximum number of tokens allowed for outbound transfers (bucket capacity).
+    - Maximum capacity for the outbound rate limiter.
   - `--outboundratelimitrate`: **integer** (default: `0`)
-    - Number of tokens added per second to the outbound rate limit bucket.
+    - Refill rate for the outbound rate limiter bucket (tokens per second).
   - `--inboundratelimitenabled`: **boolean** (default: `false`)
-    - Enables or disables inbound rate limits, controlling the flow of tokens entering the source chain.
+    - Enables or disables the inbound rate limiter.
   - `--inboundratelimitcapacity`: **integer** (default: `0`)
-    - Maximum number of tokens allowed for inbound transfers (bucket capacity).
+    - Maximum capacity for the inbound rate limiter.
   - `--inboundratelimitrate`: **integer** (default: `0`)
-    - Number of tokens added per second to the inbound rate limit bucket.
+    - Refill rate for the inbound rate limiter bucket (tokens per second).
 
 #### Examples
 
-- Apply a basic chain update:
-
-  ```bash
-  npx hardhat applyChainUpdates --pooladdress 0xYourPoolAddress --remotechain avalanche --remotepooladdress 0xRemotePoolAddress --remotetokenaddress 0xRemoteTokenAddress --network avalancheFuji
-  ```
-
-- Apply a chain update with rate limiting:
-
-  ```bash
-  npx hardhat applyChainUpdates \
+```bash
+# Configure a chain with multiple remote pools
+npx hardhat applyChainUpdates \
   --pooladdress 0xYourPoolAddress \
   --remotechain avalanche \
-  --remotepooladdress 0xRemotePoolAddress \
+  --remotepooladdresses "0xPool1,0xPool2" \
   --remotetokenaddress 0xRemoteTokenAddress \
   --outboundratelimitenabled true \
-  --outboundratelimitcapacity 10000 \
-  --outboundratelimitrate 100 \
-  --inboundratelimitenabled true \
-  --inboundratelimitcapacity 5000 \
-  --inboundratelimitrate 50 \
+  --outboundratelimitcapacity 1000000000000000000000 \
+  --outboundratelimitrate 100000000000000000 \
   --network avalancheFuji
-  ```
+```
 
 ##### Notes
 
-- **Remote Chain Interaction**:
-
-  - The task configures cross-chain interactions by linking the pool and token on the source chain to their counterparts on the remote chain.
-  - The remote chain selector is retrieved from the network configuration.
-
-- **Rate Limits**:
-
-  - Outbound and inbound rate limits control how tokens are transferred between chains. The capacity is the maximum allowed tokens, and the rate is the token flow per second.
+- **Chain Activation**: Adding a chain through this task automatically enables it for cross-chain transfers.
+- **Multiple Remote Pools**: You can specify multiple remote pool addresses for the same chain selector, which is useful for handling pool upgrades while maintaining support for inflight messages.
+- **Rate Limiting**: Configure both inbound and outbound rate limits to control token flow between chains.
+- **Remote Pool Management**: Use `addRemotePool` and `removeRemotePool` tasks for more granular control over remote pool configurations.
 
 ### mintTokens
 
@@ -475,68 +448,93 @@ npx hardhat transferTokens [parameters]
 
 #### Description
 
-Retrieves and displays the configuration for a specific token pool, including supported remote chains, remote pool and token addresses, and the state of inbound and outbound rate limiters. The task provides insights into how tokens are transferred between chains.
+Gets the complete configuration of a token pool, including chain configurations, rate limits, and pool information. This task provides a comprehensive view of the pool's settings and supported chains.
 
 #### Usage
 
 ```bash
-npx hardhat getPoolConfig --pooladdress <POOL_ADDRESS> --network <NETWORK>
+npx hardhat getPoolConfig [parameters]
 ```
 
 #### Parameters
 
 - Required:
   - `--pooladdress`: **string**
-    - The address of the token pool whose configuration you want to retrieve.
+    - The address of the token pool to query.
 
 #### Examples
 
-- Fetch the configuration for a token pool:
-
-  ```bash
-  npx hardhat getPoolConfig --pooladdress 0xYourPoolAddress --network avalancheFuji
-  ```
-
-  This will:
-
-  - Connect to the `TokenPool` contract at the specified address.
-  - Retrieve the supported remote chains, remote pool, and token addresses.
-  - Display the status of the outbound and inbound rate limiters.
+```bash
+npx hardhat getPoolConfig --pooladdress 0xYourPoolAddress --network avalancheFuji
+```
 
 #### Output
 
-The task will output the configuration details for each supported remote chain. For each remote chain, the following details are displayed:
+The task displays:
 
-- **Remote Pool Address**: The address of the token pool on the remote chain.
-- **Remote Token Address**: The address of the token on the remote chain.
-- **Outbound Rate Limiter**:
-  - **Enabled**: Whether the outbound rate limiter is enabled.
-  - **Capacity**: The maximum number of tokens allowed in the outbound rate limiter.
-  - **Rate**: The rate at which tokens are refilled in the outbound rate limiter (tokens per second).
-- **Inbound Rate Limiter**:
-  - **Enabled**: Whether the inbound rate limiter is enabled.
-  - **Capacity**: The maximum number of tokens allowed in the inbound rate limiter.
-  - **Rate**: The rate at which tokens are refilled in the inbound rate limiter (tokens per second).
+- Basic Pool Information:
+
+  - Rate Limit Admin address
+  - Router address
+  - Token address
+  - Allow List status and addresses (if enabled)
+
+- For Each Supported Chain:
+  - Chain name and selector
+  - Remote pool addresses (can be multiple per chain)
+  - Remote token address
+  - Outbound Rate Limiter:
+    - Enabled status
+    - Capacity
+    - Rate
+  - Inbound Rate Limiter:
+    - Enabled status
+    - Capacity
+    - Rate
 
 Example output:
 
-```bash
-== Logs ==
-Fetching configuration for pool at address: 0xYourPoolAddress
+```
+Pool Basic Information:
+  Rate Limit Admin: 0x1234...5678
+  Router Address: 0xabcd...ef01
+  Token Address: 0x9876...5432
+  Allow List Enabled: true
+  Allow List Addresses:
+    1: 0xaaaa...bbbb
+    2: 0xcccc...dddd
 
-Configuration for Remote Chain: avalanche
-  Allowed: true
-  Remote Pool Address: 0xRemotePoolAddress
-  Remote Token Address: 0xRemoteTokenAddress
+Configuration for Remote Chain: avalanche (14767482510784806043)
+  Remote Pool Addresses:
+    1: 0x1111...2222
+    2: 0x3333...4444
+  Remote Token Address: 0x5555...6666
   Outbound Rate Limiter:
     Enabled: true
-    Capacity: 10000000000000000000
+    Capacity: 1000000000000000000000
     Rate: 100000000000000000
   Inbound Rate Limiter:
     Enabled: true
-    Capacity: 5000000000000000000
-    Rate: 50000000000000000
+    Capacity: 1000000000000000000000
+    Rate: 100000000000000000
 ```
+
+##### Notes
+
+- **Chain Names**:
+
+  - The task attempts to resolve chain selectors to human-readable names using the network configuration.
+  - Falls back to displaying the raw selector if the chain name is not found.
+
+- **Rate Limits**:
+
+  - All rate limit values are displayed in the token's smallest unit (wei).
+  - The capacity represents the maximum amount that can be transferred at once.
+  - The rate indicates how many tokens are added to the capacity per second.
+
+- **Remote Pools**:
+  - Multiple remote pools may be displayed for each chain if upgrades have occurred.
+  - All listed pools are valid for handling cross-chain messages.
 
 ### updateRateLimiters
 
@@ -649,6 +647,297 @@ Rate limiters updated successfully
 
 After applying the new rate limiter settings, you can verify them using the `getPoolConfig` task.
 
+### addRemotePool
+
+#### Description
+
+Adds a new remote pool address for a specific chain selector. This is useful when a pool is upgraded on the remote chain, allowing multiple pools to be configured for the same chain selector to handle inflight messages.
+
+#### Usage
+
+```bash
+npx hardhat addRemotePool [parameters]
+```
+
+#### Parameters
+
+- Required:
+  - `--pooladdress`: **string**
+    - The address of the token pool to configure.
+  - `--remotechain`: **string**
+    - The remote blockchain that the pool will interact with.
+  - `--remotepooladdress`: **string**
+    - The address of the pool on the remote chain.
+
+#### Examples
+
+```bash
+npx hardhat addRemotePool \
+  --pooladdress 0xYourPoolAddress \
+  --remotechain sepolia \
+  --remotepooladdress 0xRemotePoolAddress \
+  --network avalancheFuji
+```
+
+### removeRemotePool
+
+#### Description
+
+Removes a remote pool address for a specific chain selector. WARNING: All inflight transactions from the removed pool will be rejected. Ensure there are no inflight transactions before removing a pool.
+
+#### Usage
+
+```bash
+npx hardhat removeRemotePool [parameters]
+```
+
+#### Parameters
+
+- Required:
+  - `--pooladdress`: **string**
+    - The address of the token pool to configure.
+  - `--remotechain`: **string**
+    - The remote blockchain containing the pool to remove.
+  - `--remotepooladdress`: **string**
+    - The address of the pool to remove on the remote chain.
+
+#### Examples
+
+```bash
+npx hardhat removeRemotePool \
+  --pooladdress 0xYourPoolAddress \
+  --remotechain sepolia \
+  --remotepooladdress 0xRemotePoolAddress \
+  --network avalancheFuji
+```
+
+### setRateLimitAdmin
+
+#### Description
+
+Sets the rate limit administrator for a token pool. The rate limit admin can update rate limits without being the pool owner.
+
+#### Usage
+
+```bash
+npx hardhat setRateLimitAdmin [parameters]
+```
+
+#### Parameters
+
+- Required:
+  - `--pooladdress`: **string**
+    - The address of the token pool to configure.
+  - `--adminaddress`: **string**
+    - The address of the new rate limit administrator.
+
+#### Examples
+
+```bash
+npx hardhat setRateLimitAdmin \
+  --pooladdress 0xYourPoolAddress \
+  --adminaddress 0xNewAdminAddress \
+  --network avalancheFuji
+```
+
+### updateAllowList
+
+#### Description
+
+Updates the allow list for a token pool by adding and/or removing addresses. The allow list controls which addresses can initiate cross-chain transfers.
+
+#### Usage
+
+```bash
+npx hardhat updateAllowList [parameters]
+```
+
+#### Parameters
+
+- Required:
+  - `--pooladdress`: **string**
+    - The address of the token pool to configure.
+- Optional:
+  - `--addaddresses`: **string**
+    - Comma-separated list of addresses to add to the allowlist.
+  - `--removeaddresses`: **string**
+    - Comma-separated list of addresses to remove from the allowlist.
+
+#### Examples
+
+```bash
+# Add addresses to allowlist
+npx hardhat updateAllowList \
+  --pooladdress 0xYourPoolAddress \
+  --addaddresses "0xAddress1,0xAddress2" \
+  --network avalancheFuji
+
+# Remove addresses from allowlist
+npx hardhat updateAllowList \
+  --pooladdress 0xYourPoolAddress \
+  --removeaddresses "0xAddress3,0xAddress4" \
+  --network avalancheFuji
+
+# Both add and remove addresses
+npx hardhat updateAllowList \
+  --pooladdress 0xYourPoolAddress \
+  --addaddresses "0xAddress1,0xAddress2" \
+  --removeaddresses "0xAddress3,0xAddress4" \
+  --network avalancheFuji
+```
+
+### transferTokenAdminRole
+
+#### Description
+
+Initiates the transfer of administrator role for a token in the TokenAdminRegistry. This is the first step in a two-step process where the new admin must accept the role using `acceptTokenAdminRole`.
+
+#### Usage
+
+```bash
+npx hardhat transferTokenAdminRole [parameters]
+```
+
+#### Parameters
+
+- Required:
+  - `--tokenaddress`: **string**
+    - The address of the token for which to transfer the admin role.
+  - `--newadmin`: **string**
+    - The address that will become the new administrator after accepting the role.
+
+#### Examples
+
+```bash
+npx hardhat transferTokenAdminRole \
+  --tokenaddress 0xYourTokenAddress \
+  --newadmin 0xNewAdminAddress \
+  --network avalancheFuji
+```
+
+##### Notes
+
+- **Two-Step Process**:
+
+  - This task only initiates the transfer. The new admin must call `acceptTokenAdminRole` to complete the transfer.
+  - The current admin remains in control until the new admin accepts the role.
+
+- **TokenAdminRegistry**:
+  - The task automatically uses the TokenAdminRegistry contract address configured for the network.
+  - The registry maintains the administrator roles for all tokens in the system.
+
+### acceptTokenAdminRole
+
+#### Description
+
+Accepts the administrator role for a token in the TokenAdminRegistry. This is the second step in the admin transfer process and must be called by the pending administrator.
+
+#### Usage
+
+```bash
+npx hardhat acceptTokenAdminRole [parameters]
+```
+
+#### Parameters
+
+- Required:
+  - `--tokenaddress`: **string**
+    - The address of the token for which to accept the admin role.
+
+#### Examples
+
+```bash
+npx hardhat acceptTokenAdminRole \
+  --tokenaddress 0xYourTokenAddress \
+  --network avalancheFuji
+```
+
+##### Notes
+
+- **Pending Administrator**:
+
+  - Only the address that was set as the new admin in `transferTokenAdminRole` can execute this task.
+  - The task will fail if the signer is not the pending administrator for the token.
+
+- **TokenAdminRegistry**:
+
+  - The task automatically uses the TokenAdminRegistry contract address configured for the network.
+  - The registry maintains the administrator roles for all tokens in the system.
+
+- **Verification**:
+  - The task verifies that the signer is the pending administrator before attempting to accept the role.
+  - Once accepted, the role transfer is complete and cannot be reversed without another transfer process.
+
+### getCurrentRateLimits
+
+#### Description
+
+Gets the current rate limiter states for a specific chain from a token pool. This task provides detailed information about both inbound and outbound rate limits, including current token amounts and last update times.
+
+#### Usage
+
+```bash
+npx hardhat getCurrentRateLimits [parameters]
+```
+
+#### Parameters
+
+- Required:
+  - `--pooladdress`: **string**
+    - The address of the token pool to query.
+  - `--remotechain`: **string**
+    - The remote blockchain to check rate limits for.
+
+#### Examples
+
+```bash
+npx hardhat getCurrentRateLimits \
+  --pooladdress 0xYourPoolAddress \
+  --remotechain avalanche \
+  --network avalancheFuji
+```
+
+#### Output Example
+
+```
+Rate Limiter States for Chain: avalanche
+Pool Address: 0xYourPoolAddress
+Chain Selector: 14767482510784806043
+
+Outbound Rate Limiter:
+  Enabled: true
+  Capacity: 1000000000000000000000
+  Rate: 100000000000000000
+  Tokens: 950000000000000000000
+  Last Updated: 1701555555
+
+Inbound Rate Limiter:
+  Enabled: true
+  Capacity: 1000000000000000000000
+  Rate: 100000000000000000
+  Tokens: 980000000000000000000
+  Last Updated: 1701555555
+```
+
+##### Notes
+
+- **Rate Limits**:
+
+  - All token amounts are displayed in the smallest unit (wei)
+  - Capacity: Maximum amount that can be transferred at once
+  - Rate: Tokens added to the capacity per second
+  - Tokens: Currently available tokens for transfer
+  - Last Updated: Unix timestamp of the last rate limit update
+
+- **Chain Configuration**:
+
+  - The task automatically resolves chain selectors from the network configuration
+  - Supports all chains configured in the network settings
+
+- **Error Handling**:
+  - Validates both local and remote chain configurations
+  - Provides clear error messages for invalid addresses or missing configurations
+
 ## Safe Multisig
 
 ### deploySafe
@@ -719,8 +1008,8 @@ npx hardhat deployTokenWithSafe [parameters]
     - The address of the CCIP admin. Required if `--withgetccipadmin` is `true`.
   - `--decimals`: **integer** (default: `18`)
     - The number of decimals the token uses.
-  - `--initialsupply`: **bigint** (default: `0`)
-    - The initial supply of tokens (in the smallest unit, according to `decimals`).
+  - `--maxsupply`: **bigint** (default: `0`)
+    - The maximum supply of tokens (in the smallest unit, according to `decimals`). When maxSupply is 0, the supply is unlimited.
   - `--verifycontract`: **boolean** (default: `false`)
     - If set to `true`, the contract will be verified on a blockchain explorer like Etherscan.
 
@@ -744,14 +1033,14 @@ npx hardhat deployTokenWithSafe [parameters]
   --network avalancheFuji
   ```
 
-- Deploy a token with an initial supply and verify the contract, and transfer ownership to a Safe:
+- Deploy a token with a maximum supply and verify the contract, and transfer ownership to a Safe:
 
   ```bash
   npx hardhat deployTokenWithSafe \
   --safeaddress 0xYourSafeAddress \
   --name "My Token" \
   --symbol "MTK" \
-  --initialsupply 1000000000000000000000 \
+  --maxsupply 1000000000000000000000 \
   --verifycontract true \
   --network avalancheFuji
   ```
@@ -766,9 +1055,9 @@ npx hardhat deployTokenWithSafe [parameters]
 
   - If `--withgetccipadmin` is set to `true`, you must provide a valid `--ccipadminaddress`.
 
-- **Initial Supply**:
+- **Maximum Supply**:
 
-  - The `--initialsupply` is specified in the smallest unit (wei). For a token with 18 decimals, 1 token equals `1e18` wei.
+  - The `--maxsupply` is specified in the smallest unit (wei). For a token with 18 decimals, 1 token equals `1e18` wei.
 
 ### acceptOwnershipFromSafe
 
@@ -812,7 +1101,7 @@ npx hardhat acceptOwnershipFromSafe [parameters]
 
 #### Description
 
-Deploys a new token pool (Burn & Mint) and transfers ownership to a Safe multisig wallet. This task allows you to deploy a token pool that manages a specific token and assign ownership to a Safe account.
+Deploys a Burn & Mint token pool via a Safe multisig wallet and transfers ownership to the Safe.
 
 #### Usage
 
@@ -824,30 +1113,49 @@ npx hardhat deployTokenPoolWithSafe [parameters]
 
 - Required:
   - `--tokenaddress`: **string**
-    - The address of the token to be managed by the pool.
+    - The address of the token to be associated with the pool.
   - `--safeaddress`: **string**
-    - The address of the Safe multisig wallet that will take ownership of the deployed token pool.
+    - The address of the Safe that will own the pool.
 - Optional:
+  - `--localtokendecimals`: **integer** (default: `18`)
+    - The number of decimals for the token on this chain.
   - `--verifycontract`: **boolean** (default: `false`)
     - If set to `true`, the contract will be verified on a blockchain explorer like Etherscan.
 
 #### Examples
 
-- Deploy a token pool and transfer ownership to a Safe:
-
-  ```bash
-  npx hardhat deployTokenPoolWithSafe --tokenaddress 0xYourTokenAddress --safeaddress 0xYourSafeAddress --network avalancheFuji
-  ```
-
-- Deploy and verify a token pool, then transfer ownership to a Safe:
-
-  ```bash
-  npx hardhat deployTokenPoolWithSafe \
+```bash
+# Deploy a pool with default decimals
+npx hardhat deployTokenPoolWithSafe \
   --tokenaddress 0xYourTokenAddress \
   --safeaddress 0xYourSafeAddress \
+  --network avalancheFuji
+
+# Deploy a pool with custom decimals and verify
+npx hardhat deployTokenPoolWithSafe \
+  --tokenaddress 0xYourTokenAddress \
+  --safeaddress 0xYourSafeAddress \
+  --localtokendecimals 8 \
   --verifycontract true \
   --network avalancheFuji
-  ```
+```
+
+##### Notes
+
+- **Safe Transaction**:
+
+  - The task creates and executes a Safe transaction to deploy the pool.
+  - The Safe becomes the owner of the deployed pool.
+  - Requires multiple signatures if the Safe's threshold is greater than 1.
+
+- **Token Decimals**:
+
+  - The `localtokendecimals` parameter must match the actual decimals of the token contract.
+  - This is crucial for proper cross-chain token amount calculations.
+
+- **Network Configuration**:
+  - The task automatically uses the RMN proxy and router addresses configured for the network.
+  - These addresses are fetched from the network configuration file.
 
 ### claimAndAcceptAdminRoleFromSafe
 
@@ -993,15 +1301,13 @@ npx hardhat applyChainUpdatesFromSafe [parameters]
     - The address of the pool to be configured.
   - `--remotechain`: **string**
     - The identifier of the remote blockchain network.
-  - `--remotepooladdress`: **string**
-    - The address of the remote token pool.
+  - `--remotepooladdresses`: **string**
+    - Comma-separated list of remote pool addresses.
   - `--remotetokenaddress`: **string**
     - The address of the token on the remote chain.
   - `--safeaddress`: **string**
     - The address of the Safe multisig wallet that will execute the transaction.
 - Optional:
-  - `--allowed`: **boolean** (default: `true`)
-    - Specifies whether the remote chain is allowed for cross-chain token transfers.
   - `--outboundratelimitenabled`: **boolean** (default: `false`)
     - Enables or disables the outbound rate limiter.
   - `--outboundratelimitcapacity`: **integer** (default: `0`)
@@ -1017,32 +1323,38 @@ npx hardhat applyChainUpdatesFromSafe [parameters]
 
 #### Examples
 
-- Configure a pool with default settings:
-
-  ```bash
-  npx hardhat applyChainUpdatesFromSafe \
+```bash
+# Configure a pool with multiple remote pools and rate limits
+npx hardhat applyChainUpdatesFromSafe \
   --pooladdress 0xYourPoolAddress \
   --remotechain avalanche \
-  --remotepooladdress 0xRemotePoolAddress \
-  --remotetokenaddress 0xRemoteTokenAddress \
-  --safeaddress 0xYourSafeAddress \
-  --network avalancheFuji
-  ```
-
-- Configure a pool with rate limits enabled:
-
-  ```bash
-  npx hardhat applyChainUpdatesFromSafe \
-  --pooladdress 0xYourPoolAddress \
-  --remotechain avalanche \
-  --remotepooladdress 0xRemotePoolAddress \
+  --remotepooladdresses "0xPool1,0xPool2" \
   --remotetokenaddress 0xRemoteTokenAddress \
   --safeaddress 0xYourSafeAddress \
   --outboundratelimitenabled true \
-  --outboundratelimitcapacity 10000 \
-  --outboundratelimitrate 500 \
-  --inboundratelimitenabled true \
-  --inboundratelimitcapacity 5000 \
-  --inboundratelimitrate 250 \
+  --outboundratelimitcapacity 1000000000000000000000 \
+  --outboundratelimitrate 100000000000000000 \
   --network avalancheFuji
-  ```
+```
+
+##### Notes
+
+- **Safe Transaction**:
+
+  - The task creates a Safe transaction that requires multiple signatures.
+  - Both PRIVATE_KEY and PRIVATE_KEY_2 environment variables must be set.
+  - The transaction is signed by both owners before execution.
+
+- **Multiple Remote Pools**:
+
+  - You can specify multiple remote pool addresses using a comma-separated list.
+  - This is useful for handling pool upgrades while maintaining support for inflight messages.
+
+- **Rate Limiting**:
+
+  - Configure both inbound and outbound rate limits to control token flow between chains.
+  - Rate limits are specified in the smallest token unit (wei).
+
+- **Network Configuration**:
+  - Chain selectors and other network details are automatically fetched from the network configuration.
+  - The task validates all addresses and chain configurations before creating the Safe transaction.

@@ -10,7 +10,7 @@ interface DeployTokenTaskArgs {
   name: string;
   symbol: string;
   decimals: number;
-  initialsupply: bigint;
+  maxsupply: bigint;
   verifycontract: boolean;
 }
 
@@ -26,7 +26,7 @@ task("deployToken", "Deploys a token")
   .addParam("name", "The name of the token") // Token name
   .addParam("symbol", "The symbol of the token") // Token symbol
   .addOptionalParam("decimals", "The number of decimals", 18, types.int) // Number of decimals (default: 18)
-  .addOptionalParam("initialsupply", "The initial supply", 0, types.bigint) // Initial supply of tokens
+  .addOptionalParam("maxsupply", "The maximum supply", 0, types.bigint) // If maxSupply is 0, the the supply is unlimited
   .addOptionalParam(
     "verifycontract", // Option to verify the contract on Etherscan
     "Verify the contract on Blockchain scan",
@@ -38,7 +38,7 @@ task("deployToken", "Deploys a token")
       name,
       symbol,
       decimals,
-      initialsupply: initialSupply,
+      maxsupply:maxSupply,
       withgetccipadmin: withGetCCIPAdmin,
       ccipadminaddress: ccipAdminAddress,
       verifycontract: verifyContract,
@@ -83,7 +83,7 @@ task("deployToken", "Deploys a token")
         name,
         symbol,
         decimals,
-        initialSupply
+        maxSupply
       )) as BurnMintERC677WithCCIPAdmin;
     } else {
       // If no CCIP admin, deploy the BurnMintERC677 contract
@@ -91,12 +91,12 @@ task("deployToken", "Deploys a token")
       TokenFactory = new BurnMintERC677__factory(signer);
       tokenContractName = TokenContractName.BurnMintERC677;
 
-      // Deploy the token contract with name, symbol, decimals, and initial supply
+      // Deploy the token contract with name, symbol, decimals, and maximum supply
       token = (await TokenFactory.deploy(
         name,
         symbol,
         decimals,
-        initialSupply
+        maxSupply
       )) as BurnMintERC677;
     }
 
@@ -140,7 +140,7 @@ task("deployToken", "Deploys a token")
         try {
           await hre.run("verify:verify", {
             address: tokenAddress,
-            constructorArguments: [name, symbol, decimals, initialSupply],
+            constructorArguments: [name, symbol, decimals, maxSupply],
           });
           logger.info("Token contract deployed and verified");
         } catch (error) {

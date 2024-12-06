@@ -20,7 +20,7 @@ contract DeployToken is Script {
         string memory name = HelperUtils.getStringFromJson(vm, configPath, ".BnMToken.name");
         string memory symbol = HelperUtils.getStringFromJson(vm, configPath, ".BnMToken.symbol");
         uint8 decimals = uint8(HelperUtils.getUintFromJson(vm, configPath, ".BnMToken.decimals"));
-        uint256 initialSupply = HelperUtils.getUintFromJson(vm, configPath, ".BnMToken.initialSupply");
+        uint256 maxSupply = HelperUtils.getUintFromJson(vm, configPath, ".BnMToken.maxSupply");
         bool withGetCCIPAdmin = HelperUtils.getBoolFromJson(vm, configPath, ".BnMToken.withGetCCIPAdmin");
         address ccipAdminAddress = HelperUtils.getAddressFromJson(vm, configPath, ".BnMToken.ccipAdminAddress");
 
@@ -32,7 +32,7 @@ contract DeployToken is Script {
         // Check if the token uses getCCIPAdmin() function
         if (withGetCCIPAdmin) {
             // Deploy the token contract with CCIP admin functionality
-            BurnMintERC677WithCCIPAdmin token = new BurnMintERC677WithCCIPAdmin(name, symbol, decimals, initialSupply);
+            BurnMintERC677WithCCIPAdmin token = new BurnMintERC677WithCCIPAdmin(name, symbol, decimals, maxSupply);
 
             // If no CCIP admin address is specified, default to the deployer
             if (ccipAdminAddress == address(0)) {
@@ -45,7 +45,7 @@ contract DeployToken is Script {
             console.log("Deployed BurnMintERC677WithCCIPAdmin at:", tokenAddress);
         } else {
             // Deploy the standard token contract without CCIP admin functionality
-            BurnMintERC677 token = new BurnMintERC677(name, symbol, decimals, initialSupply);
+            BurnMintERC677 token = new BurnMintERC677(name, symbol, decimals, maxSupply);
             tokenAddress = address(token);
             console.log("Deployed BurnMintERC677 at:", tokenAddress);
         }

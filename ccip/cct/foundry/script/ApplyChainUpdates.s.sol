@@ -36,6 +36,10 @@ contract ApplyChainUpdates is Script {
         address remoteTokenAddress =
             HelperUtils.getAddressFromJson(vm, remoteTokenPath, string.concat(".deployedToken_", remoteChainName));
 
+        // For remotePoolAddresses, create an array with the remotePoolAddress
+        address[] memory remotePoolAddresses = new address[](1);
+        remotePoolAddresses[0] = remotePoolAddress;
+
         // Fetch the remote network configuration to get the chain selector
         HelperConfig helperConfig = new HelperConfig();
         HelperConfig.NetworkConfig memory remoteNetworkConfig =
@@ -56,10 +60,15 @@ contract ApplyChainUpdates is Script {
         // Prepare chain update data for configuring cross-chain transfers
         TokenPool.ChainUpdate[] memory chainUpdates = new TokenPool.ChainUpdate[](1);
 
+        // Encode remote pool addresses
+        bytes[] memory remotePoolAddressesEncoded = new bytes[](remotePoolAddresses.length);
+        for (uint256 i = 0; i < remotePoolAddresses.length; i++) {
+            remotePoolAddressesEncoded[i] = abi.encode(remotePoolAddresses[i]);
+        }
+
         chainUpdates[0] = TokenPool.ChainUpdate({
             remoteChainSelector: remoteChainSelector, // Chain selector of the remote chain
-            allowed: true, // Enable transfers to the remote chain
-            remotePoolAddress: abi.encode(remotePoolAddress), // Encoded address of the remote pool
+            remotePoolAddresses: remotePoolAddressesEncoded, // Array of encoded addresses of the remote pools
             remoteTokenAddress: abi.encode(remoteTokenAddress), // Encoded address of the remote token
             outboundRateLimiterConfig: RateLimiter.Config({
                 isEnabled: false, // Set to true to enable outbound rate limiting
@@ -73,8 +82,11 @@ contract ApplyChainUpdates is Script {
             })
         });
 
+        // Create an empty array for chainSelectorRemovals
+        uint64[] memory chainSelectorRemovals = new uint64[](0);
+
         // Apply the chain updates to configure the pool
-        poolContract.applyChainUpdates(chainUpdates);
+        poolContract.applyChainUpdates(chainSelectorRemovals, chainUpdates);
 
         console.log("Chain update applied to pool at address:", poolAddress);
 
