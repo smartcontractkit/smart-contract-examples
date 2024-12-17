@@ -56,7 +56,7 @@ impl VerificationClient {
 
         // Compress the report before sending. Obtain this off-chain from the data streams server
         let mut encoder = Encoder::new();
-        let compressed_report = encoder.compress_vec(&*signed_report).expect("Compression failed");
+        let compressed_report = encoder.compress_vec(&signed_report).expect("Compression failed");
 
         let instruction = VerifierInstructions::verify(
             &self.program_id,

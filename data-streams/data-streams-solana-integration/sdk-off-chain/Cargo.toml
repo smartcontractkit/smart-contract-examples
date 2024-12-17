@@ -7,10 +7,9 @@ edition = "2021"
 crate-type = ["lib"]
 
 [dependencies]
-solana-sdk = "1.18.26"
-solana-client = "1.18.26"
-anchor-lang = "0.29.0"
-chainlink_solana_data_streams = { git = "https://github.com/smartcontractkit/chainlink-solana", branch = "develop", subdir = "contracts/crates/chainlink-solana-data-streams" }
+solana-sdk = "2.1.6"
+solana-client = "2.1.6"
+chainlink_solana_data_streams = { git = "https://github.com/smartcontractkit/chainlink-solana", branch = "develop" }
 base64 = "0.22.1"
-solana-transaction-status = "1.18.26"
+solana-transaction-status = "2.1.6"
 snap = "1.1.1"
