@@ -10,7 +10,6 @@ crate-type = ["lib"]
 solana-sdk = "1.18.26"
 solana-client = "1.18.26"
 anchor-lang = "0.29.0"
-data-streams-solana-verifier-sdk = { version = "0.1.0", path = "../verify-sdk"}
 chainlink_solana_data_streams = { git = "https://github.com/smartcontractkit/chainlink-solana", branch = "develop", subdir = "contracts/crates/chainlink-solana-data-streams" }
 base64 = "0.22.1"
 solana-transaction-status = "1.18.26"
