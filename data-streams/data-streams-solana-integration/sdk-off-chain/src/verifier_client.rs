@@ -1,16 +1,17 @@
-use anchor_lang::solana_program::instruction::Instruction;
 use base64::{ engine::general_purpose, Engine as _ };
 use chainlink_solana_data_streams::VerifierInstructions;
 use solana_client::client_error::ClientError;
 use solana_client::rpc_client::RpcClient;
 use solana_client::rpc_config::RpcTransactionConfig;
-use solana_sdk::commitment_config::CommitmentConfig;
-use solana_sdk::pubkey::Pubkey;
-use solana_sdk::signature::{ Keypair, Signature };
-use solana_sdk::signer::Signer;
-use solana_sdk::transaction::Transaction;
+use solana_sdk::{
+    commitment_config::CommitmentConfig,
+    instruction::Instruction,
+    pubkey::Pubkey,
+    signature::{ Keypair, Signature },
+    signer::Signer,
+    transaction::Transaction,
+};
 use snap::raw::Encoder;
-
 use solana_transaction_status::{
     EncodedConfirmedTransactionWithStatusMeta,
     UiTransactionEncoding,
@@ -80,7 +81,6 @@ impl VerificationClient {
         transaction.sign(signers, recent_blockhash);
 
         let signature = self.rpc_client.send_and_confirm_transaction(&transaction)?;
-
         let return_data = self.get_return_data(&signature)?;
 
         Ok(VerificationResult {
