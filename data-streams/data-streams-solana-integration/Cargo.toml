@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = []
+members = ["sdk-off-chain"]
 
 [profile.release]
 overflow-checks = true
