@@ -9,6 +9,14 @@
       "address": "0x411dE17f12D1A34ecC7F45f49844626267c75e81",
       "version": "1.0.0"
     },
+    "registryModule": {
+      "address": "0x13022e3e6C77524308BD56AEd716E88311b2E533",
+      "version": "1.5.0"
+    },
+    "tokenAdminRegistry": {
+      "address": "0xb22764f98dD05c789929716D677382Df22C05Cb6",
+      "version": "1.5.0"
+    },
     "feeTokens": ["LINK", "WETH"]
   },
   "optimismMainnet": {
@@ -20,6 +28,14 @@
     "armProxy": {
       "address": "0x55b3FCa23EdDd28b1f5B4a3C7975f63EFd2d06CE",
       "version": "1.0.0"
+    },
+    "registryModule": {
+      "address": "0x3E2f636Ff8e12728638C4c4b34d282a7fDF0e5B8",
+      "version": "1.5.0"
+    },
+    "tokenAdminRegistry": {
+      "address": "0x657c42abE4CD8aa731Aec322f871B5b90cf6274F",
+      "version": "1.5.0"
     },
     "feeTokens": ["LINK", "WETH"]
   },
@@ -33,6 +49,14 @@
       "address": "0xC311a21e6fEf769344EB1515588B9d535662a145",
       "version": "1.0.0"
     },
+    "registryModule": {
+      "address": "0x818792C958Ac33C01c58D5026cEc91A86e9071d7",
+      "version": "1.5.0"
+    },
+    "tokenAdminRegistry": {
+      "address": "0x39AE1032cF4B334a1Ed41cdD0833bdD7c7E7751E",
+      "version": "1.5.0"
+    },
     "feeTokens": ["LINK", "WETH"]
   },
   "polygonMainnet": {
@@ -44,6 +68,14 @@
     "armProxy": {
       "address": "0xf1ceAa46D8d13Cac9fC38aaEF3d3d14754C5A9c2",
       "version": "1.0.0"
+    },
+    "registryModule": {
+      "address": "0x30CcdEa6a6B521B2B6Fa1Cdc2fd38FB2c1cC82b3",
+      "version": "1.5.0"
+    },
+    "tokenAdminRegistry": {
+      "address": "0x00F027eA6D0fb03256A15E9182B2B9227A4931d8",
+      "version": "1.5.0"
     },
     "feeTokens": ["LINK", "WMATIC"]
   },
@@ -57,6 +89,14 @@
       "address": "0xcBD48A8eB077381c3c4Eb36b402d7283aB2b11Bc",
       "version": "1.0.0"
     },
+    "registryModule": {
+      "address": "0x9c093872cd5931D975C4d4B4a3a8c61a5767E5c1",
+      "version": "1.5.0"
+    },
+    "tokenAdminRegistry": {
+      "address": "0xc8df5D618c6a59Cc6A311E96a39450381001464F",
+      "version": "1.5.0"
+    },
     "feeTokens": ["LINK", "WAVAX"]
   },
   "bscMainnet": {
@@ -68,6 +108,14 @@
     "armProxy": {
       "address": "0x9e09697842194f77d315E0907F1Bda77922e8f84",
       "version": "1.0.0"
+    },
+    "registryModule": {
+      "address": "0xfa4C3f58D2659AFe4F964C023e6AfD183C374435",
+      "version": "1.5.0"
+    },
+    "tokenAdminRegistry": {
+      "address": "0x736Fd8660c443547a85e4Eaf70A49C1b7Bb008fc",
+      "version": "1.5.0"
     },
     "feeTokens": ["LINK", "WBNB"]
   },
@@ -81,6 +129,14 @@
       "address": "0xC842c69d54F83170C42C4d556B4F6B2ca53Dd3E8",
       "version": "1.0.0"
     },
+    "registryModule": {
+      "address": "0x1A5f2d0c090dDB7ee437051DA5e6f03b6bAE1A77",
+      "version": "1.5.0"
+    },
+    "tokenAdminRegistry": {
+      "address": "0x6f6C373d09C07425BaAE72317863d7F6bb731e37",
+      "version": "1.5.0"
+    },
     "feeTokens": ["LINK", "WETH"]
   },
   "wemixMainnet": {
@@ -92,6 +148,14 @@
     "armProxy": {
       "address": "0x2375959c6571AC7a83c164C6FCcbd09E7782773d",
       "version": "1.0.0"
+    },
+    "registryModule": {
+      "address": "0xe89241cbE74349EA74a0c23823A516B3c74A289B",
+      "version": "1.5.0"
+    },
+    "tokenAdminRegistry": {
+      "address": "0xE993e046AC50659800a91Bab0bd2daBF59CbD171",
+      "version": "1.5.0"
     },
     "feeTokens": ["LINK", "WWEMIX"]
   },
@@ -105,6 +169,14 @@
       "address": "0x6E4d2dBBF8a1A943412aD451422FE11A25C781DE",
       "version": "1.0.0"
     },
+    "registryModule": {
+      "address": "0xe87a456F364D1641F8123D4122Fc542282BFc0FA",
+      "version": "1.5.0"
+    },
+    "tokenAdminRegistry": {
+      "address": "0x447066676A5413682a881c63aed0F03f8ACf7E45",
+      "version": "1.5.0"
+    },
     "feeTokens": ["LINK", "WETH"]
   },
   "celoMainnet": {
@@ -116,6 +188,14 @@
     "armProxy": {
       "address": "0x56e0507d4E69D98bE7Eb4ada01d2315596F9f281",
       "version": "1.0.0"
+    },
+    "registryModule": {
+      "address": "0x858B064d15bD54fcdfaf087A4AE4BaabF724d9E9",
+      "version": "1.5.0"
+    },
+    "tokenAdminRegistry": {
+      "address": "0xf19e0555fAA9051e277eeD5A0DcdB13CDaca39a9",
+      "version": "1.5.0"
     },
     "feeTokens": ["LINK", "WCELO"]
   },
@@ -129,6 +209,14 @@
       "address": "0xf5e5e1676942520995c1e39aFaC58A75Fe1cd2bB",
       "version": "1.0.0"
     },
+    "registryModule": {
+      "address": "0xdf529b48fCDfd095c81497E435585Ed465D600A2",
+      "version": "1.5.0"
+    },
+    "tokenAdminRegistry": {
+      "address": "0x73BC11423CBF14914998C23B0aFC9BE0cb5B2229",
+      "version": "1.5.0"
+    },
     "feeTokens": ["LINK", "WXDAI"]
   },
   "modeMainnet": {
@@ -140,6 +228,14 @@
     "armProxy": {
       "address": "0xA0876B45271615c737781185C2B5ada60ed2D2B9",
       "version": "1.0.0"
+    },
+    "registryModule": {
+      "address": "0xF54d38E4844c5f6E5Aab0AF7557ef5cb1cA4253e",
+      "version": "1.5.0"
+    },
+    "tokenAdminRegistry": {
+      "address": "0xB4b40c010A547dff6A22d94bC2C1c1e745b62aB2",
+      "version": "1.5.0"
     },
     "feeTokens": ["LINK", "WETH"]
   },
@@ -153,6 +249,14 @@
       "address": "0x50dbd1e73ED032f42B5892E5F3689972FefAc880",
       "version": "1.0.0"
     },
+    "registryModule": {
+      "address": "0xa277610fF9A04364d2b80f26C9DFb32Be5e45D94",
+      "version": "1.5.0"
+    },
+    "tokenAdminRegistry": {
+      "address": "0x846Fccd01D4115FD1E81267495773aeB33bF1dC7",
+      "version": "1.5.0"
+    },
     "feeTokens": ["LINK", "WETH"]
   },
   "andromedaMainnet": {
@@ -165,6 +269,14 @@
       "address": "0xd99cc1d64027E07Cd2AaE871E16bb32b8F401998",
       "version": "1.0.0"
     },
+    "registryModule": {
+      "address": "0xE4B147224Db9B6E3776E4B3CEda31b3cE232e2FA",
+      "version": "1.5.0"
+    },
+    "tokenAdminRegistry": {
+      "address": "0x3af897541eB03927c7431bF68884A6C2C23b683f",
+      "version": "1.5.0"
+    },
     "feeTokens": ["LINK", "WMETIS"]
   },
   "zksyncMainnet": {
@@ -176,6 +288,14 @@
     "armProxy": {
       "address": "0x2aBB46A2D32220b8801CE96CAbC32dd2dA7b7B20",
       "version": "1.0.0"
+    },
+    "registryModule": {
+      "address": "0xab0731056C23b85eDd62F12E716fC75fc1fB1219",
+      "version": "1.5.0"
+    },
+    "tokenAdminRegistry": {
+      "address": "0x100a47C9DB342884E3314B91cec076BbAC8e619c",
+      "version": "1.5.0"
     },
     "feeTokens": ["LINK", "WETH"]
   }
