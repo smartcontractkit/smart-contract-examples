@@ -9,6 +9,7 @@ import {
   Router__factory,
   IERC20Metadata__factory,
   TokenAdminRegistry__factory,
+  TokenPool__factory,
 } from "./typechain-types";
 
 // Interface for command-line arguments
@@ -35,7 +36,7 @@ const handleArguments = (): Arguments => {
 
 // Function to fetch and display supported tokens
 const getSupportedTokens = async () => {
-  // Get the source and target chain names from the command line arguments
+  console.log(`[INFO] Starting token discovery for cross-chain transfers`);
   const { sourceChain, destinationChain } = handleArguments();
 
   // Get the RPC URL for the chain from the config
@@ -58,46 +59,117 @@ const getSupportedTokens = async () => {
   );
 
   if (!isChainSupported) {
+    console.error(
+      `[ERROR] Lane ${sourceChain} -> ${destinationChain} is not supported`
+    );
     throw new Error(
       `Lane ${sourceChain} -> ${destinationChain} is not supported\n`
     );
   }
+  console.log(`[INFO] Lane ${sourceChain} -> ${destinationChain} is supported`);
 
   // Check if TokenAdminRegistry is present for the source chain
   const tokenAdminRegistryConfig = getTokenAdminRegistryConfig(sourceChain);
 
-  let supportedTokens: string[] = [];
+  // TokenAdminRegistry is present, use getAllConfiguredTokens
+  const tokenAdminRegistryAddress = tokenAdminRegistryConfig.address;
+  const tokenAdminRegistryContract = TokenAdminRegistry__factory.connect(
+    tokenAdminRegistryAddress,
+    provider
+  );
 
-  if (tokenAdminRegistryConfig) {
-    // TokenAdminRegistry is present, use getAllConfiguredTokens
-    const tokenAdminRegistryAddress = tokenAdminRegistryConfig.address;
-    const tokenAdminRegistryContract = TokenAdminRegistry__factory.connect(
-      tokenAdminRegistryAddress,
-      provider
+  // Handle pagination
+  let startIndex = 0;
+  const maxCount = 100;
+  let tokensBatch: string[] = [];
+  const tokenToPoolMap: Record<string, string> = {}; // Mapping of token to pool
+  const uniqueTokens = new Set<string>(); // Use Set to handle potential duplicates
+
+  console.log(
+    `[INFO] Fetching all registered tokens from ${sourceChain} using TokenAdminRegistry at ${tokenAdminRegistryAddress}`
+  );
+
+  let totalProcessed = 0;
+  do {
+    console.log(
+      `[INFO] Fetching batch: offset=${startIndex}, limit=${maxCount}`
+    );
+    tokensBatch = await tokenAdminRegistryContract.getAllConfiguredTokens(
+      startIndex,
+      maxCount
+    );
+    totalProcessed += tokensBatch.length;
+    console.log(
+      `[INFO] Found ${tokensBatch.length} tokens (total processed: ${totalProcessed})`
     );
 
-    // Handle pagination
-    let startIndex = 0;
-    const maxCount = 100;
-    let tokensBatch: string[] = [];
+    // Add to Set instead of array to handle potential duplicates
+    tokensBatch.forEach((token) => uniqueTokens.add(token));
+    startIndex = startIndex + tokensBatch.length;
 
-    do {
-      tokensBatch = await tokenAdminRegistryContract.getAllConfiguredTokens(
-        startIndex,
-        maxCount
-      );
-      supportedTokens.push(...tokensBatch);
-      startIndex = startIndex + tokensBatch.length;
-    } while (tokensBatch.length === maxCount);
-  } else {
-    // TokenAdminRegistry not present, use Router.getSupportedTokens
-    supportedTokens = await sourceRouterContract.getSupportedTokens(
-      destinationChainSelector
+    // Add log before pool checks
+    console.log(
+      `[INFO] Fetching pools for ${tokensBatch.length} tokens and checking support for ${destinationChain}`
     );
-  }
+    const pools = await tokenAdminRegistryContract.getPools([...tokensBatch]);
 
-  // For each supported token, print its name, symbol, and decimal precision
+    // Process pools in chunks of 5 for parallel processing
+    for (let i = 0; i < tokensBatch.length; i += 5) {
+      const chunkEnd = Math.min(i + 5, tokensBatch.length);
+      const chunk = tokensBatch.slice(i, chunkEnd);
+      const poolsChunk = pools.slice(i, chunkEnd);
+
+      const supportCheckPromises = poolsChunk.map((poolAddress, index) => {
+        const tokenPoolContract = TokenPool__factory.connect(
+          poolAddress,
+          provider
+        );
+        return tokenPoolContract
+          .isSupportedChain(destinationChainSelector)
+          .then((isSupported) => ({
+            token: chunk[index],
+            pool: poolAddress,
+            isSupported,
+            error: null,
+          }))
+          .catch((error) => ({
+            token: chunk[index],
+            pool: poolAddress,
+            isSupported: false,
+            error,
+          }));
+      });
+
+      const results = await Promise.all(supportCheckPromises);
+
+      // Process results
+      results.forEach(({ token, pool, isSupported, error }) => {
+        if (error) {
+          console.warn(
+            `Failed to check chain support for pool ${pool}, skipping...`
+          );
+        } else if (isSupported) {
+          tokenToPoolMap[token] = pool;
+        }
+      });
+    }
+  } while (tokensBatch.length === maxCount);
+
+  const eligibleTokens = Object.keys(tokenToPoolMap).length;
+  console.log(
+    `[SUMMARY] Found ${uniqueTokens.size} unique tokens, ${eligibleTokens} support ${destinationChain}`
+  );
+
+  // Convert Set to Array for final processing
+  const supportedTokens = Array.from(uniqueTokens);
+
+  // For each supported token, print its name, symbol, decimal precision, and pool
   for (const supportedToken of supportedTokens) {
+    // Skip tokens whose pools don't support the destination chain
+    if (!tokenToPoolMap[supportedToken]) {
+      continue;
+    }
+
     // Create a contract instance for the token using its ABI and address
     const erc20 = IERC20Metadata__factory.connect(supportedToken, provider);
 
@@ -108,16 +180,24 @@ const getSupportedTokens = async () => {
       erc20.decimals(),
     ]);
 
-    // Print the token's details
+    // Get the pool address for the token
+    const poolAddress = tokenToPoolMap[supportedToken];
+
+    // Print the token's details along with its pool
     console.log(
-      `ERC20 token with address ${supportedToken} is ${name} with symbol ${symbol} and decimals ${decimals}\n`
+      `[INFO] Token: ${name} (${symbol}) at ${supportedToken}, decimals=${decimals}, pool=${poolAddress}`
     );
   }
 };
 
-// Run the function and handle any errors
+// Improve error handling
 getSupportedTokens().catch((e) => {
-  // Print any error message and terminate the script with a non-zero exit code
-  console.error(e);
+  console.error(`[ERROR] Token discovery failed:`);
+  if (e instanceof Error) {
+    console.error(`[ERROR] Message: ${e.message}`);
+    console.error(`[ERROR] Stack: ${e.stack}`);
+  } else {
+    console.error(`[ERROR] Unknown error type:`, e);
+  }
   process.exit(1);
 });

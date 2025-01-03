@@ -18,11 +18,11 @@ interface NetworkConfig {
     address: string;
     version: string;
   };
-  registryModule?: {
+  registryModule: {
     address: string;
     version: string;
   };
-  tokenAdminRegistry?: {
+  tokenAdminRegistry: {
     address: string;
     version: string;
   };

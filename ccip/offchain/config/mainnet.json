@@ -298,5 +298,25 @@
       "version": "1.5.0"
     },
     "feeTokens": ["LINK", "WETH"]
+  },
+  "roninMainnet": {
+    "chainSelector": "6916147374840168594",
+    "router": {
+      "address": "0x46527571D5D1B68eE7Eb60B18A32e6C60DcEAf99",
+      "version": "1.2.0"
+    },
+    "armProxy": {
+      "address": "0xceA253a8c2BB995054524d071498281E89aACD59",
+      "version": "1.5.0"
+    },
+    "registryModule": {
+      "address": "0x5055DA89A16b71fEF91D1af323b139ceDe2d8320",
+      "version": "1.5.0"
+    },
+    "tokenAdminRegistry": {
+      "address": "0x90e83d532A4aD13940139c8ACE0B93b0DdbD323a",
+      "version": "1.5.0"
+    },
+    "feeTokens": ["LINK", "WRON"]
   }
 }
