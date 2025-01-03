@@ -6,15 +6,14 @@ const getRpcUrlName = (network: NETWORK) =>
 const getProviderRpcUrl = (network: NETWORK) => {
   require("@chainlink/env-enc").config();
   if (!supportedNetworks.includes(network))
-    throw new Error("Unsupported network: " + network);
+    throw new Error(`[ERROR] Network '${network}' is not supported. Supported networks: ${supportedNetworks.join(", ")}`);
 
   const environmentVariableName = getRpcUrlName(network);
-
   const rpcUrl = process.env[environmentVariableName];
 
   if (!rpcUrl)
     throw new Error(
-      `rpcUrl empty for network ${network} - check your environment variables`
+      `[ERROR] RPC URL not found for network '${network}'. Please set ${environmentVariableName} in your environment variables`
     );
   return rpcUrl;
 };
@@ -24,7 +23,7 @@ const getPrivateKey = () => {
   const privateKey = process.env.PRIVATE_KEY;
   if (!privateKey)
     throw new Error(
-      "private key not provided - check your environment variables"
+      `[ERROR] PRIVATE_KEY not found in environment variables. Please set PRIVATE_KEY using chainlink env-enc`
     );
   return privateKey;
 };
