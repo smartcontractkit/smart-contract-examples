@@ -7,3 +7,4 @@ import "./mintTokens";
 import "./deploySafe";
 import "./acceptOwnership";
 import "./grantMintBurnRole";
+import "./applyChainUpdatesSim";
