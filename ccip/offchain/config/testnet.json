@@ -1,23 +1,23 @@
 {
-  "avalancheFuji": {
+  "avalanchefuji": {
     "chainSelector": "14767482510784806043",
     "router": {
-      "address": "0xF694E193200268f9a4868e4Aa017A0118C9a8177",
+      "address": "0xf694e193200268f9a4868e4aa017a0118c9a8177",
       "version": "1.2.0"
     },
-    "armProxy": {
-      "address": "0xAc8CFc3762a979628334a0E4C1026244498E821b",
+    "armproxy": {
+      "address": "0xac8cfc3762a979628334a0e4c1026244498e821b",
       "version": "1.0.0"
     },
-    "registryModule": {
-      "address": "0x97300785aF1edE1343DB6d90706A35CF14aA3d81",
+    "registrymodule": {
+      "address": "0x97300785af1ede1343db6d90706a35cf14aa3d81",
       "version": "1.5.0"
     },
-    "tokenAdminRegistry": {
-      "address": "0xA92053a4a3922084d992fD2835bdBa4caC6877e6",
+    "tokenadminregistry": {
+      "address": "0xa92053a4a3922084d992fd2835bdba4cac6877e6",
       "version": "1.5.0"
     },
-    "feeTokens": ["LINK", "WAVAX"]
+    "feetokens": ["link", "wavax"]
   },
   "bscTestnet": {
     "chainSelector": "13264668187771770619",
@@ -318,5 +318,25 @@
       "version": "1.5.0"
     },
     "feeTokens": ["LINK", "WRON"]
+  },
+  "seiAtlantic": {
+    "chainSelector": "1216300075444106652",
+    "router": {
+      "address": "0x59F5222c5d77f8D3F56e34Ff7E75A05d2cF3a98A",
+      "version": "1.2.0"
+    },
+    "armproxy": {
+      "address": "0x754aBd2496Bea05ceDE80Df8bE530f6132208c41",
+      "version": "1.0.0"
+    },
+    "registrymodule": {
+      "address": "0x8538DE2a0Ba5C3db87B2Dc3d391Cc0Dd147dd827",
+      "version": "1.5.0"
+    },
+    "tokenadminregistry": {
+      "address": "0xDF27EE0050C2D3831089B14aCC465aBF9fD12C64",
+      "version": "1.5.0"
+    },
+    "feetokens": ["link", "wsei"]
   }
 }
