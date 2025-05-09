@@ -1,3 +1,5 @@
+export type CHAIN_TYPE = "evm" | "svm";
+
 export interface ChainConfig {
   chainId?: number;
   chainSelector: string;
@@ -8,6 +10,7 @@ export interface ChainConfig {
   link: string;
   confirmations: number;
   nativeCurrencySymbol: string;
+  chainType: CHAIN_TYPE;
 }
 
 export enum Chains {
@@ -15,6 +18,7 @@ export enum Chains {
   arbitrumSepolia = "arbitrumSepolia",
   sepolia = "sepolia",
   baseSepolia = "baseSepolia",
+  solanaDevnet = "solanaDevnet",
 }
 
 export type Configs = {

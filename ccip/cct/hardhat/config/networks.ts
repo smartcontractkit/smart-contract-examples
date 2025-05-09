@@ -1,4 +1,4 @@
-import { Chains, EtherscanConfig, Networks } from "./types";
+import { CHAIN_TYPE, Chains, EtherscanConfig, Networks } from "./types";
 import configData from "./config.json";
 
 require("@chainlink/env-enc").config();
@@ -18,6 +18,7 @@ const networks: Networks = {
   [Chains.avalancheFuji]: {
     ...configData.avalancheFuji,
     url: process.env.AVALANCHE_FUJI_RPC_URL || "UNSET",
+    chainType: configData.avalancheFuji.chainType as CHAIN_TYPE,
     gasPrice: undefined,
     nonce: undefined,
     accounts,
@@ -25,6 +26,7 @@ const networks: Networks = {
   [Chains.arbitrumSepolia]: {
     ...configData.arbitrumSepolia,
     url: process.env.ARBITRUM_SEPOLIA_RPC_URL || "UNSET",
+    chainType: configData.arbitrumSepolia.chainType as CHAIN_TYPE,
     gasPrice: undefined,
     nonce: undefined,
     accounts,
@@ -32,6 +34,7 @@ const networks: Networks = {
   [Chains.sepolia]: {
     ...configData.ethereumSepolia,
     url: process.env.ETHEREUM_SEPOLIA_RPC_URL || "UNSET",
+    chainType: configData.ethereumSepolia.chainType as CHAIN_TYPE,
     gasPrice: undefined,
     nonce: undefined,
     accounts,
@@ -39,6 +42,7 @@ const networks: Networks = {
   [Chains.baseSepolia]: {
     ...configData.baseSepolia,
     url: process.env.BASE_SEPOLIA_RPC_URL || "UNSET",
+    chainType: configData.baseSepolia.chainType as CHAIN_TYPE,
     gasPrice: undefined,
     nonce: undefined,
     accounts,
@@ -65,4 +69,4 @@ const etherscan: EtherscanConfig = {
   ],
 };
 
-export { networks, etherscan };
+export { networks, etherscan, configData };
