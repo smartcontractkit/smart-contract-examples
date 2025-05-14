@@ -21,7 +21,6 @@ Find a list of available tutorials on the Chainlink documentation: [Cross-Chain 
 - [setRateLimitAdmin](#setratelimitadmin)
 - [updateAllowList](#updateallowlist)
 - [transferTokenAdminRole](#transfertokenadminrole)
-- [acceptTokenAdminRole](#accepttokenadminrole)
 - [getCurrentRateLimits](#getcurrentratelimits)
 
 **Safe Multisig**:
@@ -41,7 +40,7 @@ Find a list of available tutorials on the Chainlink documentation: [Cross-Chain 
 
 #### Description
 
-Deploys a new ERC-677 token contract, with optional CCIP admin settings. This task allows you to create a standard token or a token with CCIP administrative functionalities.
+Deploys a new ERC-20 token contract. This task allows you to create a standard token with CCIP administrative functionalities.
 
 #### Usage
 
@@ -59,14 +58,12 @@ npx hardhat deployToken [parameters]
   - `--network`: **string**
     - The network to deploy the token to. Must be a valid network name from the Hardhat config.
 - Optional:
-  - `--withgetccipadmin`: **boolean** (default: `false`)
-    - Indicates whether the token contract includes a `getCCIPAdmin()` function.
-  - `--ccipadminaddress`: **string**
-    - The address of the CCIP admin. Required if `--withgetccipadmin` is `true`.
   - `--decimals`: **integer** (default: `18`)
     - The number of decimals the token uses.
   - `--maxsupply`: **bigint** (default: `0`)
     - The maximum supply of tokens (in the smallest unit, according to `decimals`). When maxSupply is 0, the supply is unlimited.
+  - `--premint`: **bigint** (default: `0`)
+    - The amount of tokens to be minted to the owner at the time of deployment, specified (in the smallest unit, according to `decimals`). When preMint is 0, no tokens will be minted to the owner during deployment.
   - `--verifycontract`: **boolean** (default: `false`)
     - If set to `true`, the contract will be verified on a blockchain explorer like Etherscan.
 
@@ -78,33 +75,25 @@ npx hardhat deployToken [parameters]
   npx hardhat deployToken --name "My Token" --symbol "MTK" --network avalancheFuji
   ```
 
-- Deploy a token with CCIP admin functionality:
-
-  ```bash
-  npx hardhat deployToken \
-  --name "My Token" \
-  --symbol "MTK" \
-  --withgetccipadmin true \
-  --ccipadminaddress 0xYourCCIPAdminAddress \
-  --network avalancheFuji
-  ```
-
 - Deploy a token with a maximum supply and verify the contract:
   ```bash
   npx hardhat deployToken \
-  --name "My Token" \
-  --symbol "MTK" \
-  --maxsupply 1000000000000000000000 \
-  --verifycontract true \
-  --network avalancheFuji
+    --name "My Token" \
+    --symbol "MTK" \
+    --maxsupply 1000000000000000000000 \
+    --verifycontract true \
+    --network avalancheFuji
   ```
-
+- Deploy a token with a pre-mint amount and verify the contract:
+  ```bash
+  npx hardhat deployToken \
+    --name "My Token" \
+    --symbol "MTK" \
+    --premint 10000000000000000000 \
+    --verifycontract true \
+    --network avalancheFuji
+  ```
 ##### Notes
-
-- **CCIP Admin**:
-
-  - If `--withgetccipadmin` is set to `true`, you must provide a valid `--ccipadminaddress`.
-  - The CCIP admin address is responsible for managing certain administrative functions of the token.
 
 - **Maximum Supply**:
 
@@ -157,7 +146,7 @@ npx hardhat deployTokenPool \
 
 #### Description
 
-Claims the admin role for a token contract. This task allows the user to claim admin either through the `owner()` function or the `getCCIPAdmin()` function if the token contract is configured with a CCIP admin.
+Claims the admin role for a token contract. This task allows the user to claim admin through the `getCCIPAdmin()` function.
 
 #### Usage
 
@@ -170,36 +159,16 @@ npx hardhat claimAdmin [parameters]
 - Required:
   - `--tokenaddress`: **string**
     - The address of the token for which the admin role is being claimed.
-- Optional:
-  - `--withccipadmin`: **boolean** (default: `false`)
-    - Specifies whether the token uses the `getCCIPAdmin()` function to manage admin roles. If `true`, the task claims the admin via this function; otherwise, it claims through the `owner()` function.
 
 #### Examples
 
-- Claim admin using the `owner()` function:
-
-  ```bash
-  npx hardhat claimAdmin --tokenaddress 0xYourTokenAddress --network avalancheFuji
-  ```
-
-- Claim admin using the `getCCIPAdmin()` function:
-
-  ```bash
-  npx hardhat claimAdmin \
+```bash
+npx hardhat claimAdmin \
   --tokenaddress 0xYourTokenAddress \
-  --withccipadmin true \
   --network avalancheFuji
-  ```
+```
 
 ##### Notes
-
-- **Admin Types**:
-
-  - `owner()`: This function allows claiming the admin role for the token if the contract uses a standard ownership model.
-  - `getCCIPAdmin()`: If the token contract supports CCIP admin functionality, this function is used to claim the admin role via the CCIP admin mechanism.
-
-- **CCIP Admin Validation**:
-  - If using `withccipadmin`, the task checks that the CCIP admin address matches the current signer's address before claiming the admin role.
 
 ### acceptAdminRole
 
@@ -410,24 +379,24 @@ npx hardhat transferTokens [parameters]
 
   ```bash
   npx hardhat transferTokens \
-  --tokenaddress 0xYourTokenAddress \
-  --amount 1000000000000000000 \
-  --destinationchain avalanche \
-  --receiveraddress 0xReceiverAddress \
-  --fee LINK \
-  --network avalancheFuji
+    --tokenaddress 0xYourTokenAddress \
+    --amount 1000000000000000000 \
+    --destinationchain avalanche \
+    --receiveraddress 0xReceiverAddress \
+    --fee LINK \
+    --network avalancheFuji
   ```
 
 - Transfer tokens using native tokens (e.g., ETH or AVAX) for fees:
 
   ```bash
   npx hardhat transferTokens \
-  --tokenaddress 0xYourTokenAddress \
-  --amount 1000000000000000000 \
-  --destinationchain avalanche \
-  --receiveraddress 0xReceiverAddress \
-  --fee native \
-  --network avalancheFuji
+    --tokenaddress 0xYourTokenAddress \
+    --amount 1000000000000000000 \
+    --destinationchain avalanche \
+    --receiveraddress 0xReceiverAddress \
+    --fee native \
+    --network avalancheFuji
   ```
 
 ##### Notes
@@ -790,7 +759,7 @@ npx hardhat updateAllowList \
 
 #### Description
 
-Initiates the transfer of administrator role for a token in the TokenAdminRegistry. This is the first step in a two-step process where the new admin must accept the role using `acceptTokenAdminRole`.
+Initiates the transfer of administrator role for a token in the TokenAdminRegistry. This is the first step in a two-step process where the new admin must accept the role using `acceptAdminRole`.
 
 #### Usage
 
@@ -819,38 +788,12 @@ npx hardhat transferTokenAdminRole \
 
 - **Two-Step Process**:
 
-  - This task only initiates the transfer. The new admin must call `acceptTokenAdminRole` to complete the transfer.
+  - This task only initiates the transfer. The new admin must call `acceptAdminRole` to complete the transfer.
   - The current admin remains in control until the new admin accepts the role.
 
 - **TokenAdminRegistry**:
   - The task automatically uses the TokenAdminRegistry contract address configured for the network.
   - The registry maintains the administrator roles for all tokens in the system.
-
-### acceptTokenAdminRole
-
-#### Description
-
-Accepts the administrator role for a token in the TokenAdminRegistry. This is the second step in the admin transfer process and must be called by the pending administrator.
-
-#### Usage
-
-```bash
-npx hardhat acceptTokenAdminRole [parameters]
-```
-
-#### Parameters
-
-- Required:
-  - `--tokenaddress`: **string**
-    - The address of the token for which to accept the admin role.
-
-#### Examples
-
-```bash
-npx hardhat acceptTokenAdminRole \
-  --tokenaddress 0xYourTokenAddress \
-  --network avalancheFuji
-```
 
 ##### Notes
 
@@ -984,7 +927,7 @@ npx hardhat deploySafe [parameters]
 
 #### Description
 
-Deploys a new ERC-677 token contract and transfers ownership to a Safe multisig wallet. This task allows you to deploy a "standard" token or a token with CCIP administrative functionalities, and then assign ownership to the Safe account.
+Deploys a new ERC-20 token contract and transfers ownership to a Safe multisig wallet. This task allows you to deploy a "standard" token with CCIP administrative functionalities, and then assign ownership to the Safe account.
 
 #### Usage
 
@@ -1002,14 +945,12 @@ npx hardhat deployTokenWithSafe [parameters]
   - `--symbol`: **string**
     - The symbol of the token.
 - Optional:
-  - `--withgetccipadmin`: **boolean** (default: `false`)
-    - Indicates whether the token contract includes a `getCCIPAdmin()` function.
-  - `--ccipadminaddress`: **string**
-    - The address of the CCIP admin. Required if `--withgetccipadmin` is `true`.
   - `--decimals`: **integer** (default: `18`)
     - The number of decimals the token uses.
   - `--maxsupply`: **bigint** (default: `0`)
     - The maximum supply of tokens (in the smallest unit, according to `decimals`). When maxSupply is 0, the supply is unlimited.
+  - `--premint`: **bigint** (default: `0`)
+    - The amount of tokens to be minted to the owner at the time of deployment, specified (in the smallest unit, according to `decimals`). When preMint is 0, no tokens will be minted to the owner during deployment.
   - `--verifycontract`: **boolean** (default: `false`)
     - If set to `true`, the contract will be verified on a blockchain explorer like Etherscan.
 
@@ -1021,28 +962,28 @@ npx hardhat deployTokenWithSafe [parameters]
   npx hardhat deployTokenWithSafe --safeaddress 0xYourSafeAddress --name "My Token" --symbol "MTK" --network avalancheFuji
   ```
 
-- Deploy a token with CCIP admin functionality and transfer ownership to a Safe:
-
-  ```bash
-  npx hardhat deployTokenWithSafe \
-  --safeaddress 0xYourSafeAddress \
-  --name "My Token" \
-  --symbol "MTK" \
-  --withgetccipadmin true \
-  --ccipadminaddress 0xYourCCIPAdminAddress \
-  --network avalancheFuji
-  ```
-
 - Deploy a token with a maximum supply and verify the contract, and transfer ownership to a Safe:
 
   ```bash
   npx hardhat deployTokenWithSafe \
-  --safeaddress 0xYourSafeAddress \
-  --name "My Token" \
-  --symbol "MTK" \
-  --maxsupply 1000000000000000000000 \
-  --verifycontract true \
-  --network avalancheFuji
+    --safeaddress 0xYourSafeAddress \
+    --name "My Token" \
+    --symbol "MTK" \
+    --maxsupply 1000000000000000000000 \
+    --verifycontract true \
+    --network avalancheFuji
+  ```
+
+- Deploy a token with a pre-mint amount and verify the contract, and transfer ownership to a Safe:
+
+  ```bash
+  npx hardhat deployTokenWithSafe \
+    --safeaddress 0xYourSafeAddress \
+    --name "My Token" \
+    --symbol "MTK" \
+    --premint 10000000000000000000 \
+    --verifycontract true \
+    --network avalancheFuji
   ```
 
 ##### Notes
@@ -1050,10 +991,6 @@ npx hardhat deployTokenWithSafe [parameters]
 - **Safe Address**:
 
   - The Safe multisig wallet will take ownership of the deployed token after it has been successfully deployed.
-
-- **CCIP Admin**:
-
-  - If `--withgetccipadmin` is set to `true`, you must provide a valid `--ccipadminaddress`.
 
 - **Maximum Supply**:
 
@@ -1161,7 +1098,7 @@ npx hardhat deployTokenPoolWithSafe \
 
 #### Description
 
-Claims and accepts the admin role for a token contract using a Safe multisig wallet. The task supports contracts with or without CCIP admin functionality and executes the required transactions through a Safe.
+Claims and accepts the admin role for a token contract using a Safe multisig wallet.
 
 #### Usage
 
@@ -1176,9 +1113,6 @@ npx hardhat claimAndAcceptAdminRoleFromSafe [parameters]
     - The address of the token for which the admin role is being claimed.
   - `--safeaddress`: **string**
     - The address of the Safe multisig wallet that will execute the transactions.
-- Optional:
-  - `--withccipadmin`: **boolean** (default: `false`)
-    - Specifies whether the token contract uses the `getCCIPAdmin()` function for admin management. If `true`, the task claims the admin role via this function; otherwise, it claims via the `owner()` function.
 
 #### Examples
 
@@ -1192,17 +1126,16 @@ npx hardhat claimAndAcceptAdminRoleFromSafe [parameters]
 
   ```bash
   npx hardhat claimAndAcceptAdminRoleFromSafe \
-  --tokenaddress 0xYourTokenAddress \
-  --safeaddress 0xYourSafeAddress \
-  --withccipadmin true \
-  --network avalancheFuji
+    --tokenaddress 0xYourTokenAddress \
+    --safeaddress 0xYourSafeAddress \
+    --network avalancheFuji
   ```
 
 ##### Notes
 
 - **CCIP Admin**:
 
-  - If `--withccipadmin` is set to `true`, the task will use the `getCCIPAdmin()` function to claim the admin role; otherwise, it will use the `owner()` function.
+  - The task will use the `getCCIPAdmin()` function to claim the admin role.
 
 - **Meta-Transactions**:
 

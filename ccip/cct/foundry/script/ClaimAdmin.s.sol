@@ -5,9 +5,9 @@ import {Script, console} from "forge-std/Script.sol";
 import {HelperUtils} from "./utils/HelperUtils.s.sol"; // Utility functions for JSON parsing and chain info
 import {HelperConfig} from "./HelperConfig.s.sol"; // Network configuration helper
 import {RegistryModuleOwnerCustom} from
-    "@chainlink/contracts-ccip/src/v0.8/ccip/tokenAdminRegistry/RegistryModuleOwnerCustom.sol";
-import {BurnMintERC677WithCCIPAdmin} from "../src/BurnMintERC677WithCCIPAdmin.sol";
-import {BurnMintERC677} from "@chainlink/contracts-ccip/src/v0.8/shared/token/ERC677/BurnMintERC677.sol";
+    "@chainlink/contracts-ccip/contracts/tokenAdminRegistry/RegistryModuleOwnerCustom.sol";
+import {BurnMintERC20} from "@chainlink/contracts/src/v0.8/shared/token/ERC20/BurnMintERC20.sol";
+
 
 contract ClaimAdmin is Script {
     function run() external {
@@ -22,7 +22,6 @@ contract ClaimAdmin is Script {
         // Extract values from the JSON files
         address tokenAddress =
             HelperUtils.getAddressFromJson(vm, deployedTokenPath, string.concat(".deployedToken_", chainName));
-        bool withCCIPAdmin = HelperUtils.getBoolFromJson(vm, configPath, ".BnMToken.withGetCCIPAdmin");
         address tokenAdmin = HelperUtils.getAddressFromJson(vm, configPath, ".BnMToken.ccipAdminAddress");
 
         // Fetch the network configuration
@@ -33,14 +32,9 @@ contract ClaimAdmin is Script {
         require(registryModuleOwnerCustom != address(0), "Registry module owner custom is not defined for this network");
 
         vm.startBroadcast();
-
-        // Choose the appropriate admin claim method based on whether the token uses CCIP admin
-        if (withCCIPAdmin) {
-            claimAdminWithCCIPAdmin(tokenAddress, tokenAdmin, registryModuleOwnerCustom);
-        } else {
-            claimAdminWithOwner(tokenAddress, registryModuleOwnerCustom);
-        }
-
+        
+        claimAdminWithCCIPAdmin(tokenAddress, tokenAdmin, registryModuleOwnerCustom);
+        
         vm.stopBroadcast();
     }
 
@@ -49,7 +43,7 @@ contract ClaimAdmin is Script {
         internal
     {
         // Instantiate the token contract with CCIP admin functionality
-        BurnMintERC677WithCCIPAdmin tokenContract = BurnMintERC677WithCCIPAdmin(tokenAddress);
+        BurnMintERC20 tokenContract = BurnMintERC20(tokenAddress);
         // Instantiate the registry contract
         RegistryModuleOwnerCustom registryContract = RegistryModuleOwnerCustom(registryModuleOwnerCustom);
 
@@ -59,7 +53,7 @@ contract ClaimAdmin is Script {
 
         // Ensure the CCIP admin matches the expected token admin address
         require(
-            tokenContractCCIPAdmin == tokenAdmin, "CCIP admin of token does not match the token admin address provided."
+            tokenContractCCIPAdmin == tokenAdmin, "CCIP admin of token doesn't match the token admin address."
         );
 
         // Register the admin via getCCIPAdmin() function
@@ -68,17 +62,4 @@ contract ClaimAdmin is Script {
         console.log("Admin claimed successfully for token:", tokenAddress);
     }
 
-    // Claim admin role using the token's owner() function
-    function claimAdminWithOwner(address tokenAddress, address registryModuleOwnerCustom) internal {
-        // Instantiate the standard token contract
-        BurnMintERC677 tokenContract = BurnMintERC677(tokenAddress);
-        // Instantiate the registry contract
-        RegistryModuleOwnerCustom registryContract = RegistryModuleOwnerCustom(registryModuleOwnerCustom);
-
-        console.log("Current token owner:", tokenContract.owner());
-        console.log("Claiming admin of the token via owner() for signer:", msg.sender);
-        // Register the admin via owner() function
-        registryContract.registerAdminViaOwner(tokenAddress);
-        console.log("Admin claimed successfully for token:", tokenAddress);
-    }
 }

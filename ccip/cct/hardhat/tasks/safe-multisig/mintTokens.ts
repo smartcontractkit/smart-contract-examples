@@ -97,8 +97,8 @@ task("mintTokensFromSafe", "Mint tokens to multiple receivers via Safe")
 
     // Log connection to the token contract and initialize it
     logger.info(`Connecting to token contract at ${tokenAddress}...`);
-    const { BurnMintERC677__factory } = await import("../../typechain-types");
-    const tokenContract = BurnMintERC677__factory.connect(tokenAddress, signer);
+    const { BurnMintERC20__factory } = await import("../../typechain-types");
+    const tokenContract = BurnMintERC20__factory.connect(tokenAddress, signer);
 
     // Log the minting process
     logger.info(

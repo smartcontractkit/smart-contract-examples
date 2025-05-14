@@ -1,5 +1,6 @@
 {
   "dependencies": {
-    "@chainlink/contracts-ccip": "^1.5.1-beta.0"
+    "@chainlink/contracts": "^1.4.0",
+    "@chainlink/contracts-ccip": "^1.6.0-beta.3"
   }
 }

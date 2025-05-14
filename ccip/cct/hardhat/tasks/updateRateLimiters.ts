@@ -17,7 +17,7 @@ interface UpdateRateLimitersArgs {
 task("updateRateLimiters", "Update rate limiters for an existing chain")
   .addParam("pooladdress", "The address of the pool")
   .addParam("remotechain", "The remote chain") // Use the chain name to look up the chain selector
-  .addParam(
+  .addOptionalParam(
     "ratelimiter",
     "Specify whether to update 'inbound', 'outbound', or 'both' rate limiters",
     "both", // Default value is both

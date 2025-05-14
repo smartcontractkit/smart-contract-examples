@@ -97,8 +97,8 @@ task(
     // Log the connection to the token contract
     logger.info(`Connecting to token contract at ${tokenAddress}...`);
     const signer = (await hre.ethers.getSigners())[0];
-    const { BurnMintERC677__factory } = await import("../../typechain-types");
-    const tokenContract = BurnMintERC677__factory.connect(tokenAddress, signer);
+    const { BurnMintERC20__factory } = await import("../../typechain-types");
+    const tokenContract = BurnMintERC20__factory.connect(tokenAddress, signer);
 
     // Initialize Safe signers for two owners using Safe Protocol Kit
     const safeSigner1 = await Safe.init({
