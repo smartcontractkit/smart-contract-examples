@@ -43,11 +43,11 @@ Example `config.json` file:
     "decimals": 18,
     "maxSupply": 0,
     "preMint": 0,
-    "ccipAdminAddress": "0x0000000000000000000000000000000000000000"
+    "ccipAdminAddress": "0x8C244f0B2164E6A3BED74ab429B0ebd661Bb14CA"
   },
   "tokenAmountToMint": 1000000000000000000000,
-  "tokenAmountToTransfer": 10000,
-  "feeType": "native",
+  "tokenAmountToTransfer": 100000000000000000000,
+  "feeType": "link",
   "remoteChains": {
     "43113": 421614,
     "421614": 43113
@@ -64,7 +64,7 @@ The `config.json` file contains the following parameters:
 | `decimals`              | The number of decimals for the token (usually `18` for standard ERC tokens).                                                                                                                                                                                                                                                                             |
 | `maxSupply`             | The maximum supply of tokens (in the smallest unit, according to `decimals`). When `maxSupply` is 0, the supply is unlimited.                                                                                                       |
 | `preMint`               | The amount of tokens to be minted to the owner at the time of deployment, specified (in the smallest unit, according to `decimals`). When `preMint` is 0, no tokens will be minted to the owner during deployment.                                                                                                                                                                                                             |
-| `ccipAdminAddress`      | The address of the CCIP admin.                                                                                                                                                                                                                                                                     |
+| `ccipAdminAddress`      | The address of the CCIP admin. Replace the address value `0x8C244f0B2164E6A3BED74ab429B0ebd661Bb14CA` with your token deployer account address.                                                                                                                                                                                                                                                                     |
 | ---                     | -----                                                                                                                                                                                                                                                                                                                                                    |
 | `tokenAmountToMint`     | The amount of tokens to mint when running the minting script. This value should be specified in wei (1 token with 18 decimals = `1000000000000000000` wei).                                                                                                                                                                                              |
 | ---                     | -----                                                                                                                                                                                                                                                                                                                                                    |
@@ -246,7 +246,7 @@ The script pulls the token and admin details from the `config.json` file and the
 
 - Claim admin role using the `getCCIPAdmin()` function:
 
-  Ensure that the `ccipAdminAddress` field is properly set in the `config.json` file.
+  Ensure that the `ccipAdminAddress` field is correctly set in the `config.json` file. Replace its value with your EOA or the token deployer account address.
 
   ```bash
   forge script script/ClaimAdmin.s.sol --rpc-url $RPC_URL_FUJI --private-key $PRIVATE_KEY --broadcast
