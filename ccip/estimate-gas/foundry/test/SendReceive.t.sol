@@ -2,7 +2,7 @@
 pragma solidity 0.8.24;
 
 // Importing necessary components from the Chainlink and Forge Standard libraries for testing.
-import {Test, console, Vm} from "forge-std/Test.sol";
+import {Test, console2, Vm} from "forge-std/Test.sol";
 import {BurnMintERC677} from "@chainlink/contracts/src/v0.8/shared/token/ERC677/BurnMintERC677.sol";
 import {MockCCIPRouter} from "@chainlink/contracts-ccip/contracts/test/mocks/MockRouter.sol";
 import {Client} from "@chainlink/contracts-ccip/contracts/libraries/Client.sol";
@@ -55,7 +55,7 @@ contract SenderReceiverTest is Test {
                     logs[i].data,
                     (bool, bytes, uint256)
                 );
-                console.log(
+                console2.log(
                     "Number of iterations %d - Gas used: %d",
                     iterations,
                     gasUsed
