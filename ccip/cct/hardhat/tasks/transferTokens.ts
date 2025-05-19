@@ -18,24 +18,24 @@ enum Fee {
 async function tryDecodeError(revertData: string) {
   const {
     IRouterClient__factory,
-    EVM2EVMOnRamp__factory,
+    OnRamp__factory,
     TokenPool__factory,
     RateLimiter__factory,
     Client__factory,
     ERC20__factory,
-    BurnMintERC677__factory,
+    BurnMintERC20__factory,
     BurnMintTokenPool__factory,
     LockReleaseTokenPool__factory,
   } = await import("../typechain-types");
 
   const factories = [
     IRouterClient__factory,
-    EVM2EVMOnRamp__factory,
+    OnRamp__factory,
     TokenPool__factory,
     RateLimiter__factory,
     Client__factory,
     ERC20__factory,
-    BurnMintERC677__factory,
+    BurnMintERC20__factory,
     BurnMintTokenPool__factory,
     LockReleaseTokenPool__factory,
   ];
@@ -141,7 +141,7 @@ task("transferTokens", "Transfer tokens to a receiver on another chain")
     const signer = (await hre.ethers.getSigners())[0];
 
     // Load the Router Client and ERC20 contract factories
-    const { IRouterClient__factory, IERC20__factory, EVM2EVMOnRamp__factory } =
+    const { IRouterClient__factory, IERC20__factory, OnRamp__factory } =
       await import("../typechain-types");
 
     // Connect to the CCIP Router contract
@@ -262,24 +262,30 @@ task("transferTokens", "Transfer tokens to a receiver on another chain")
     receipt.logs.forEach((log) => {
       try {
         const parsedLog =
-          EVM2EVMOnRamp__factory.createInterface().parseLog(log);
-        if (parsedLog && parsedLog.name === "CCIPSendRequested") {
-          messageId = parsedLog.args[0].messageId;
-          logger.info(`Message dispatched. Message id: ${messageId}`);
+          OnRamp__factory.createInterface().parseLog(log);
+          
+        if (parsedLog && parsedLog.name === "CCIPMessageSent") {
+          messageId = parsedLog.args[2].messageId;
+          if (!messageId) {
+            logger.error("Message ID not found in the transaction logs");
+          }
+          else {
+            logger.info(`Message dispatched. Message id: ${messageId}`);
+            logger.info(
+              `✅ Transferred ${amount} of ${tokenAddress} to ${receiverAddress} on chain ${destinationChain}. Transaction hash: ${tx.hash} - CCIP message id: ${messageId}`
+            );
+            logger.info(
+              `Check status of message on https://ccip.chain.link/msg/${messageId}`
+            );
+          }
         }
-      } catch (e) {
-        // ignore errors if the log can't be parsed
-      }
+      } catch (e) {} 
     });
 
     if (!messageId) {
-      throw new Error("Message ID not found in the transaction logs");
+      logger.warn(`Unable to parse the event logs corresponding to the transaction ${tx.hash}`);
+      logger.info(
+        `Check status of message on https://ccip.chain.link/tx/${tx.hash}`
+      );
     }
-
-    logger.info(
-      `✅ Transferred ${amount} of ${tokenAddress} to ${receiverAddress} on chain ${destinationChain}. Transaction hash: ${tx.hash} - CCIP message id: ${messageId}`
-    );
-    logger.info(
-      `Check status of message on https://ccip.chain.link/msg/${messageId}`
-    );
   });

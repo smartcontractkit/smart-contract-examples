@@ -3,7 +3,7 @@ pragma solidity 0.8.24;
 
 import {Script, console} from "forge-std/Script.sol";
 import {HelperUtils} from "./utils/HelperUtils.s.sol"; // Utility functions for JSON parsing and chain info
-import {BurnMintERC677} from "@chainlink/contracts-ccip/src/v0.8/shared/token/ERC677/BurnMintERC677.sol";
+import {BurnMintERC20} from "@chainlink/contracts/src/v0.8/shared/token/ERC20/BurnMintERC20.sol";
 
 contract MintTokens is Script {
     function run() external {
@@ -31,7 +31,7 @@ contract MintTokens is Script {
         vm.startBroadcast();
 
         // Instantiate the token contract at the retrieved address
-        BurnMintERC677 tokenContract = BurnMintERC677(tokenAddress);
+        BurnMintERC20 tokenContract = BurnMintERC20(tokenAddress);
 
         // Mint the specified amount of tokens to the receiver address
         console.log("Minting", amount, "tokens to", receiverAddress);

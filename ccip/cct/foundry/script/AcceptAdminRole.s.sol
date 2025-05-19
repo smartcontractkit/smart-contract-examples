@@ -4,7 +4,7 @@ pragma solidity 0.8.24;
 import {Script, console} from "forge-std/Script.sol";
 import {HelperUtils} from "./utils/HelperUtils.s.sol"; // Utility functions for JSON parsing and chain info
 import {HelperConfig} from "./HelperConfig.s.sol"; // Network configuration helper
-import {TokenAdminRegistry} from "@chainlink/contracts-ccip/src/v0.8/ccip/tokenAdminRegistry/TokenAdminRegistry.sol";
+import {TokenAdminRegistry} from "@chainlink/contracts-ccip/contracts/tokenAdminRegistry/TokenAdminRegistry.sol";
 
 contract AcceptAdminRole is Script {
     function run() external {

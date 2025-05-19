@@ -1,35 +1,27 @@
 import { task, types } from "hardhat/config";
 import { Chains, networks, TokenContractName, logger } from "../../config";
-import type { BurnMintERC677WithCCIPAdmin } from "../../typechain-types";
-import type { BurnMintERC677 } from "../../typechain-types";
+import type { BurnMintERC20 } from "../../typechain-types";
 import type { ContractFactory } from "ethers";
 
 // Define the interface for the task arguments
 interface DeployTokenTaskArgs {
-  withgetccipadmin: boolean; // Determines if the contract has a getCCIPAdmin function
-  ccipadminaddress: string; // The address of the CCIP admin, optional
   safeaddress: string; // The address of the Safe multisig account
   name: string; // The name of the token
   symbol: string; // The symbol of the token
   decimals: number; // The number of decimal places the token supports
   maxsupply: bigint; // The maximum supply of tokens. When maxSupply is 0, the supply is unlimited
+  premint: bigint; // The initial amount of the token minted to the owner
   verifycontract: boolean; // Whether to verify the contract on a blockchain explorer
 }
 
 // Define a Hardhat task called "deployTokenWithSafe"
 task("deployTokenWithSafe", "Deploys a token")
   .addParam("safeaddress", "The address of the Safe") // Adds a mandatory parameter "safeaddress" to identify the Safe
-  .addOptionalParam(
-    "withgetccipadmin",
-    "Does the contract have a getCCIPAdmin function?",
-    false, // Default value is false
-    types.boolean // Type of parameter is boolean
-  )
-  .addOptionalParam("ccipadminaddress", "The address of the CCIP admin") // Adds an optional parameter for the CCIP admin address
   .addParam("name", "The name of the token") // Adds a mandatory parameter "name" for the token's name
   .addParam("symbol", "The symbol of the token") // Adds a mandatory parameter "symbol" for the token's symbol
   .addOptionalParam("decimals", "The number of decimals", 18, types.int) // Adds an optional parameter "decimals" with a default value of 18
-  .addOptionalParam("maxsupply", "The maximum supply", 0, types.bigint) // Adds an optional parameter "maxSupply" with a default value of 0
+  .addOptionalParam("maxsupply", "The maximum supply", 0n, types.bigint) // Adds an optional parameter "maxSupply" with a default value of 0
+  .addOptionalParam("premint", "The initial amount of the token minted to the owner", 0n, types.bigint) // If preMint is 0, then the initial mint amount is 0
   .addOptionalParam(
     "verifycontract",
     "Verify the contract on Blockchain scan",
@@ -44,8 +36,7 @@ task("deployTokenWithSafe", "Deploys a token")
       symbol,
       decimals,
       maxsupply: maxSupply,
-      withgetccipadmin: withGetCCIPAdmin,
-      ccipadminaddress: ccipAdminAddress,
+      premint: preMint,
       verifycontract: verifyContract,
     } = taskArgs;
 
@@ -69,50 +60,22 @@ task("deployTokenWithSafe", "Deploys a token")
 
     // Get the first signer available in the Hardhat environment
     const signer = (await hre.ethers.getSigners())[0];
-    let token: BurnMintERC677 | BurnMintERC677WithCCIPAdmin;
+    let token: BurnMintERC20;
+    
+    const { BurnMintERC20__factory } = await import(
+      "../../typechain-types"
+    );
+    TokenFactory = new BurnMintERC20__factory(signer);
+    tokenContractName = TokenContractName.BurnMintERC20;
 
-    // Deploy the token contract based on the presence of the getCCIPAdmin function
-    if (withGetCCIPAdmin) {
-      // If withGetCCIPAdmin is true, deploy the contract with CCIP admin functionality
-      const { BurnMintERC677WithCCIPAdmin__factory } = await import(
-        "../../typechain-types"
-      );
-      TokenFactory = new BurnMintERC677WithCCIPAdmin__factory(signer);
-      tokenContractName = TokenContractName.BurnMintERC677WithCCIPAdmin;
-
-      // Determine the CCIP admin address
-      ccipAdminCalculatedAddress = ccipAdminAddress
-        ? ccipAdminAddress
-        : signer.address;
-
-      // Validate if the calculated CCIP admin address is a valid Ethereum address
-      if (!hre.ethers.isAddress(ccipAdminCalculatedAddress)) {
-        throw new Error(
-          `Invalid CCIP admin address: ${ccipAdminCalculatedAddress}`
-        );
-      }
-
-      // Deploy the token contract with the specified parameters
-      token = (await TokenFactory.deploy(
-        name,
-        symbol,
-        decimals,
-        maxSupply
-      )) as BurnMintERC677WithCCIPAdmin;
-    } else {
-      // If withGetCCIPAdmin is false, deploy the basic BurnMintERC677 contract with owner() function
-      const { BurnMintERC677__factory } = await import("../../typechain-types");
-      TokenFactory = new BurnMintERC677__factory(signer);
-      tokenContractName = TokenContractName.BurnMintERC677;
-
-      // Deploy the token contract with the specified parameters
-      token = (await TokenFactory.deploy(
-        name,
-        symbol,
-        decimals,
-        maxSupply
-      )) as BurnMintERC677;
-    }
+    // Deploy the BurnMintERC20 contract with the specified parameters
+    token = (await TokenFactory.deploy(
+      name,
+      symbol,
+      decimals,
+      maxSupply,
+      preMint
+    )) as BurnMintERC20;
 
     logger.info(`Deploying ${tokenContractName} contract to ${networkName}`);
 
@@ -141,7 +104,7 @@ task("deployTokenWithSafe", "Deploys a token")
         try {
           await hre.run("verify:verify", {
             address: tokenAddress,
-            constructorArguments: [name, symbol, decimals, maxSupply],
+            constructorArguments: [name, symbol, decimals, maxSupply, preMint],
           });
           logger.info("Token contract deployed and verified");
         } catch (error) {
@@ -167,12 +130,23 @@ task("deployTokenWithSafe", "Deploys a token")
 
       // Transfer ownership of the token to the Safe account
       logger.info(`Transferring ownership of token to Safe at ${safeAddress}`);
-      const transferOwnershipTransaction = await token.transferOwnership(
+      const transferOwnershipTransaction = await token.grantRole(
+        await token.DEFAULT_ADMIN_ROLE(),
         safeAddress
       );
       await transferOwnershipTransaction.wait(numberOfConfirmations);
 
       logger.info(`Ownership of token transferred to Safe at ${safeAddress}`);
+
+      // Setting the Safe account as the CCIP admin
+      logger.info(`Setting Safe at ${safeAddress} as the CCIP admin`);
+      const settingCCIPAdminTransaction = await token.setCCIPAdmin(
+        safeAddress
+      );
+      await settingCCIPAdminTransaction.wait(numberOfConfirmations);
+
+      logger.info(`Safe at ${safeAddress} has been set as the CCIP admin`);
+
     } catch (error) {
       // Log an error if the deployment or any other process fails
       logger.error(error);

@@ -2,7 +2,7 @@
 pragma solidity 0.8.24;
 
 import {Script, console} from "forge-std/Script.sol";
-import {TokenPool} from "@chainlink/contracts-ccip/src/v0.8/ccip/pools/TokenPool.sol";
+import {TokenPool} from "@chainlink/contracts-ccip/contracts/pools/TokenPool.sol";
 
 contract SetRateLimitAdmin is Script {
     function run(address poolAddress, address adminAddress) external {

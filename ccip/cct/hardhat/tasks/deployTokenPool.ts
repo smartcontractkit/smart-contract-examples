@@ -147,11 +147,11 @@ task("deployTokenPool", "Deploys a token pool")
           `Granting mint and burn roles to ${tokenPoolAddress} on token ${tokenAddress}`
         );
 
-        const { BurnMintERC677__factory } = await import("../typechain-types");
+        const { BurnMintERC20__factory } = await import("../typechain-types");
         const signer = (await hre.ethers.getSigners())[0];
 
         // Grant roles on the token contract for the token pool
-        const tx = await BurnMintERC677__factory.connect(
+        const tx = await BurnMintERC20__factory.connect(
           tokenAddress,
           signer
         ).grantMintAndBurnRoles(tokenPoolAddress);

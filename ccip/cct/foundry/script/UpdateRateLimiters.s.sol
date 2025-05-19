@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.24;
 
-import {Script} from "forge-std/Script.sol";
-import {TokenPool} from "@chainlink/contracts-ccip/src/v0.8/ccip/pools/TokenPool.sol";
-import {RateLimiter} from "@chainlink/contracts-ccip/src/v0.8/ccip/libraries/RateLimiter.sol";
+import {Script, console} from "forge-std/Script.sol";
+import {TokenPool} from "@chainlink/contracts-ccip/contracts/pools/TokenPool.sol";
+import {RateLimiter} from "@chainlink/contracts-ccip/contracts/libraries/RateLimiter.sol";
 import {HelperConfig} from "./HelperConfig.s.sol";
 import {HelperUtils} from "./utils/HelperUtils.s.sol";
 
@@ -73,7 +73,8 @@ contract UpdateRateLimiters is Script {
             currentInboundRateLimiterConfig.capacity = inboundRateLimitCapacity;
             currentInboundRateLimiterConfig.rate = inboundRateLimitRate;
         } else {
-            revert("Invalid rateLimiterToUpdate value. Use 0 for outbound, 1 for inbound, or 2 for both.");
+            console.log("Invalid rateLimiterToUpdate value. Use 0 for outbound, 1 for inbound, or 2 for both.");
+            revert("Invalid rateLimiterToUpdate value");
         }
 
         // Update the rate limiter configurations

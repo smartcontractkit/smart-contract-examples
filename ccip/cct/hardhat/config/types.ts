@@ -53,8 +53,7 @@ export interface EtherscanConfig {
 }
 
 export enum TokenContractName {
-  BurnMintERC677 = "BurnMintERC677",
-  BurnMintERC677WithCCIPAdmin = "BurnMintERC677WithCCIPAdmin",
+  BurnMintERC20 = "BurnMintERC20"
 }
 
 export enum TokenPoolContractName {

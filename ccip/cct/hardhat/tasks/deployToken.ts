@@ -1,32 +1,24 @@
 import { task, types } from "hardhat/config";
 import { Chains, networks, TokenContractName, logger } from "../config";
-import type { BurnMintERC677WithCCIPAdmin } from "../typechain-types";
-import type { BurnMintERC677 } from "../typechain-types";
+import type { BurnMintERC20 } from "../typechain-types";
 import type { ContractFactory } from "ethers";
 
 interface DeployTokenTaskArgs {
-  withgetccipadmin: boolean;
-  ccipadminaddress: string;
   name: string;
   symbol: string;
   decimals: number;
   maxsupply: bigint;
+  premint: bigint;
   verifycontract: boolean;
 }
 
-// Task to deploy BurnMintERC677 tokens, with optional CCIP admin settings
+// Task to deploy BurnMintERC20 tokens, with optional CCIP admin settings
 task("deployToken", "Deploys a token")
-  .addOptionalParam(
-    "withgetccipadmin", // Whether the token contract includes a getCCIPAdmin() function
-    "Does the contract have a getCCIPAdmin function?",
-    false,
-    types.boolean
-  )
-  .addOptionalParam("ccipadminaddress", "The address of the CCIP admin") // CCIP admin address, required if withgetccipadmin is true
   .addParam("name", "The name of the token") // Token name
   .addParam("symbol", "The symbol of the token") // Token symbol
   .addOptionalParam("decimals", "The number of decimals", 18, types.int) // Number of decimals (default: 18)
-  .addOptionalParam("maxsupply", "The maximum supply", 0, types.bigint) // If maxSupply is 0, the the supply is unlimited
+  .addOptionalParam("maxsupply", "The maximum supply", 0n, types.bigint) // If maxSupply is 0, then the supply is unlimited
+  .addOptionalParam("premint", "The initial amount of the token minted to the owner", 0n, types.bigint) // If preMint is 0, then the initial mint amount is 0
   .addOptionalParam(
     "verifycontract", // Option to verify the contract on Etherscan
     "Verify the contract on Blockchain scan",
@@ -38,9 +30,8 @@ task("deployToken", "Deploys a token")
       name,
       symbol,
       decimals,
-      maxsupply:maxSupply,
-      withgetccipadmin: withGetCCIPAdmin,
-      ccipadminaddress: ccipAdminAddress,
+      maxsupply: maxSupply,
+      premint: preMint,
       verifycontract: verifyContract,
     } = taskArgs;
 
@@ -53,52 +44,24 @@ task("deployToken", "Deploys a token")
 
     let TokenFactory: ContractFactory;
     let tokenContractName: TokenContractName;
-    let ccipAdminCalculatedAddress = "";
 
     const signer = (await hre.ethers.getSigners())[0]; // Get the signer (deployer)
-    let token: BurnMintERC677 | BurnMintERC677WithCCIPAdmin;
+    let token: BurnMintERC20;
 
-    // If the token includes getCCIPAdmin(), deploy the corresponding contract
-    if (withGetCCIPAdmin) {
-      const { BurnMintERC677WithCCIPAdmin__factory } = await import(
-        "../typechain-types"
-      );
-      TokenFactory = new BurnMintERC677WithCCIPAdmin__factory(signer);
-      tokenContractName = TokenContractName.BurnMintERC677WithCCIPAdmin;
+    const { BurnMintERC20__factory } = await import(
+      "../typechain-types"
+    );
+    TokenFactory = new BurnMintERC20__factory(signer);
+    tokenContractName = TokenContractName.BurnMintERC20;
 
-      // Use the provided CCIP admin address or default to the deployer's address
-      ccipAdminCalculatedAddress = ccipAdminAddress
-        ? ccipAdminAddress
-        : signer.address;
-
-      // Validate the CCIP admin address
-      if (!hre.ethers.isAddress(ccipAdminCalculatedAddress)) {
-        throw new Error(
-          `Invalid CCIP admin address: ${ccipAdminCalculatedAddress}`
-        );
-      }
-
-      // Deploy the BurnMintERC677WithCCIPAdmin contract
-      token = (await TokenFactory.deploy(
-        name,
-        symbol,
-        decimals,
-        maxSupply
-      )) as BurnMintERC677WithCCIPAdmin;
-    } else {
-      // If no CCIP admin, deploy the BurnMintERC677 contract
-      const { BurnMintERC677__factory } = await import("../typechain-types");
-      TokenFactory = new BurnMintERC677__factory(signer);
-      tokenContractName = TokenContractName.BurnMintERC677;
-
-      // Deploy the token contract with name, symbol, decimals, and maximum supply
-      token = (await TokenFactory.deploy(
-        name,
-        symbol,
-        decimals,
-        maxSupply
-      )) as BurnMintERC677;
-    }
+    // Deploy the BurnMintERC20 contract with the specified parameters
+    token = (await TokenFactory.deploy(
+      name,
+      symbol,
+      decimals,
+      maxSupply,
+      preMint
+    )) as BurnMintERC20;
 
     logger.info(`Deploying ${tokenContractName} contract to ${networkName}`);
 
@@ -119,20 +82,12 @@ task("deployToken", "Deploys a token")
       const tokenAddress = await token.getAddress();
       logger.info(`Token deployed to: ${tokenAddress}`);
 
-      // Grant mint and burn roles to the token owner
-      const currentOwner = await token.owner();
+      // Grant mint and burn roles to the token owner or the default CCIP admin
+      const currentOwner = await token.getCCIPAdmin();
+     
       logger.info(`Granting mint and burn roles to ${currentOwner}`);
       const tx = await token.grantMintAndBurnRoles(currentOwner);
       await tx.wait(numberOfConfirmations);
-
-      // If using CCIP admin, set the CCIP admin on the token contract
-      if (withGetCCIPAdmin) {
-        const ccipToken = token as BurnMintERC677WithCCIPAdmin;
-        logger.info(`Set CCIP admin to ${ccipAdminCalculatedAddress}`);
-        const tx = await ccipToken.setCCIPAdmin(ccipAdminCalculatedAddress);
-        await tx.wait(numberOfConfirmations);
-        logger.info(`CCIP admin set to ${currentOwner}`);
-      }
 
       // If verifycontract flag is true, verify the contract on Etherscan
       if (verifyContract) {
@@ -140,7 +95,7 @@ task("deployToken", "Deploys a token")
         try {
           await hre.run("verify:verify", {
             address: tokenAddress,
-            constructorArguments: [name, symbol, decimals, maxSupply],
+            constructorArguments: [name, symbol, decimals, maxSupply, preMint],
           });
           logger.info("Token contract deployed and verified");
         } catch (error) {

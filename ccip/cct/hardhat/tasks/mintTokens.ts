@@ -38,11 +38,11 @@ task("mintTokens", "Mint tokens for receiver")
       throw new Error(`Invalid receiver address: ${to}`);
     }
 
-    // Load the BurnMintERC677 contract factory
-    const { BurnMintERC677__factory } = await import("../typechain-types");
+    // Load the BurnMintERC20 contract factory
+    const { BurnMintERC20__factory } = await import("../typechain-types");
 
     // Connect to the token contract
-    const tokenContract = BurnMintERC677__factory.connect(tokenAddress, signer);
+    const tokenContract = BurnMintERC20__factory.connect(tokenAddress, signer);
 
     // Log the minting action
     logger.info(
