@@ -17,11 +17,23 @@ use solana_transaction_status::{
     UiTransactionEncoding,
     UiTransactionReturnData,
 };
+use solana_pubkey::Pubkey as ChainlinkPubkey;
 
 #[derive(Debug)]
 pub struct VerificationResult {
     pub signature: Signature,
     pub return_data: Option<Vec<u8>>,
+}
+
+// Conversion function between Solana SDK Pubkey and Chainlink Pubkey
+fn to_chainlink_pubkey(pubkey: &Pubkey) -> ChainlinkPubkey {
+    let bytes = pubkey.to_bytes();
+    ChainlinkPubkey::new_from_array(bytes)
+}
+
+fn from_chainlink_pubkey(pubkey: &ChainlinkPubkey) -> Pubkey {
+    let bytes = pubkey.to_bytes();
+    Pubkey::new_from_array(bytes)
 }
 
 pub struct VerificationClient {
@@ -39,9 +51,19 @@ impl VerificationClient {
         rpc_client: RpcClient,
         payer: Keypair
     ) -> Self {
-        let verifier_client_data_account = VerifierInstructions::get_verifier_config_pda(
-            &program_id
+        // Convert Solana Pubkey to Chainlink Pubkey for the SDK function
+        let chainlink_program_id = to_chainlink_pubkey(&program_id);
+
+        // Get verifier config PDA using the Chainlink SDK function
+        let chainlink_verifier_client_data_account = VerifierInstructions::get_verifier_config_pda(
+            &chainlink_program_id
         );
+
+        // Convert back to Solana Pubkey
+        let verifier_client_data_account = from_chainlink_pubkey(
+            &chainlink_verifier_client_data_account
+        );
+
         Self {
             program_id,
             verifier_client_data_account,
@@ -52,20 +74,53 @@ impl VerificationClient {
     }
 
     pub fn verify(&self, signed_report: Vec<u8>) -> Result<VerificationResult, ClientError> {
-        let config_account = VerifierInstructions::get_config_pda(&signed_report, &self.program_id);
+        // Convert Solana Pubkey to Chainlink Pubkey
+        let chainlink_program_id = to_chainlink_pubkey(&self.program_id);
+
+        // Get config PDA using the Chainlink SDK function
+        let chainlink_config_account = VerifierInstructions::get_config_pda(
+            &signed_report,
+            &chainlink_program_id
+        );
+
+        // Convert all Pubkeys to Chainlink Pubkeys for the SDK
+        let chainlink_verifier_client_data_account = to_chainlink_pubkey(
+            &self.verifier_client_data_account
+        );
+        let chainlink_access_controller_data_account = to_chainlink_pubkey(
+            &self.access_controller_data_account
+        );
+        let chainlink_payer_pubkey = to_chainlink_pubkey(&self.payer.pubkey());
 
         // Compress the report before sending. Obtain this off-chain from the data streams server
         let mut encoder = Encoder::new();
         let compressed_report = encoder.compress_vec(&signed_report).expect("Compression failed");
 
-        let instruction = VerifierInstructions::verify(
-            &self.program_id,
-            &self.verifier_client_data_account,
-            &self.access_controller_data_account,
-            &self.payer.pubkey(),
-            &config_account,
+        // Get the instruction from the Chainlink SDK
+        let chainlink_instruction = VerifierInstructions::verify(
+            &chainlink_program_id,
+            &chainlink_verifier_client_data_account,
+            &chainlink_access_controller_data_account,
+            &chainlink_payer_pubkey,
+            &chainlink_config_account,
             compressed_report
         );
+
+        // Convert the Chainlink instruction to a Solana instruction
+        let instruction = Instruction {
+            program_id: self.program_id,
+            accounts: chainlink_instruction.accounts
+                .iter()
+                .map(|acct| {
+                    solana_sdk::instruction::AccountMeta {
+                        pubkey: from_chainlink_pubkey(&acct.pubkey),
+                        is_signer: acct.is_signer,
+                        is_writable: acct.is_writable,
+                    }
+                })
+                .collect(),
+            data: chainlink_instruction.data,
+        };
 
         self.send_transaction_and_get_return_data(&[instruction], &[&self.payer])
     }
