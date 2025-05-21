@@ -10,7 +10,7 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@chainlink/contracts-ccip": "^1.6.0-beta.3",
+    "@chainlink/contracts-ccip": "^1.6.0",
     "@chainlink/env-enc": "^1.0.5",
     "@nomicfoundation/hardhat-toolbox": "^4.0.0",
     "hardhat": "^2.20.1"
