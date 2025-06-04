@@ -31,7 +31,7 @@
     "tokenAdminRegistry": "0x95F29FEE11c5C55d26cCcf1DB6772DE953B37B82",
     "registryModuleOwnerCustom": "0x62e731218d0D47305aba2BE3751E7EE9E5520790",
     "link": "0x779877A7B0D9E8603169DdbD7836e478b4624789",
-    "confirmations": 2,
+    "confirmations": 3,
     "nativeCurrencySymbol": "ETH",
     "chainType": "evm"
   },
