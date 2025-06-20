@@ -10,7 +10,6 @@ import { HttpNetworkConfig } from "hardhat/types"; // Import Hardhat type defini
 
 // Define the interface for the task arguments
 interface ClaimAndAcceptAdminRoleTaskArgs {
-  withccipadmin: boolean; // Flag indicating if the contract has a CCIP admin
   tokenaddress: string; // Address of the token for which the admin role will be claimed
   safeaddress: string; // Address of the Safe that will execute the transaction
 }
@@ -20,12 +19,6 @@ task(
   "claimAndAcceptAdminRoleFromSafe",
   "Claims and accepts the admin role of a token via Safe"
 )
-  .addOptionalParam(
-    "withccipadmin",
-    "Does the contract have a CCIP admin?", // Optional parameter to determine if the contract has a CCIP admin function
-    false, // Default value is false
-    types.boolean // Type of parameter is boolean
-  )
   .addParam("tokenaddress", "The address of the token") // Required parameter for the token address
   .addParam(
     "safeaddress",
@@ -34,7 +27,6 @@ task(
   .setAction(async (taskArgs: ClaimAndAcceptAdminRoleTaskArgs, hre) => {
     // Destructure the task arguments
     const {
-      withccipadmin: withCCIPAdmin,
       tokenaddress: tokenAddress,
       safeaddress: safeAddress,
     } = taskArgs;
@@ -95,83 +87,44 @@ task(
     const metaTransactions: MetaTransactionData[] = [];
     let txDescription = "";
 
-    // Claim Admin Role based on whether the contract has a CCIP admin
-    if (withCCIPAdmin) {
-      // Claiming with CCIP Admin
-      const { BurnMintERC677WithCCIPAdmin__factory } = await import(
-        "../../typechain-types"
-      );
-      const tokenContract = BurnMintERC677WithCCIPAdmin__factory.connect(
-        tokenAddress,
-        hre.ethers.provider
-      );
+    const { BurnMintERC20__factory } = await import(
+      "../../typechain-types"
+    );
+    const tokenContract = BurnMintERC20__factory.connect(
+      tokenAddress,
+      hre.ethers.provider
+    );
 
-      const tokenContractCCIPAdmin = await tokenContract.getCCIPAdmin();
-      logger.info(`Current token CCIP admin: ${tokenContractCCIPAdmin}`);
+    const tokenContractCCIPAdmin = await tokenContract.getCCIPAdmin();
+    logger.info(`Current token CCIP admin: ${tokenContractCCIPAdmin}`);
 
-      const { RegistryModuleOwnerCustom__factory } = await import(
-        "../../typechain-types"
-      );
-      const registryContract = RegistryModuleOwnerCustom__factory.connect(
-        registryModuleOwnerCustom,
-        hre.ethers.provider
-      );
+    const { RegistryModuleOwnerCustom__factory } = await import(
+      "../../typechain-types"
+    );
+    const registryContract = RegistryModuleOwnerCustom__factory.connect(
+      registryModuleOwnerCustom,
+      hre.ethers.provider
+    );
 
-      logger.info(
-        `Claiming admin of ${tokenAddress} via getCCIPAdmin() for Safe at ${safeAddress}`
-      );
+    logger.info(
+      `Claiming admin of ${tokenAddress} via getCCIPAdmin() for Safe at ${safeAddress}`
+    );
 
-      // Encode the function data to claim admin using the getCCIPAdmin method
-      const encodedClaimAdminData =
-        registryContract.interface.encodeFunctionData(
-          "registerAdminViaGetCCIPAdmin",
-          [tokenAddress]
-        );
-
-      // Add the meta-transaction to the list of meta-transactions
-      metaTransactions.push({
-        to: registryModuleOwnerCustom,
-        data: encodedClaimAdminData,
-        value: "0",
-      });
-      txDescription = `Claiming admin of token ${tokenAddress} via Safe`;
-    } else {
-      // Claiming without CCIP Admin
-      const { BurnMintERC677__factory } = await import("../../typechain-types");
-      const tokenContract = BurnMintERC677__factory.connect(
-        tokenAddress,
-        hre.ethers.provider
+    // Encode the function data to claim admin using the getCCIPAdmin method
+    const encodedClaimAdminData =
+      registryContract.interface.encodeFunctionData(
+        "registerAdminViaGetCCIPAdmin",
+        [tokenAddress]
       );
 
-      const tokenOwner = await tokenContract.owner();
-      logger.info(`Current token owner: ${tokenOwner}`);
+    // Add the meta-transaction to the list of meta-transactions
+    metaTransactions.push({
+      to: registryModuleOwnerCustom,
+      data: encodedClaimAdminData,
+      value: "0",
+    });
 
-      const { RegistryModuleOwnerCustom__factory } = await import(
-        "../../typechain-types"
-      );
-      const registryContract = RegistryModuleOwnerCustom__factory.connect(
-        registryModuleOwnerCustom,
-        hre.ethers.provider
-      );
-
-      logger.info(
-        `Claiming admin of ${tokenAddress} for Safe at ${safeAddress}`
-      );
-
-      // Encode the function data to claim admin using the token owner
-      const encodedClaimAdminData =
-        registryContract.interface.encodeFunctionData("registerAdminViaOwner", [
-          tokenAddress,
-        ]);
-
-      // Add the meta-transaction to the list of meta-transactions
-      metaTransactions.push({
-        to: registryModuleOwnerCustom,
-        data: encodedClaimAdminData,
-        value: "0",
-      });
-      txDescription = `Claiming admin of token ${tokenAddress} via Safe`;
-    }
+    txDescription = `Claiming admin of token ${tokenAddress} via Safe`;
 
     // Accept Admin Role
     const { TokenAdminRegistry__factory } = await import(

@@ -1,6 +1,6 @@
 # CCIP Self-Serve Tokens
 
-This repository contains a collection of Foundry scripts designed to simplify interactions with CCIP 1.5 contracts.
+This repository contains a collection of Foundry scripts designed to simplify interactions with CCIP 1.6 contracts.
 
 Find a list of available tutorials on the Chainlink documentation: [Cross-Chain Token (CCT) Tutorials](http://docs.chain.link/ccip/tutorials/cross-chain-tokens#overview).
 
@@ -8,7 +8,6 @@ Find a list of available tutorials on the Chainlink documentation: [Cross-Chain 
 
 - [Setup](#setup)
 - [AcceptAdminRole](#acceptadminrole)
-- [AcceptTokenAdminRole](#accepttokenadminrole)
 - [AddRemotePool](#addremotepool)
 - [ApplyChainUpdates](#applychainupdates)
 - [ClaimAdmin](#claimadmin)
@@ -43,12 +42,12 @@ Example `config.json` file:
     "symbol": "BnMkh",
     "decimals": 18,
     "maxSupply": 0,
-    "withGetCCIPAdmin": false,
-    "ccipAdminAddress": "0x0000000000000000000000000000000000000000"
+    "preMint": 0,
+    "ccipAdminAddress": "0x8C244f0B2164E6A3BED74ab429B0ebd661Bb14CA"
   },
   "tokenAmountToMint": 1000000000000000000000,
-  "tokenAmountToTransfer": 10000,
-  "feeType": "native",
+  "tokenAmountToTransfer": 100000000000000000000,
+  "feeType": "link",
   "remoteChains": {
     "43113": 421614,
     "421614": 43113
@@ -63,9 +62,9 @@ The `config.json` file contains the following parameters:
 | `name`                  | The name of the token you are going to deploy. Replace `"BnM KH"` with your desired token name.                                                                                                                                                                                                                                                          |
 | `symbol`                | The symbol of the token. Replace `"BnMkh"` with your desired token symbol.                                                                                                                                                                                                                                                                               |
 | `decimals`              | The number of decimals for the token (usually `18` for standard ERC tokens).                                                                                                                                                                                                                                                                             |
-| `maxSupply`             | The maximum supply of tokens (in the smallest unit, according to `decimals`). When maxSupply is 0, the supply is unlimited.                                                                                                                                                                                                                              |
-| `withGetCCIPAdmin`      | A boolean to determine whether the token contract has a `getCCIPAdmin()` function. If set to `true`, a CCIP admin is required. When `false`, token admin registration will use the token `owner()` function.                                                                                                                                             |
-| `ccipAdminAddress`      | The address of the CCIP admin, only applicable if `withgetccipadmin` is set to `true`.                                                                                                                                                                                                                                                                   |
+| `maxSupply`             | The maximum supply of tokens (in the smallest unit, according to `decimals`). When `maxSupply` is 0, the supply is unlimited.                                                                                                       |
+| `preMint`               | The amount of tokens to be minted to the owner at the time of deployment, specified (in the smallest unit, according to `decimals`). When `preMint` is 0, no tokens will be minted to the owner during deployment.                                                                                                                                                                                                             |
+| `ccipAdminAddress`      | The address of the CCIP admin. Replace the address value `0x8C244f0B2164E6A3BED74ab429B0ebd661Bb14CA` with your token deployer account address.                                                                                                                                                                                                                                                                     |
 | ---                     | -----                                                                                                                                                                                                                                                                                                                                                    |
 | `tokenAmountToMint`     | The amount of tokens to mint when running the minting script. This value should be specified in wei (1 token with 18 decimals = `1000000000000000000` wei).                                                                                                                                                                                              |
 | ---                     | -----                                                                                                                                                                                                                                                                                                                                                    |
@@ -140,44 +139,6 @@ The script pulls the token address from a previously deployed token in a JSON fi
 - **Pending Administrator Check**: The script ensures that only the pending administrator (specified in the token config) can accept the admin role. If the signer is not the pending administrator, the script will fail.
 - **Chain Name**: The script automatically determines the current chain based on the `block.chainid` and uses the appropriate JSON file for the deployed token address.
 
-## AcceptTokenAdminRole
-
-### Description
-
-Accepts the admin role for a specified token via the `TokenAdminRegistry` contract. This script requires the token address as an input parameter and uses the `TokenAdminRegistry` to accept the admin role if the signer is the pending administrator for the token.
-
-### Usage
-
-```bash
-forge script script/AcceptTokenAdminRole.s.sol --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast --sig "run(address)" -- <TOKEN_ADDRESS>
-```
-
-### Config Parameters
-
-- **Token Address**: The address of the token for which you want to accept the admin role. This is passed as an argument to the script.
-- **TokenAdminRegistry Address**: Retrieved from the network configuration in `HelperConfig.s.sol`.
-
-### Examples
-
-- Accept the admin role for a token on Avalanche Fuji:
-
-  ```bash
-  forge script script/AcceptTokenAdminRole.s.sol --rpc-url $RPC_URL_FUJI --private-key $PRIVATE_KEY --broadcast --sig "run(address)" -- 0xYourTokenAddress
-  ```
-
-  This will:
-
-  - Retrieve the `TokenAdminRegistry` address from the network configuration.
-  - Check if the current signer (from `PRIVATE_KEY`) is the pending administrator for the specified token.
-  - Accept the admin role for the token if the signer is the pending administrator.
-
-### Notes
-
-- **Token Address as Input**: Unlike `AcceptAdminRole`, this script requires the token address as a command-line argument.
-- **Signer Verification**: The script ensures that only the pending administrator (derived from `PRIVATE_KEY`) can accept the admin role. If the signer is not the pending administrator, the script will fail.
-- **Environment Variables**: Ensure that `PRIVATE_KEY` is set in your environment variables.
-- **Chain Configuration**: The script uses `HelperConfig.s.sol` to get the `TokenAdminRegistry` address for the current network.
-
 ## AddRemotePool
 
 ### Description
@@ -205,7 +166,7 @@ forge script script/AddRemotePool.s.sol --rpc-url $RPC_URL --private-key $PRIVAT
   forge script script/AddRemotePool.s.sol --rpc-url $RPC_URL_FUJI --private-key $PRIVATE_KEY --broadcast \
     --sig "run(address,uint256,address)" -- \
     0xYourLocalPoolAddress \
-    421613 \
+    421614 \
     0xYourRemotePoolAddressOnArbitrumSepolia
   ```
 
@@ -229,7 +190,7 @@ Configures cross-chain parameters for a token pool, including remote pool addres
 ### Usage
 
 ```bash
-forge script script/ApplyChainUpdates.s.sol --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast --verify
+forge script script/ApplyChainUpdates.s.sol --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast
 ```
 
 ### Config Parameters
@@ -247,7 +208,7 @@ The script pulls the pool and token addresses from previously deployed pool and 
 - Apply chain updates for cross-chain token transfers:
 
   ```bash
-  forge script script/ApplyChainUpdates.s.sol --rpc-url $RPC_URL_FUJI --private-key $PRIVATE_KEY --broadcast --verify
+  forge script script/ApplyChainUpdates.s.sol --rpc-url $RPC_URL_FUJI --private-key $PRIVATE_KEY --broadcast
   ```
 
   This will:
@@ -266,12 +227,12 @@ The script pulls the pool and token addresses from previously deployed pool and 
 
 ### Description
 
-Claims the admin role for a deployed token contract using either the `CCIP admin` or the standard `owner()` function, depending on the token's configuration. This script reads the token and admin information from the `config.json` file and interacts with the `RegistryModuleOwnerCustom` contract to claim the admin role.
+Claims the admin role for a deployed token contract using the `CCIP admin` function. This script reads the token and admin information from the `config.json` file and interacts with the `RegistryModuleOwnerCustom` contract to claim the admin role.
 
 ### Usage
 
 ```bash
-forge script script/ClaimAdmin.s.sol --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast --verify
+forge script script/ClaimAdmin.s.sol --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast
 ```
 
 ### Config Parameters
@@ -279,28 +240,16 @@ forge script script/ClaimAdmin.s.sol --rpc-url $RPC_URL --private-key $PRIVATE_K
 The script pulls the token and admin details from the `config.json` file and the deployed token address from a JSON file located in the `script/output/` folder.
 
 - **Deployed Token Address**: The token address is read from the output file corresponding to the current chain (e.g., `deployedToken_avalancheFuji.json`).
-- **With CCIP Admin**: The script checks the `withGetCCIPAdmin` field in `config.json` to determine whether to claim admin via the CCIP admin (`getCCIPAdmin()` function) or the `owner()` function.
 - **Admin Address**: The admin address is read from the `config.json` file (`ccipAdminAddress` field).
 
 ### Examples
 
-- Claim admin role using the `owner()` function:
-
-  ```bash
-  forge script script/ClaimAdmin.s.sol --rpc-url $RPC_URL_FUJI --private-key $PRIVATE_KEY --broadcast --verify
-  ```
-
-  This will:
-
-  - Retrieve the deployed token address from the JSON file for the Fuji network.
-  - Claim admin using the `owner()` function.
-
 - Claim admin role using the `getCCIPAdmin()` function:
 
-  Ensure that the `withGetCCIPAdmin` and `ccipAdminAddress` fields are properly set in the `config.json` file.
+  Ensure that the `ccipAdminAddress` field is correctly set in the `config.json` file. Replace its value with your EOA or the token deployer account address.
 
   ```bash
-  forge script script/ClaimAdmin.s.sol --rpc-url $RPC_URL_FUJI --private-key $PRIVATE_KEY --broadcast --verify
+  forge script script/ClaimAdmin.s.sol --rpc-url $RPC_URL_FUJI --private-key $PRIVATE_KEY --broadcast
   ```
 
   This will:
@@ -310,8 +259,7 @@ The script pulls the token and admin details from the `config.json` file and the
 
 ### Notes
 
-- **Config-based Deployment**: The script automatically retrieves the token address and admin settings from the JSON and config files. Ensure the token is deployed and the config is properly set before running this script.
-- **CCIP Admin or Owner**: Depending on the value of `withGetCCIPAdmin` in the `config.json` file, the script will either claim admin using the `CCIP admin` or the `owner()` function.
+- **Config-based Deployment**: The script automatically retrieves the token address from the corresponding JSON file located in the `script/output/` folder and the CCIP admin address from the `config.json` file. Ensure the token is deployed and the config is properly set before running this script.
 - **Chain Name**: The script automatically determines the current chain based on the `block.chainid` and uses the appropriate JSON file for the deployed token address.
 
 ## DeployBurnMintTokenPool
@@ -396,7 +344,7 @@ The script pulls the token address from a previously deployed token in a JSON fi
 
 ### Description
 
-Deploys a new ERC-677 token contract with optional CCIP admin functionality. This script reads token parameters from the `config.json` file, deploys the token, and assigns mint and burn roles to the deployer.
+Deploys a new ERC-20 token contract with CCIP admin functionality. This script reads token parameters from the `config.json` file, deploys the token, and assigns mint and burn roles to the deployer.
 
 ### Usage
 
@@ -412,24 +360,9 @@ The script pulls its configuration from the `config.json` file located in the `s
 - **`BnMToken.symbol`**: The symbol of the token.
 - **`BnMToken.decimals`**: The number of decimals for the token.
 - **`BnMToken.maxSupply`**: The maximum supply of tokens (in the smallest unit, according to `decimals`). When `maxSupply` is 0, the supply is unlimited.
-- **`BnMToken.withGetCCIPAdmin`**: Boolean flag to determine whether the token contract has a `getCCIPAdmin()` function. If `true`, the token will include CCIP admin functionality.
-- **`BnMToken.ccipAdminAddress`**: The address of the CCIP admin (only required if `withGetCCIPAdmin` is `true`). Defaults to the deployer's address if not provided.
+- **`BnMToken.preMint`**: The amount of tokens to be minted to the owner at the time of deployment, specified (in the smallest unit, according to `decimals`). When `preMint` is 0, no tokens will be minted to the owner during deployment.                    
 
 ### Examples
-
-- Deploy a token without CCIP admin functionality:
-
-  ```bash
-  forge script script/DeployToken.s.sol --rpc-url $RPC_URL_FUJI --private-key $PRIVATE_KEY --broadcast --verify
-  ```
-
-- Deploy a token with CCIP admin functionality:
-
-  Ensure that the `withGetCCIPAdmin` and `ccipAdminAddress` fields are properly set in the `config.json` file.
-
-  ```bash
-  forge script script/DeployToken.s.sol --rpc-url $RPC_URL_FUJI --private-key $PRIVATE_KEY --broadcast --verify
-  ```
 
 - Deploy a token with a maximum supply:
 
@@ -441,7 +374,26 @@ The script pulls its configuration from the `config.json` file located in the `s
   "symbol": "BnMkh",
   "decimals": 18,
   "maxSupply": 1000000000000000000000,
-  "withGetCCIPAdmin": false,
+  "ccipAdminAddress": "0x0000000000000000000000000000000000000000"
+  }
+  ```
+
+  Then run the script:
+
+  ```bash
+  forge script script/DeployToken.s.sol --rpc-url $RPC_URL_FUJI --private-key $PRIVATE_KEY --broadcast --verify
+  ```
+
+- Deploy a token with a pre-mint amount:
+
+  Update the `preMint` field in `config.json` to the desired value (in the smallest unit, according to `decimals`):
+
+  ```json
+  "BnMToken": {
+  "name": "BnM KH",
+  "symbol": "BnMkh",
+  "decimals": 18,
+  "preMint": 10000000000000000000,
   "ccipAdminAddress": "0x0000000000000000000000000000000000000000"
   }
   ```
@@ -484,12 +436,12 @@ forge script script/GetCurrentRateLimits.s.sol:GetCurrentRateLimits --rpc-url $R
     --rpc-url $RPC_URL_FUJI \
     --sig "run(address,uint256)" -- \
     0xYourPoolAddressOnFuji \
-    421613
+    421614
   ```
 
   This will:
 
-  - Retrieve the `remoteChainSelector` corresponding to `421613` (Arbitrum Sepolia) using the network configuration.
+  - Retrieve the `remoteChainSelector` corresponding to `421614` (Arbitrum Sepolia) using the network configuration.
   - Fetch and display the current inbound and outbound rate limiter states for the specified pool and remote chain.
 
 ### Notes
@@ -627,7 +579,7 @@ forge script script/RemoveRemotePool.s.sol --rpc-url $RPC_URL --private-key $PRI
   forge script script/RemoveRemotePool.s.sol --rpc-url $RPC_URL_FUJI --private-key $PRIVATE_KEY --broadcast \
     --sig "run(address,uint256,address)" -- \
     0xYourLocalPoolAddress \
-    421613 \
+    421614 \
     0xYourRemotePoolAddressOnArbitrumSepolia
   ```
 

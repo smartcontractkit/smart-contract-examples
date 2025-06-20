@@ -4,8 +4,8 @@ pragma solidity 0.8.24;
 import {Script, console} from "forge-std/Script.sol";
 import {HelperUtils} from "./utils/HelperUtils.s.sol"; // Utility functions for JSON parsing and chain info
 import {HelperConfig} from "./HelperConfig.s.sol"; // Network configuration helper
-import {TokenPool} from "@chainlink/contracts-ccip/src/v0.8/ccip/pools/TokenPool.sol";
-import {RateLimiter} from "@chainlink/contracts-ccip/src/v0.8/ccip/libraries/RateLimiter.sol";
+import {TokenPool} from "@chainlink/contracts-ccip/contracts/pools/TokenPool.sol";
+import {RateLimiter} from "@chainlink/contracts-ccip/contracts/libraries/RateLimiter.sol";
 
 contract ApplyChainUpdates is Script {
     function run() external {

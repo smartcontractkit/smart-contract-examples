@@ -4,9 +4,9 @@ pragma solidity 0.8.24;
 import {Script, console} from "forge-std/Script.sol";
 import {HelperUtils} from "./utils/HelperUtils.s.sol"; // Utility functions for JSON parsing and chain info
 import {HelperConfig} from "./HelperConfig.s.sol"; // Network configuration helper
-import {BurnMintTokenPool} from "@chainlink/contracts-ccip/src/v0.8/ccip/pools/BurnMintTokenPool.sol";
-import {BurnMintERC677} from "@chainlink/contracts-ccip/src/v0.8/shared/token/ERC677/BurnMintERC677.sol";
-import {IBurnMintERC20} from "@chainlink/contracts-ccip/src/v0.8/shared/token/ERC20/IBurnMintERC20.sol";
+import {BurnMintTokenPool} from "@chainlink/contracts-ccip/contracts/pools/BurnMintTokenPool.sol";
+import {BurnMintERC20} from "@chainlink/contracts/src/v0.8/shared/token/ERC20/BurnMintERC20.sol";
+import {IBurnMintERC20} from "@chainlink/contracts/src/v0.8/shared/token/ERC20/IBurnMintERC20.sol";
 
 contract DeployBurnMintTokenPool is Script {
     function run() external {
@@ -46,7 +46,7 @@ contract DeployBurnMintTokenPool is Script {
         console.log("Burn & Mint token pool deployed to:", address(tokenPool));
 
         // Grant mint and burn roles to the token pool on the token contract
-        BurnMintERC677(tokenAddress).grantMintAndBurnRoles(address(tokenPool));
+        BurnMintERC20(tokenAddress).grantMintAndBurnRoles(address(tokenPool));
         console.log("Granted mint and burn roles to token pool:", address(tokenPool));
 
         vm.stopBroadcast();

@@ -61,6 +61,6 @@ task("transferTokenAdminRole", "Transfer token admin role to a new address")
     await tx.wait(confirmations);
     logger.info("Admin role transfer initiated successfully");
     logger.info(
-      `New admin ${newAdmin} must call acceptTokenAdminRole to complete the transfer`
+      `New admin ${newAdmin} must call acceptAdminRole to complete the transfer`
     );
   }); 

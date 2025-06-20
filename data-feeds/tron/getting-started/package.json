@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "@chainlink/contracts": "^1.4.0",
+    "dotenv": "^16.5.0",
+    "tronweb": "^6.0.3"
+  }
+}

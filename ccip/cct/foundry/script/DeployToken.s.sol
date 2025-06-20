@@ -3,9 +3,7 @@ pragma solidity 0.8.24;
 
 import {Script, console} from "forge-std/Script.sol";
 import {HelperUtils} from "./utils/HelperUtils.s.sol"; // Utility functions for JSON parsing and chain info
-import {HelperConfig} from "./HelperConfig.s.sol"; // Network configuration helper
-import {BurnMintERC677WithCCIPAdmin} from "../src/BurnMintERC677WithCCIPAdmin.sol";
-import {BurnMintERC677} from "@chainlink/contracts-ccip/src/v0.8/shared/token/ERC677/BurnMintERC677.sol";
+import {BurnMintERC20} from "@chainlink/contracts/src/v0.8/shared/token/ERC20/BurnMintERC20.sol";
 
 contract DeployToken is Script {
     function run() external {
@@ -21,37 +19,20 @@ contract DeployToken is Script {
         string memory symbol = HelperUtils.getStringFromJson(vm, configPath, ".BnMToken.symbol");
         uint8 decimals = uint8(HelperUtils.getUintFromJson(vm, configPath, ".BnMToken.decimals"));
         uint256 maxSupply = HelperUtils.getUintFromJson(vm, configPath, ".BnMToken.maxSupply");
-        bool withGetCCIPAdmin = HelperUtils.getBoolFromJson(vm, configPath, ".BnMToken.withGetCCIPAdmin");
-        address ccipAdminAddress = HelperUtils.getAddressFromJson(vm, configPath, ".BnMToken.ccipAdminAddress");
+        uint256 preMint = HelperUtils.getUintFromJson(vm, configPath, ".BnMToken.preMint");
 
         vm.startBroadcast();
 
         address deployer = msg.sender;
         address tokenAddress;
 
-        // Check if the token uses getCCIPAdmin() function
-        if (withGetCCIPAdmin) {
-            // Deploy the token contract with CCIP admin functionality
-            BurnMintERC677WithCCIPAdmin token = new BurnMintERC677WithCCIPAdmin(name, symbol, decimals, maxSupply);
-
-            // If no CCIP admin address is specified, default to the deployer
-            if (ccipAdminAddress == address(0)) {
-                ccipAdminAddress = deployer;
-            }
-            // Set the CCIP admin for the token
-            token.setCCIPAdmin(ccipAdminAddress);
-
-            tokenAddress = address(token);
-            console.log("Deployed BurnMintERC677WithCCIPAdmin at:", tokenAddress);
-        } else {
-            // Deploy the standard token contract without CCIP admin functionality
-            BurnMintERC677 token = new BurnMintERC677(name, symbol, decimals, maxSupply);
-            tokenAddress = address(token);
-            console.log("Deployed BurnMintERC677 at:", tokenAddress);
-        }
-
+        
+        BurnMintERC20 token = new BurnMintERC20(name, symbol, decimals, maxSupply, preMint);
+        tokenAddress = address(token);
+        console.log("Deployed BurnMintERC20 at:", tokenAddress);
+        
         // Grant mint and burn roles to the deployer address
-        BurnMintERC677(tokenAddress).grantMintAndBurnRoles(deployer);
+        BurnMintERC20(tokenAddress).grantMintAndBurnRoles(deployer);
         console.log("Granted mint and burn roles to:", deployer);
 
         vm.stopBroadcast();

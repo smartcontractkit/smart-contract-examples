@@ -75,7 +75,10 @@ contract StaFiTest is Test {
                 linkAddress: address(0), // not used
                 wrappedNativeAddress: address(0), // not used
                 ccipBnMAddress: address(0), // not used
-                ccipLnMAddress: address(0) // not used
+                ccipLnMAddress: address(0), // not used
+                rmnProxyAddress: address(0), 
+                registryModuleOwnerCustomAddress: address(0), // not used
+                tokenAdminRegistryAddress: address(0) // not used
             })
         );
 
