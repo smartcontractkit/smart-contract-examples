@@ -1,7 +1,12 @@
 import { task, types } from "hardhat/config";
 import { Chains, networks, logger, configData } from "../config";
 import { CHAIN_TYPE } from "../config/types";
-import bs58 from "bs58";
+import {
+  validateChainAddressOrThrow,
+  prepareChainAddressData,
+  InvalidAddressError,
+  UnsupportedChainTypeError,
+} from "../utils/chainHandlers";
 
 interface ConfigurePoolArgs {
   pooladdress: string;
@@ -14,68 +19,6 @@ interface ConfigurePoolArgs {
   inboundratelimitenabled: boolean;
   inboundratelimitcapacity: number;
   inboundratelimitrate: number;
-}
-
-/**
- * Converts a Solana address from base58 to hex format
- * 
- * @param address - The Solana address in base58 format
- * @returns The address as a hex string prefixed with 0x
- */
-function convertSolanaAddressToHex(address: string): string {
-  const bytes = bs58.decode(address);
-  return "0x" + Buffer.from(bytes).toString("hex");
-}
-
-/**
- * Prepares address data for the contract based on chain type
- * For EVM chains: encodes as an EVM address
- * For Solana chains: directly converts to hex representation
- * 
- * @param address - The address to prepare
- * @param chainType - The chain type (evm or svm)
- * @param hre - Hardhat runtime environment
- * @returns Prepared address data
- */
-function prepareAddressData(address: string, chainType: CHAIN_TYPE, hre: any): string {
-  logger.debug(`Preparing address: ${address} for chain type: ${chainType}`);
-  
-  if (chainType === "svm") {
-    // For Solana, convert directly to hex and return the string (don't use ABI encoding)
-    const hexAddress = convertSolanaAddressToHex(address);
-    logger.debug(`Converted Solana address to hex: ${hexAddress}`);
-    return hexAddress;
-  }
-  
-  // For EVM chains, encode as an Ethereum address
-  const encodedAddress = new hre.ethers.AbiCoder().encode(["address"], [address]);
-  logger.debug(`Encoded EVM address: ${encodedAddress}`);
-  return encodedAddress;
-}
-
-/**
- * Validates an address based on the chain type
- * Different chains have different address validation rules
- * 
- * @param address - The address to validate
- * @param chainType - The chain type the address belongs to
- * @param hre - Hardhat runtime environment
- * @returns boolean indicating if the address is valid
- */
-function isValidAddress(address: string, chainType: CHAIN_TYPE, hre: any): boolean {
-  if (chainType === "svm") {
-    try {
-      // Validate Solana address format (should be base58 encoded and proper length)
-      const decoded = bs58.decode(address);
-      return decoded.length === 32; // Solana addresses are 32 bytes
-    } catch (error) {
-      logger.error(`Invalid Solana address format: ${address}`);
-      return false;
-    }
-  }
-  
-  // Default to EVM address validation
-  return hre.ethers.isAddress(address);
 }
 
 // Task to initialize a pool configuration, including setting cross-chain parameters and rate limits
@@ -165,34 +108,42 @@ task("applyChainUpdates", "Initialize a pool configuration")
     if (remoteChainSelector === undefined) {
       throw new Error(`chainSelector is not defined for ${remoteChain}`);
     }
-    
+
     logger.info(`🔹 Remote chain selector: ${remoteChainSelector}`);
 
     // Parse the comma-separated remote pool addresses
     const remotePoolAddresses = remotePoolAddressesStr
       .split(",")
       .map((addr) => addr.trim());
-      
-    logger.info(`🔹 Parsed ${remotePoolAddresses.length} remote pool addresses`);
-    
+
+    logger.info(
+      `🔹 Parsed ${remotePoolAddresses.length} remote pool addresses`
+    );
+
     // Validate addresses according to the remote chain type
-    for (const addr of remotePoolAddresses) {
-      if (!isValidAddress(addr, remoteChainType, hre)) {
-        throw new Error(`Invalid remote pool address for ${remoteChainType} chain: ${addr}`);
+    try {
+      for (const addr of remotePoolAddresses) {
+        validateChainAddressOrThrow(addr, remoteChainType, hre);
       }
-    }
 
-    // Validate the local pool address (always EVM)
-    if (!hre.ethers.isAddress(poolAddress)) {
-      throw new Error(`Invalid pool address: ${poolAddress}`);
-    }
+      // Validate the local pool address (always EVM)
+      if (!hre.ethers.isAddress(poolAddress)) {
+        throw new Error(`Invalid pool address: ${poolAddress}`);
+      }
 
-    // Validate the remote token address according to chain type
-    if (!isValidAddress(remoteTokenAddress, remoteChainType, hre)) {
-      throw new Error(`Invalid remote token address for ${remoteChainType} chain: ${remoteTokenAddress}`);
-    }
+      // Validate the remote token address according to chain type
+      validateChainAddressOrThrow(remoteTokenAddress, remoteChainType, hre);
 
-    logger.info("✅ All addresses validated successfully");
+      logger.info("✅ All addresses validated successfully");
+    } catch (error) {
+      if (
+        error instanceof InvalidAddressError ||
+        error instanceof UnsupportedChainTypeError
+      ) {
+        throw new Error(`Address validation failed: ${error.message}`);
+      }
+      throw error;
+    }
 
     // Get the signer
     const signerAddress = (await hre.ethers.getSigners())[0];
@@ -207,14 +158,20 @@ task("applyChainUpdates", "Initialize a pool configuration")
 
     // Prepare the remote pool addresses based on chain type
     const preparedRemotePoolAddresses = remotePoolAddresses.map((addr, idx) => {
-      const prepared = prepareAddressData(addr, remoteChainType, hre);
-      logger.info(`🔹 Remote pool address ${idx+1}: ${addr} → ${prepared}`);
+      const prepared = prepareChainAddressData(addr, remoteChainType, hre);
+      logger.info(`🔹 Remote pool address ${idx + 1}: ${addr} → ${prepared}`);
       return prepared;
     });
 
     // Prepare the remote token address based on chain type
-    const preparedRemoteTokenAddress = prepareAddressData(remoteTokenAddress, remoteChainType, hre);
-    logger.info(`🔹 Remote token address: ${remoteTokenAddress} → ${preparedRemoteTokenAddress}`);
+    const preparedRemoteTokenAddress = prepareChainAddressData(
+      remoteTokenAddress,
+      remoteChainType,
+      hre
+    );
+    logger.info(
+      `🔹 Remote token address: ${remoteTokenAddress} → ${preparedRemoteTokenAddress}`
+    );
 
     // Log rate limiter settings
     logger.info("=== Rate Limiter Configuration ===");
@@ -223,7 +180,7 @@ task("applyChainUpdates", "Initialize a pool configuration")
       logger.info(`🔹 Outbound capacity: ${outboundRateLimitCapacity}`);
       logger.info(`🔹 Outbound rate: ${outboundRateLimitRate}`);
     }
-    
+
     logger.info(`🔹 Inbound enabled: ${inboundRateLimitEnabled}`);
     if (inboundRateLimitEnabled) {
       logger.info(`🔹 Inbound capacity: ${inboundRateLimitCapacity}`);
@@ -254,13 +211,13 @@ task("applyChainUpdates", "Initialize a pool configuration")
     try {
       const tx = await poolContract.applyChainUpdates([], [chainUpdate]);
       logger.info(`🔹 Transaction sent: ${tx.hash}`);
-  
+
       // Wait for confirmations
       const { confirmations } = networkConfig;
       if (confirmations === undefined) {
         throw new Error(`confirmations is not defined for ${networkName}`);
       }
-  
+
       logger.info(`🔹 Waiting for ${confirmations} confirmations...`);
       await tx.wait(confirmations);
       logger.info("✅ Chain update applied successfully!");

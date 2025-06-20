@@ -1,13 +1,22 @@
 export type CHAIN_TYPE = "evm" | "svm";
 
+/**
+ * Type guard to check if a string is a valid CHAIN_TYPE
+ * @param value - The string to check
+ * @returns true if the string is a valid CHAIN_TYPE
+ */
+export function isChainType(value: string): value is CHAIN_TYPE {
+  return value === "evm" || value === "svm";
+}
+
 export interface ChainConfig {
-  chainId?: number;
+  chainId?: number | string; // Allow string for non-EVM chains like Solana
   chainSelector: string;
-  router: string;
-  rmnProxy: string;
-  tokenAdminRegistry: string;
-  registryModuleOwnerCustom: string;
-  link: string;
+  router?: string; // Optional for non-EVM chains
+  rmnProxy?: string; // Optional for non-EVM chains
+  tokenAdminRegistry?: string; // Optional for non-EVM chains
+  registryModuleOwnerCustom?: string; // Optional for non-EVM chains
+  link?: string; // Optional for non-EVM chains
   confirmations: number;
   nativeCurrencySymbol: string;
   chainType: CHAIN_TYPE;

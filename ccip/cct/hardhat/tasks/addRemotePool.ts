@@ -1,75 +1,18 @@
 import { task } from "hardhat/config";
 import { Chains, networks, logger, configData } from "../config";
 import { CHAIN_TYPE } from "../config/types";
-import bs58 from "bs58";
+import {
+  validateChainAddressOrThrow,
+  prepareChainAddressData,
+  InvalidAddressError,
+  UnsupportedChainTypeError,
+} from "../utils/chainHandlers";
 
 // Define the interface for the task arguments
 interface AddRemotePoolArgs {
   pooladdress: string; // The address of the token pool to configure
   remotechain: string; // The remote chain identifier
   remotepooladdress: string; // The address of the pool on the remote chain
-}
-
-/**
- * Converts a Solana address from base58 to hex format
- * 
- * @param address - The Solana address in base58 format
- * @returns The address as a hex string prefixed with 0x
- */
-function convertSolanaAddressToHex(address: string): string {
-  const bytes = bs58.decode(address);
-  return "0x" + Buffer.from(bytes).toString("hex");
-}
-
-/**
- * Validates an address based on the chain type
- * Different chains have different address validation rules
- * 
- * @param address - The address to validate
- * @param chainType - The chain type the address belongs to
- * @param hre - Hardhat runtime environment
- * @returns boolean indicating if the address is valid
- */
-function isValidAddress(address: string, chainType: CHAIN_TYPE, hre: any): boolean {
-  if (chainType === "svm") {
-    try {
-      // Validate Solana address format (should be base58 encoded and proper length)
-      const decoded = bs58.decode(address);
-      return decoded.length === 32; // Solana addresses are 32 bytes
-    } catch (error) {
-      logger.error(`Invalid Solana address format: ${address}`);
-      return false;
-    }
-  }
-  
-  // Default to EVM address validation
-  return hre.ethers.isAddress(address);
-}
-
-/**
- * Prepares address data for the contract based on chain type
- * For EVM chains: encodes as an EVM address
- * For Solana chains: directly converts to hex representation
- * 
- * @param address - The address to prepare
- * @param chainType - The chain type (evm or svm)
- * @param hre - Hardhat runtime environment
- * @returns Prepared address data
- */
-function prepareAddressData(address: string, chainType: CHAIN_TYPE, hre: any): string {
-  logger.debug(`Preparing address: ${address} for chain type: ${chainType}`);
-  
-  if (chainType === "svm") {
-    // For Solana, convert directly to hex and return the string
-    const hexAddress = convertSolanaAddressToHex(address);
-    logger.debug(`Converted Solana address to hex: ${hexAddress}`);
-    return hexAddress;
-  }
-  
-  // For EVM chains, encode as an Ethereum address
-  const encodedAddress = new hre.ethers.AbiCoder().encode(["address"], [address]);
-  logger.debug(`Encoded EVM address: ${encodedAddress}`);
-  return encodedAddress;
 }
 
 // Task to add a remote pool for a specific chain selector
@@ -101,7 +44,8 @@ task("addRemotePool", "Add a remote pool for a specific chain")
     }
 
     // Get the remote chain configuration
-    const remoteNetworkConfig = configData[remoteChain as keyof typeof configData];
+    const remoteNetworkConfig =
+      configData[remoteChain as keyof typeof configData];
     if (!remoteNetworkConfig) {
       throw new Error(`Remote chain ${remoteChain} not found in config`);
     }
@@ -123,11 +67,20 @@ task("addRemotePool", "Add a remote pool for a specific chain")
     }
 
     // Validate the remote pool address according to chain type
-    if (!isValidAddress(remotePoolAddress, remoteChainType, hre)) {
-      throw new Error(`Invalid remote pool address for ${remoteChainType} chain: ${remotePoolAddress}`);
+    try {
+      validateChainAddressOrThrow(remotePoolAddress, remoteChainType, hre);
+      logger.info("✅ All addresses validated successfully");
+    } catch (error) {
+      if (
+        error instanceof InvalidAddressError ||
+        error instanceof UnsupportedChainTypeError
+      ) {
+        throw new Error(
+          `Invalid remote pool address for ${remoteChainType} chain: ${remotePoolAddress} - ${error.message}`
+        );
+      }
+      throw error;
     }
-
-    logger.info("✅ All addresses validated successfully");
 
     // Get the signer to interact with the contract
     const signer = (await hre.ethers.getSigners())[0];
@@ -138,8 +91,14 @@ task("addRemotePool", "Add a remote pool for a specific chain")
     logger.info("✅ Connected to pool contract");
 
     // Prepare the remote pool address based on chain type
-    const preparedRemotePoolAddress = prepareAddressData(remotePoolAddress, remoteChainType, hre);
-    logger.info(`🔹 Prepared remote pool address: ${remotePoolAddress} → ${preparedRemotePoolAddress}`);
+    const preparedRemotePoolAddress = prepareChainAddressData(
+      remotePoolAddress,
+      remoteChainType,
+      hre
+    );
+    logger.info(
+      `🔹 Prepared remote pool address: ${remotePoolAddress} → ${preparedRemotePoolAddress}`
+    );
 
     logger.info("=== Executing Transaction ===");
     logger.info("🔹 Sending addRemotePool transaction...");
@@ -167,4 +126,4 @@ task("addRemotePool", "Add a remote pool for a specific chain")
       logger.error(error);
       throw error;
     }
-  }); 
+  });
