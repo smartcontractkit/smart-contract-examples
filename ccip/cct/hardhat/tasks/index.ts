@@ -16,3 +16,6 @@ import "./setRateLimitAdmin";
 import "./transferTokenAdminRole";
 import "./addRemotePool";
 import "./removeRemotePool";
+import "./acceptTokenAdminRole";
+import "./updateAllowList";
+import "./deployFaucet";

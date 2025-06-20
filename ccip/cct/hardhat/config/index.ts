@@ -5,5 +5,5 @@ export {
   TokenContractName,
   TokenPoolContractName,
 } from "./types";
-export { networks, etherscan } from "./networks";
+export { networks, etherscan, configData } from "./networks";
 export { logger } from "./logger";

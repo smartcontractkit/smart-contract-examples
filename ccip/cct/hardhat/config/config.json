@@ -8,7 +8,8 @@
     "registryModuleOwnerCustom": "0x97300785aF1edE1343DB6d90706A35CF14aA3d81",
     "link": "0x0b9d5D9136855f6FEc3c0993feE6E9CE8a297846",
     "confirmations": 2,
-    "nativeCurrencySymbol": "AVAX"
+    "nativeCurrencySymbol": "AVAX",
+    "chainType": "evm"
   },
   "arbitrumSepolia": {
     "chainId": 421614,
@@ -19,7 +20,8 @@
     "registryModuleOwnerCustom": "0xE625f0b8b0Ac86946035a7729Aba124c8A64cf69",
     "link": "0xb1D4538B4571d411F07960EF2838Ce337FE1E80E",
     "confirmations": 2,
-    "nativeCurrencySymbol": "ETH"
+    "nativeCurrencySymbol": "ETH",
+    "chainType": "evm"
   },
   "ethereumSepolia": {
     "chainId": 11155111,
@@ -29,8 +31,9 @@
     "tokenAdminRegistry": "0x95F29FEE11c5C55d26cCcf1DB6772DE953B37B82",
     "registryModuleOwnerCustom": "0x62e731218d0D47305aba2BE3751E7EE9E5520790",
     "link": "0x779877A7B0D9E8603169DdbD7836e478b4624789",
-    "confirmations": 2,
-    "nativeCurrencySymbol": "ETH"
+    "confirmations": 3,
+    "nativeCurrencySymbol": "ETH",
+    "chainType": "evm"
   },
   "baseSepolia": {
     "chainId": 84532,
@@ -41,6 +44,12 @@
     "registryModuleOwnerCustom": "0x8A55C61227f26a3e2f217842eCF20b52007bAaBe",
     "link": "0xE4aB69C077896252FAFBD49EFD26B5D171A32410",
     "confirmations": 2,
-    "nativeCurrencySymbol": "ETH"
+    "nativeCurrencySymbol": "ETH",
+    "chainType": "evm"
+  },
+  "solanaDevnet": {
+    "chainId": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+    "chainSelector": "16423721717087811551",
+    "chainType": "svm"
   }
 }
