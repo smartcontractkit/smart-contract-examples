@@ -63,7 +63,7 @@ function calculatePoolConfigPda(
  */
 function showUsage() {
   console.log(`
-Usage: npx ts-node scripts/calculateSolanaPDA.ts <token-mint-address> <pool-program-address>
+Usage: npx tsx scripts/calculateCCIPTokenPoolPDA.ts <token-mint-address> <pool-program-address>
 
 Calculate the CCIP TokenPool Configuration PDA on Solana and encode it for EVM usage.
 
@@ -78,10 +78,10 @@ Arguments:
 
 Examples:
   # Calculate PDA for CCIP token pool configuration
-  npx ts-node scripts/calculateSolanaPDA.ts 3PjyGzj1jGVgHSKS4VR1Hr1memm63PmN8L9rtPDKwzZ6 BqGg42v35Ghuigi4smWU9KKQTUnQb5ATocDbJikHjocS
+  npx tsx scripts/calculateCCIPTokenPoolPDA.ts 3PjyGzj1jGVgHSKS4VR1Hr1memm63PmN8L9rtPDKwzZ6 BqGg42v35Ghuigi4smWU9KKQTUnQb5ATocDbJikHjocS
 
   # Show help
-  npx ts-node scripts/calculateSolanaPDA.ts --help
+  npx tsx scripts/calculateCCIPTokenPoolPDA.ts --help
 
 Output:
   The script will:
