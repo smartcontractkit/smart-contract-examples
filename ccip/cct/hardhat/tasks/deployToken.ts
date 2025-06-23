@@ -1,5 +1,11 @@
 import { task, types } from "hardhat/config";
-import { Chains, networks, TokenContractName, logger } from "../config";
+import {
+  Chains,
+  networks,
+  TokenContractName,
+  logger,
+  getEVMNetworkConfig,
+} from "../config";
 import type { BurnMintERC20 } from "../typechain-types";
 import type { ContractFactory } from "ethers";
 
@@ -18,7 +24,12 @@ task("deployToken", "Deploys a token")
   .addParam("symbol", "The symbol of the token") // Token symbol
   .addOptionalParam("decimals", "The number of decimals", 18, types.int) // Number of decimals (default: 18)
   .addOptionalParam("maxsupply", "The maximum supply", 0n, types.bigint) // If maxSupply is 0, then the supply is unlimited
-  .addOptionalParam("premint", "The initial amount of the token minted to the owner", 0n, types.bigint) // If preMint is 0, then the initial mint amount is 0
+  .addOptionalParam(
+    "premint",
+    "The initial amount of the token minted to the owner",
+    0n,
+    types.bigint
+  ) // If preMint is 0, then the initial mint amount is 0
   .addOptionalParam(
     "verifycontract", // Option to verify the contract on Etherscan
     "Verify the contract on Blockchain scan",
@@ -38,7 +49,7 @@ task("deployToken", "Deploys a token")
     const networkName = hre.network.name as Chains;
 
     // Check if network is defined in config
-    if (!networks[networkName]) {
+    if (!getEVMNetworkConfig(networkName)) {
       throw new Error(`Network ${networkName} not found in config`);
     }
 
@@ -48,9 +59,7 @@ task("deployToken", "Deploys a token")
     const signer = (await hre.ethers.getSigners())[0]; // Get the signer (deployer)
     let token: BurnMintERC20;
 
-    const { BurnMintERC20__factory } = await import(
-      "../typechain-types"
-    );
+    const { BurnMintERC20__factory } = await import("../typechain-types");
     TokenFactory = new BurnMintERC20__factory(signer);
     tokenContractName = TokenContractName.BurnMintERC20;
 
@@ -66,7 +75,8 @@ task("deployToken", "Deploys a token")
     logger.info(`Deploying ${tokenContractName} contract to ${networkName}`);
 
     try {
-      const numberOfConfirmations = networks[networkName]?.confirmations;
+      const numberOfConfirmations =
+        getEVMNetworkConfig(networkName)?.confirmations;
       if (numberOfConfirmations === undefined) {
         throw new Error(`confirmations is not defined for ${networkName}`);
       }
@@ -84,7 +94,7 @@ task("deployToken", "Deploys a token")
 
       // Grant mint and burn roles to the token owner or the default CCIP admin
       const currentOwner = await token.getCCIPAdmin();
-     
+
       logger.info(`Granting mint and burn roles to ${currentOwner}`);
       const tx = await token.grantMintAndBurnRoles(currentOwner);
       await tx.wait(numberOfConfirmations);

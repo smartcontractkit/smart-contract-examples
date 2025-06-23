@@ -1,5 +1,5 @@
 import { task, types } from "hardhat/config"; // Import required modules from Hardhat for defining tasks and specifying types
-import { Chains, networks, logger } from "../../config"; // Import necessary configurations, including chains, network settings, and a logger for logging information
+import { Chains, networks, logger, getEVMNetworkConfig } from "../../config"; // Import necessary configurations, including chains, network settings, and a logger for logging information
 import {
   MetaTransactionData,
   SafeTransaction,
@@ -26,16 +26,13 @@ task(
   ) // Required parameter for the Safe address
   .setAction(async (taskArgs: ClaimAndAcceptAdminRoleTaskArgs, hre) => {
     // Destructure the task arguments
-    const {
-      tokenaddress: tokenAddress,
-      safeaddress: safeAddress,
-    } = taskArgs;
+    const { tokenaddress: tokenAddress, safeaddress: safeAddress } = taskArgs;
 
     // Retrieve the current network's name from the Hardhat runtime environment
     const networkName = hre.network.name as Chains;
 
     // Validate the network configuration
-    const networkConfig = networks[networkName];
+    const networkConfig = getEVMNetworkConfig(networkName);
     if (!networkConfig) {
       throw new Error(`Network ${networkName} not found in config`);
     }
@@ -87,9 +84,7 @@ task(
     const metaTransactions: MetaTransactionData[] = [];
     let txDescription = "";
 
-    const { BurnMintERC20__factory } = await import(
-      "../../typechain-types"
-    );
+    const { BurnMintERC20__factory } = await import("../../typechain-types");
     const tokenContract = BurnMintERC20__factory.connect(
       tokenAddress,
       hre.ethers.provider
@@ -111,11 +106,10 @@ task(
     );
 
     // Encode the function data to claim admin using the getCCIPAdmin method
-    const encodedClaimAdminData =
-      registryContract.interface.encodeFunctionData(
-        "registerAdminViaGetCCIPAdmin",
-        [tokenAddress]
-      );
+    const encodedClaimAdminData = registryContract.interface.encodeFunctionData(
+      "registerAdminViaGetCCIPAdmin",
+      [tokenAddress]
+    );
 
     // Add the meta-transaction to the list of meta-transactions
     metaTransactions.push({

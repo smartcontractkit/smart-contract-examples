@@ -19,3 +19,4 @@ ignition/deployments/chain-31337
 
 .DS_Store
 .vscode
+logs/*

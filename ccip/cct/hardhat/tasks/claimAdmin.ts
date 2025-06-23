@@ -1,5 +1,5 @@
 import { task } from "hardhat/config";
-import { Chains, networks, logger } from "../config";
+import { Chains, networks, logger, getEVMNetworkConfig } from "../config";
 
 interface ClaimAdminTaskArgs {
   tokenaddress: string;
@@ -9,12 +9,11 @@ interface ClaimAdminTaskArgs {
 task("claimAdmin", "Claims the admin of a token")
   .addParam("tokenaddress", "The address of the token") // Token address
   .setAction(async (taskArgs: ClaimAdminTaskArgs, hre) => {
-    const { tokenaddress: tokenAddress } =
-      taskArgs;
+    const { tokenaddress: tokenAddress } = taskArgs;
     const networkName = hre.network.name as Chains;
 
     // Retrieve the network configuration
-    const networkConfig = networks[networkName];
+    const networkConfig = getEVMNetworkConfig(networkName);
     if (!networkConfig) {
       throw new Error(`Network ${networkName} not found in config`);
     }
@@ -44,9 +43,7 @@ task("claimAdmin", "Claims the admin of a token")
     const { RegistryModuleOwnerCustom__factory } = await import(
       "../typechain-types"
     );
-    const { BurnMintERC20__factory } = await import(
-      "../typechain-types"
-    );
+    const { BurnMintERC20__factory } = await import("../typechain-types");
 
     // Connect to the RegistryModuleOwnerCustom and token contracts
     const registryModuleOwnerCustomContract =

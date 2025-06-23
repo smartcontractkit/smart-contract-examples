@@ -1,5 +1,5 @@
 import { task } from "hardhat/config";
-import { Chains, networks, logger } from "../config";
+import { Chains, networks, logger, getEVMNetworkConfig } from "../config";
 
 // Define the interface for the task arguments
 interface UpdateAllowListArgs {
@@ -32,7 +32,7 @@ task("updateAllowList", "Update the allow list for a token pool")
     const networkName = hre.network.name as Chains;
 
     // Ensure the network is configured in the network settings
-    const networkConfig = networks[networkName];
+    const networkConfig = getEVMNetworkConfig(networkName);
     if (!networkConfig) {
       throw new Error(`Network ${networkName} not found in config`);
     }
@@ -94,4 +94,4 @@ task("updateAllowList", "Update the allow list for a token pool")
     // Wait for the transaction to be confirmed
     await tx.wait(confirmations);
     logger.info("Allow list updated successfully");
-  }); 
+  });

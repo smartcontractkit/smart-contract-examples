@@ -1,5 +1,5 @@
 import { task, types } from "hardhat/config";
-import { Chains, networks, logger } from "../config";
+import { Chains, logger, getEVMNetworkConfig, configData } from "../config";
 import { RateLimiter } from "../typechain-types";
 
 interface UpdateRateLimitersArgs {
@@ -76,7 +76,7 @@ task("updateRateLimiters", "Update rate limiters for an existing chain")
     const networkName = hre.network.name as Chains;
 
     // Retrieve the network configuration for the source chain
-    const networkConfig = networks[networkName];
+    const networkConfig = getEVMNetworkConfig(networkName);
     if (!networkConfig) {
       throw new Error(`Network ${networkName} not found in config`);
     }
@@ -87,7 +87,8 @@ task("updateRateLimiters", "Update rate limiters for an existing chain")
     }
 
     // Retrieve the network configuration for the remote chain
-    const remoteNetworkConfig = networks[remoteChain as Chains];
+    const remoteNetworkConfig =
+      configData[remoteChain as keyof typeof configData];
     if (!remoteNetworkConfig) {
       throw new Error(`Remote chain ${remoteChain} not found in config`);
     }

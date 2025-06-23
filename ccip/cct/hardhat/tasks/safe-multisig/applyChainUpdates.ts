@@ -1,5 +1,5 @@
 import { task, types } from "hardhat/config"; // Importing task configuration and types from Hardhat
-import { Chains, networks, logger } from "../../config"; // Import configurations such as chain settings, network configurations, and logger
+import { Chains, logger, getEVMNetworkConfig, configData } from "../../config"; // Import configurations such as chain settings, network configurations, and logger
 import {
   MetaTransactionData,
   SafeTransaction,
@@ -89,13 +89,14 @@ task("applyChainUpdatesFromSafe", "Configure pool via Safe")
     const networkName = hre.network.name as Chains;
 
     // Validate the local network configuration
-    const networkConfig = networks[networkName];
+    const networkConfig = getEVMNetworkConfig(networkName);
     if (!networkConfig) {
       throw new Error(`Network ${networkName} not found in config`);
     }
 
     // Validate the remote network configuration
-    const remoteNetworkConfig = networks[remoteChain as Chains];
+    const remoteNetworkConfig =
+      configData[remoteChain as keyof typeof configData];
     if (!remoteNetworkConfig) {
       throw new Error(`Remote chain ${remoteChain} not found in config`);
     }

@@ -1,7 +1,7 @@
 import { task, types } from "hardhat/config";
 import Safe, { SafeFactory } from "@safe-global/protocol-kit";
 import { HttpNetworkConfig } from "hardhat/types";
-import { logger } from "../../config";
+import { logger, getEVMNetworkConfig } from "../../config";
 
 // Define the arguments for the task
 interface DeploySafeTaskArgs {

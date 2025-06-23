@@ -1,5 +1,5 @@
 import { task } from "hardhat/config";
-import { Chains, networks, logger } from "../config";
+import { Chains, networks, logger, getEVMNetworkConfig } from "../config";
 
 // Define the interface for the task arguments
 interface TransferTokenAdminRoleArgs {
@@ -18,7 +18,7 @@ task("transferTokenAdminRole", "Transfer token admin role to a new address")
     const networkName = hre.network.name as Chains;
 
     // Ensure the network is configured in the network settings
-    const networkConfig = networks[networkName];
+    const networkConfig = getEVMNetworkConfig(networkName);
     if (!networkConfig) {
       throw new Error(`Network ${networkName} not found in config`);
     }
@@ -63,4 +63,4 @@ task("transferTokenAdminRole", "Transfer token admin role to a new address")
     logger.info(
       `New admin ${newAdmin} must call acceptAdminRole to complete the transfer`
     );
-  }); 
+  });

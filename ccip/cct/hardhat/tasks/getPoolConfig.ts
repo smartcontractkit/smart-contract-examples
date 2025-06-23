@@ -1,5 +1,11 @@
 import { task } from "hardhat/config";
-import { Chains, networks, logger } from "../config";
+import {
+  Chains,
+  networks,
+  logger,
+  getEVMNetworkConfig,
+  configData,
+} from "../config";
 
 // Define the interface for the task arguments
 interface GetPoolConfigArgs {
@@ -14,7 +20,7 @@ task("getPoolConfig", "Get pool configuration")
     const networkName = hre.network.name as Chains;
 
     // Ensure the network is configured in the network settings
-    const networkConfig = networks[networkName];
+    const networkConfig = getEVMNetworkConfig(networkName);
     if (!networkConfig) {
       throw new Error(`Network ${networkName} not found in config`);
     }
@@ -32,19 +38,14 @@ task("getPoolConfig", "Get pool configuration")
     const poolContract = TokenPool__factory.connect(poolAddress, signer);
 
     // Fetch all basic pool information in a single batch to optimize RPC calls
-    const [
-      rateLimitAdmin,
-      allowListEnabled,
-      router,
-      token,
-      remoteChains,
-    ] = await Promise.all([
-      poolContract.getRateLimitAdmin(), // Get the rate limit administrator address
-      poolContract.getAllowListEnabled(), // Check if allowlist is enabled
-      poolContract.getRouter(), // Get the router contract address
-      poolContract.getToken(), // Get the token contract address
-      poolContract.getSupportedChains(), // Get all supported chain selectors
-    ]);
+    const [rateLimitAdmin, allowListEnabled, router, token, remoteChains] =
+      await Promise.all([
+        poolContract.getRateLimitAdmin(), // Get the rate limit administrator address
+        poolContract.getAllowListEnabled(), // Check if allowlist is enabled
+        poolContract.getRouter(), // Get the router contract address
+        poolContract.getToken(), // Get the token contract address
+        poolContract.getSupportedChains(), // Get all supported chain selectors
+      ]);
 
     // Display the basic pool configuration information
     logger.info(`\nPool Basic Information:`);
@@ -83,14 +84,18 @@ task("getPoolConfig", "Get pool configuration")
         // Try to get a human-readable chain name from the network configuration
         const chainName = Object.keys(networks).find(
           (key) =>
-            networks[key as Chains]?.chainSelector?.toString() ===
-            chainSelector.toString()
+            configData[
+              key as keyof typeof configData
+            ]?.chainSelector?.toString() === chainSelector.toString()
         );
 
         // Decode the remote pool addresses from their encoded form
         const remotePoolAddresses = remotePools.map((encodedPool) => {
           try {
-            return new hre.ethers.AbiCoder().decode(["address"], encodedPool)[0];
+            return new hre.ethers.AbiCoder().decode(
+              ["address"],
+              encodedPool
+            )[0];
           } catch (error) {
             return "DECODE_ERROR"; // Return error string if decoding fails
           }
