@@ -22,6 +22,20 @@ export interface ChainConfig {
   chainType: CHAIN_TYPE;
 }
 
+// Specific type for EVM chains used by Hardhat
+export interface EVMChainConfig {
+  chainId: number; // Strict number type for EVM chains
+  chainSelector: string;
+  router: string;
+  rmnProxy: string;
+  tokenAdminRegistry: string;
+  registryModuleOwnerCustom: string;
+  link: string;
+  confirmations: number;
+  nativeCurrencySymbol: string;
+  chainType: "evm";
+}
+
 export enum Chains {
   avalancheFuji = "avalancheFuji",
   arbitrumSepolia = "arbitrumSepolia",
@@ -30,19 +44,28 @@ export enum Chains {
   solanaDevnet = "solanaDevnet",
 }
 
+// EVM-only chains for Hardhat networks
+export enum EVMChains {
+  avalancheFuji = "avalancheFuji",
+  arbitrumSepolia = "arbitrumSepolia",
+  sepolia = "sepolia",
+  baseSepolia = "baseSepolia",
+}
+
 export type Configs = {
   [key in Chains]: ChainConfig;
 };
 
-export interface NetworkConfig extends ChainConfig {
+export interface NetworkConfig extends EVMChainConfig {
   url: string;
   gasPrice?: number;
   nonce?: number;
   accounts: string[];
 }
 
+// Use EVMChains for Hardhat networks to ensure type safety
 export type Networks = Partial<{
-  [key in Chains]: NetworkConfig;
+  [key in EVMChains]: NetworkConfig;
 }>;
 
 type ApiKeyConfig = Partial<{
@@ -66,7 +89,7 @@ export interface EtherscanConfig {
 }
 
 export enum TokenContractName {
-  BurnMintERC20 = "BurnMintERC20"
+  BurnMintERC20 = "BurnMintERC20",
 }
 
 export enum TokenPoolContractName {

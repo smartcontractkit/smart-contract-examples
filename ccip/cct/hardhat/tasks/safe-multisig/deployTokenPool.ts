@@ -1,5 +1,5 @@
 import { task, types } from "hardhat/config"; // Importing required modules from Hardhat for defining tasks and specifying types
-import { Chains, networks, logger } from "../../config"; // Importing necessary configuration for chains, networks, and a logger for logging information
+import { Chains, networks, logger, getEVMNetworkConfig } from "../../config"; // Importing necessary configuration for chains, networks, and a logger for logging information
 
 // Define the interface for the task arguments
 interface DeployTokenPoolTaskArgs {
@@ -41,7 +41,7 @@ task(
     const networkName = hre.network.name as Chains;
 
     // Retrieve the network configuration for the specified network
-    const networkConfig = networks[networkName];
+    const networkConfig = getEVMNetworkConfig(networkName);
     if (!networkConfig) {
       throw new Error(`Network ${networkName} not found in config`);
     }

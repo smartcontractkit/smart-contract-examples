@@ -1,5 +1,5 @@
 import { task, types } from "hardhat/config";
-import { Chains, networks, logger, configData } from "../config";
+import { Chains, logger, configData, getEVMNetworkConfig } from "../config";
 import { CHAIN_TYPE } from "../config/types";
 import {
   validateChainAddressOrThrow,
@@ -87,8 +87,8 @@ task("applyChainUpdates", "Initialize a pool configuration")
 
     const networkName = hre.network.name as Chains;
 
-    // Retrieve the network configuration for the source chain
-    const networkConfig = networks[networkName];
+    // Retrieve the network configuration for the source chain using the new utility
+    const networkConfig = getEVMNetworkConfig(networkName);
     if (!networkConfig) {
       throw new Error(`Network ${networkName} not found in config`);
     }

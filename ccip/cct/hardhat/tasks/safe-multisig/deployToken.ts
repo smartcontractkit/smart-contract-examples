@@ -1,5 +1,11 @@
 import { task, types } from "hardhat/config";
-import { Chains, networks, TokenContractName, logger } from "../../config";
+import {
+  Chains,
+  networks,
+  TokenContractName,
+  logger,
+  getEVMNetworkConfig,
+} from "../../config";
 import type { BurnMintERC20 } from "../../typechain-types";
 import type { ContractFactory } from "ethers";
 
@@ -21,7 +27,12 @@ task("deployTokenWithSafe", "Deploys a token")
   .addParam("symbol", "The symbol of the token") // Adds a mandatory parameter "symbol" for the token's symbol
   .addOptionalParam("decimals", "The number of decimals", 18, types.int) // Adds an optional parameter "decimals" with a default value of 18
   .addOptionalParam("maxsupply", "The maximum supply", 0n, types.bigint) // Adds an optional parameter "maxSupply" with a default value of 0
-  .addOptionalParam("premint", "The initial amount of the token minted to the owner", 0n, types.bigint) // If preMint is 0, then the initial mint amount is 0
+  .addOptionalParam(
+    "premint",
+    "The initial amount of the token minted to the owner",
+    0n,
+    types.bigint
+  ) // If preMint is 0, then the initial mint amount is 0
   .addOptionalParam(
     "verifycontract",
     "Verify the contract on Blockchain scan",
@@ -44,7 +55,7 @@ task("deployTokenWithSafe", "Deploys a token")
     const networkName = hre.network.name as Chains;
 
     // Validate if the network is configured
-    if (!networks[networkName]) {
+    if (!getEVMNetworkConfig(networkName)) {
       throw new Error(`Network ${networkName} not found in config`);
     }
 
@@ -61,10 +72,8 @@ task("deployTokenWithSafe", "Deploys a token")
     // Get the first signer available in the Hardhat environment
     const signer = (await hre.ethers.getSigners())[0];
     let token: BurnMintERC20;
-    
-    const { BurnMintERC20__factory } = await import(
-      "../../typechain-types"
-    );
+
+    const { BurnMintERC20__factory } = await import("../../typechain-types");
     TokenFactory = new BurnMintERC20__factory(signer);
     tokenContractName = TokenContractName.BurnMintERC20;
 
@@ -81,7 +90,8 @@ task("deployTokenWithSafe", "Deploys a token")
 
     try {
       // Get the number of confirmations required for the deployment
-      const numberOfConfirmations = networks[networkName]?.confirmations;
+      const numberOfConfirmations =
+        getEVMNetworkConfig(networkName)?.confirmations;
       if (numberOfConfirmations === undefined) {
         throw new Error(`confirmations is not defined for ${networkName}`);
       }
@@ -140,13 +150,10 @@ task("deployTokenWithSafe", "Deploys a token")
 
       // Setting the Safe account as the CCIP admin
       logger.info(`Setting Safe at ${safeAddress} as the CCIP admin`);
-      const settingCCIPAdminTransaction = await token.setCCIPAdmin(
-        safeAddress
-      );
+      const settingCCIPAdminTransaction = await token.setCCIPAdmin(safeAddress);
       await settingCCIPAdminTransaction.wait(numberOfConfirmations);
 
       logger.info(`Safe at ${safeAddress} has been set as the CCIP admin`);
-
     } catch (error) {
       // Log an error if the deployment or any other process fails
       logger.error(error);

@@ -1,5 +1,5 @@
 import { task } from "hardhat/config";
-import { Chains, networks, logger } from "../config";
+import { Chains, logger, getEVMNetworkConfig, configData } from "../config";
 
 // Define the interface for the task arguments
 interface GetCurrentRateLimitsArgs {
@@ -16,13 +16,14 @@ task("getCurrentRateLimits", "Get current rate limiter states for a chain")
     const networkName = hre.network.name as Chains;
 
     // Ensure the network is configured in the network settings
-    const networkConfig = networks[networkName];
+    const networkConfig = getEVMNetworkConfig(networkName);
     if (!networkConfig) {
       throw new Error(`Network ${networkName} not found in config`);
     }
 
     // Get the remote chain configuration
-    const remoteNetworkConfig = networks[remoteChain as Chains];
+    const remoteNetworkConfig =
+      configData[remoteChain as keyof typeof configData];
     if (!remoteNetworkConfig) {
       throw new Error(`Remote chain ${remoteChain} not found in config`);
     }
@@ -78,4 +79,4 @@ task("getCurrentRateLimits", "Get current rate limiter states for a chain")
       );
       throw error;
     }
-  }); 
+  });

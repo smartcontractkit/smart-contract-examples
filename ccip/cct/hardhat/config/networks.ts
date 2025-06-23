@@ -1,4 +1,4 @@
-import { CHAIN_TYPE, Chains, EtherscanConfig, Networks } from "./types";
+import { CHAIN_TYPE, EVMChains, EtherscanConfig, Networks } from "./types";
 import configData from "./config.json";
 
 require("@chainlink/env-enc").config();
@@ -15,34 +15,34 @@ if (PRIVATE_KEY_2) {
 }
 
 const networks: Networks = {
-  [Chains.avalancheFuji]: {
+  [EVMChains.avalancheFuji]: {
     ...configData.avalancheFuji,
     url: process.env.AVALANCHE_FUJI_RPC_URL || "UNSET",
-    chainType: configData.avalancheFuji.chainType as CHAIN_TYPE,
+    chainType: "evm" as const,
     gasPrice: undefined,
     nonce: undefined,
     accounts,
   },
-  [Chains.arbitrumSepolia]: {
+  [EVMChains.arbitrumSepolia]: {
     ...configData.arbitrumSepolia,
     url: process.env.ARBITRUM_SEPOLIA_RPC_URL || "UNSET",
-    chainType: configData.arbitrumSepolia.chainType as CHAIN_TYPE,
+    chainType: "evm" as const,
     gasPrice: undefined,
     nonce: undefined,
     accounts,
   },
-  [Chains.sepolia]: {
+  [EVMChains.sepolia]: {
     ...configData.ethereumSepolia,
     url: process.env.ETHEREUM_SEPOLIA_RPC_URL || "UNSET",
-    chainType: configData.ethereumSepolia.chainType as CHAIN_TYPE,
+    chainType: "evm" as const,
     gasPrice: undefined,
     nonce: undefined,
     accounts,
   },
-  [Chains.baseSepolia]: {
+  [EVMChains.baseSepolia]: {
     ...configData.baseSepolia,
     url: process.env.BASE_SEPOLIA_RPC_URL || "UNSET",
-    chainType: configData.baseSepolia.chainType as CHAIN_TYPE,
+    chainType: "evm" as const,
     gasPrice: undefined,
     nonce: undefined,
     accounts,
@@ -51,14 +51,14 @@ const networks: Networks = {
 
 const etherscan: EtherscanConfig = {
   apiKey: {
-    [Chains.avalancheFuji]: "avalancheFuji",
-    [Chains.sepolia]: process.env.ETHERSCAN_API_KEY || "UNSET",
-    [Chains.arbitrumSepolia]: process.env.ARBISCAN_API_KEY || "UNSET",
-    [Chains.baseSepolia]: process.env.BASESCAN_API_KEY || "UNSET",
+    [EVMChains.avalancheFuji]: "avalancheFuji",
+    [EVMChains.sepolia]: process.env.ETHERSCAN_API_KEY || "UNSET",
+    [EVMChains.arbitrumSepolia]: process.env.ARBISCAN_API_KEY || "UNSET",
+    [EVMChains.baseSepolia]: process.env.BASESCAN_API_KEY || "UNSET",
   },
   customChains: [
     {
-      network: Chains.avalancheFuji,
+      network: EVMChains.avalancheFuji,
       chainId: configData.avalancheFuji.chainId,
       urls: {
         apiURL:

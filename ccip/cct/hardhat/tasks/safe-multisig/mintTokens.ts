@@ -1,5 +1,5 @@
 import { task } from "hardhat/config"; // Import the "task" utility from Hardhat to define custom tasks
-import { Chains, networks, logger } from "../../config"; // Import configurations for chains, networks, and a logger for logging messages
+import { Chains, networks, logger, getEVMNetworkConfig } from "../../config"; // Import configurations for chains, networks, and a logger for logging messages
 import {
   MetaTransactionData,
   SafeTransaction,
@@ -38,7 +38,7 @@ task("mintTokensFromSafe", "Mint tokens to multiple receivers via Safe")
     const networkName = hre.network.name as Chains;
 
     // Validate that the network is configured
-    const networkConfig = networks[networkName];
+    const networkConfig = getEVMNetworkConfig(networkName);
     if (!networkConfig) {
       throw new Error(`Network ${networkName} not found in config`);
     }

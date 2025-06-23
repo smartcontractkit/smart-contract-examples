@@ -1,5 +1,5 @@
 import { task, types } from "hardhat/config";
-import { Chains, networks, logger } from "../config";
+import { Chains, networks, logger, getEVMNetworkConfig } from "../config";
 import type { Faucet } from "../typechain-types";
 import type { ContractFactory } from "ethers";
 
@@ -39,7 +39,7 @@ task("deployFaucet", "Deploys the Faucet contract")
     const networkName = hre.network.name as Chains;
 
     // Check if network is defined in config
-    if (!networks[networkName]) {
+    if (!getEVMNetworkConfig(networkName)) {
       throw new Error(`Network ${networkName} not found in config`);
     }
 
@@ -67,7 +67,8 @@ task("deployFaucet", "Deploys the Faucet contract")
         initialDripAmount // Pass as string, ethers handles BigNumberish
       )) as Faucet;
 
-      const numberOfConfirmations = networks[networkName]?.confirmations;
+      const numberOfConfirmations =
+        getEVMNetworkConfig(networkName)?.confirmations;
       if (numberOfConfirmations === undefined) {
         throw new Error(`confirmations is not defined for ${networkName}`);
       }
@@ -114,4 +115,4 @@ task("deployFaucet", "Deploys the Faucet contract")
       logger.error(error);
       throw new Error("Faucet deployment failed");
     }
-  }); 
+  });

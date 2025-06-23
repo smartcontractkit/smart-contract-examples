@@ -1,5 +1,5 @@
 import { task, types } from "hardhat/config";
-import { Chains, networks, logger } from "../config";
+import { Chains, logger, getEVMNetworkConfig, configData } from "../config";
 
 interface TransferTokensArgs {
   tokenaddress: string;
@@ -85,14 +85,15 @@ task("transferTokens", "Transfer tokens to a receiver on another chain")
     const networkName = hre.network.name as Chains;
 
     // Retrieve the network configuration for the local chain
-    const networkConfig = networks[networkName];
+    const networkConfig = getEVMNetworkConfig(networkName);
     if (!networkConfig) {
       throw new Error(`Network ${networkName} not found in config`);
     }
 
     // Retrieve the network configuration for the destination chain
     const destinationNetworkName = destinationChain as Chains;
-    const destinationNetworkConfig = networks[destinationNetworkName];
+    const destinationNetworkConfig =
+      configData[destinationNetworkName as keyof typeof configData];
     if (!destinationNetworkConfig) {
       throw new Error(`Network ${destinationNetworkName} not found in config`);
     }
@@ -261,15 +262,13 @@ task("transferTokens", "Transfer tokens to a receiver on another chain")
     let messageId = "";
     receipt.logs.forEach((log) => {
       try {
-        const parsedLog =
-          OnRamp__factory.createInterface().parseLog(log);
-          
+        const parsedLog = OnRamp__factory.createInterface().parseLog(log);
+
         if (parsedLog && parsedLog.name === "CCIPMessageSent") {
           messageId = parsedLog.args[2].messageId;
           if (!messageId) {
             logger.error("Message ID not found in the transaction logs");
-          }
-          else {
+          } else {
             logger.info(`Message dispatched. Message id: ${messageId}`);
             logger.info(
               `✅ Transferred ${amount} of ${tokenAddress} to ${receiverAddress} on chain ${destinationChain}. Transaction hash: ${tx.hash} - CCIP message id: ${messageId}`
@@ -279,11 +278,13 @@ task("transferTokens", "Transfer tokens to a receiver on another chain")
             );
           }
         }
-      } catch (e) {} 
+      } catch (e) {}
     });
 
     if (!messageId) {
-      logger.warn(`Unable to parse the event logs corresponding to the transaction ${tx.hash}`);
+      logger.warn(
+        `Unable to parse the event logs corresponding to the transaction ${tx.hash}`
+      );
       logger.info(
         `Check status of message on https://ccip.chain.link/tx/${tx.hash}`
       );

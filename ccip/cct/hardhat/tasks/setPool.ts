@@ -1,5 +1,5 @@
 import { task } from "hardhat/config";
-import { Chains, networks, logger } from "../config";
+import { Chains, networks, logger, getEVMNetworkConfig } from "../config";
 
 interface SetPoolArgs {
   tokenaddress: string;
@@ -15,7 +15,7 @@ task("setPool", "Set the pool for a token")
     const networkName = hre.network.name as Chains;
 
     // Retrieve the network configuration
-    const networkConfig = networks[networkName];
+    const networkConfig = getEVMNetworkConfig(networkName);
     if (!networkConfig) {
       throw new Error(`Network ${networkName} not found in config`);
     }

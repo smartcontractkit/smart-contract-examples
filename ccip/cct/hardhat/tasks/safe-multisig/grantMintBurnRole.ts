@@ -1,5 +1,5 @@
 import { task } from "hardhat/config"; // Importing the task utility from Hardhat to define a new task
-import { Chains, networks, logger } from "../../config"; // Importing necessary configurations such as Chains, network settings, and logger
+import { Chains, networks, logger, getEVMNetworkConfig } from "../../config"; // Importing necessary configurations such as Chains, network settings, and logger
 import {
   MetaTransactionData,
   SafeTransaction,
@@ -39,7 +39,7 @@ task(
     const networkName = hre.network.name as Chains;
 
     // Validate that the network is configured
-    if (!networks[networkName]) {
+    if (!getEVMNetworkConfig(networkName)) {
       throw new Error(`Network ${networkName} not found in config`);
     }
 
@@ -89,7 +89,8 @@ task(
     }
 
     // Retrieve the number of confirmations required for the transaction
-    const numberOfConfirmations = networks[networkName]?.confirmations;
+    const numberOfConfirmations =
+      getEVMNetworkConfig(networkName)?.confirmations;
     if (numberOfConfirmations === undefined) {
       throw new Error(`Confirmations are not defined for ${networkName}`);
     }

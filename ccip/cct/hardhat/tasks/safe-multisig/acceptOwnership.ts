@@ -1,5 +1,5 @@
 import { task } from "hardhat/config"; // Import the "task" utility from Hardhat to define custom tasks
-import { Chains, networks, logger } from "../../config"; // Import required configuration, including chains, networks, and a logger
+import { Chains, networks, logger, getEVMNetworkConfig } from "../../config"; // Import required configuration, including chains, networks, and a logger
 import {
   MetaTransactionData,
   SafeTransaction,
@@ -32,7 +32,7 @@ task(
     const signer = (await hre.ethers.getSigners())[0]; // Get the first signer from the list of available signers
 
     // Validate the network configuration
-    if (!networks[networkName]) {
+    if (!getEVMNetworkConfig(networkName)) {
       throw new Error(`Network ${networkName} not found in config`);
     }
 
@@ -149,7 +149,8 @@ task(
 
     // Wait for the transaction to be confirmed on the blockchain
     if (result && result.transactionResponse) {
-      const numberOfConfirmations = networks[networkName]?.confirmations;
+      const numberOfConfirmations =
+        getEVMNetworkConfig(networkName)?.confirmations;
       if (numberOfConfirmations === undefined) {
         throw new Error(`Confirmations are not defined for ${networkName}`);
       }

@@ -1,5 +1,5 @@
 import { task } from "hardhat/config";
-import { Chains, networks, logger } from "../config";
+import { Chains, networks, logger, getEVMNetworkConfig } from "../config";
 
 // Define the interface for the task arguments
 interface SetRateLimitAdminArgs {
@@ -17,7 +17,7 @@ task("setRateLimitAdmin", "Set the rate limit admin for a token pool")
     const networkName = hre.network.name as Chains;
 
     // Ensure the network is configured in the network settings
-    const networkConfig = networks[networkName];
+    const networkConfig = getEVMNetworkConfig(networkName);
     if (!networkConfig) {
       throw new Error(`Network ${networkName} not found in config`);
     }
@@ -37,7 +37,9 @@ task("setRateLimitAdmin", "Set the rate limit admin for a token pool")
     const poolContract = TokenPool__factory.connect(poolAddress, signer);
 
     // Log the operation being performed
-    logger.info(`Setting rate limit admin to ${adminAddress} for pool at ${poolAddress}`);
+    logger.info(
+      `Setting rate limit admin to ${adminAddress} for pool at ${poolAddress}`
+    );
 
     // Execute the transaction to set the new rate limit admin
     const tx = await poolContract.setRateLimitAdmin(adminAddress);
@@ -51,4 +53,4 @@ task("setRateLimitAdmin", "Set the rate limit admin for a token pool")
     // Wait for the transaction to be confirmed
     await tx.wait(confirmations);
     logger.info("Rate limit admin updated successfully");
-  }); 
+  });

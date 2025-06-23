@@ -1,5 +1,11 @@
 import { task } from "hardhat/config";
-import { Chains, networks, logger, configData } from "../config";
+import {
+  Chains,
+  networks,
+  logger,
+  configData,
+  getEVMNetworkConfig,
+} from "../config";
 import { CHAIN_TYPE } from "../config/types";
 import {
   validateChainAddressOrThrow,
@@ -38,7 +44,7 @@ task("removeRemotePool", "Remove a remote pool for a specific chain")
     const networkName = hre.network.name as Chains;
 
     // Ensure the network is configured in the network settings
-    const networkConfig = networks[networkName];
+    const networkConfig = getEVMNetworkConfig(networkName);
     if (!networkConfig) {
       throw new Error(`Network ${networkName} not found in config`);
     }
