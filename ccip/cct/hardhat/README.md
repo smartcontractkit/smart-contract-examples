@@ -2,7 +2,117 @@
 
 Find a list of available tutorials on the Chainlink documentation: [Cross-Chain Token (CCT) Tutorials](http://docs.chain.link/ccip/tutorials/cross-chain-tokens#overview).
 
+## Getting Started
+
+### Prerequisites
+
+Before running any tasks, ensure you have:
+
+1. **Environment Setup**: Set up encrypted environment variables using `@chainlink/env-enc` and configure your private keys and RPC URLs
+2. **Network Configuration**: All tasks require the `--network` flag to specify which blockchain to use
+
+### Global Options
+
+All tasks in this project use Hardhat's global options. The most important one is:
+
+- **`--network <network_name>`**: **Required** for all tasks
+  - Specifies which blockchain network to execute the task on
+  - Must be one of the supported networks listed below
+
+### Supported Networks
+
+The following networks are configured and available for use:
+
+| Network Name      | Description              | Environment Variable       |
+| ----------------- | ------------------------ | -------------------------- |
+| `avalancheFuji`   | Avalanche Fuji Testnet   | `AVALANCHE_FUJI_RPC_URL`   |
+| `arbitrumSepolia` | Arbitrum Sepolia Testnet | `ARBITRUM_SEPOLIA_RPC_URL` |
+| `sepolia`         | Ethereum Sepolia Testnet | `ETHEREUM_SEPOLIA_RPC_URL` |
+| `baseSepolia`     | Base Sepolia Testnet     | `BASE_SEPOLIA_RPC_URL`     |
+| `polygonAmoy`     | Polygon Amoy Testnet     | `POLYGON_AMOY_RPC_URL`     |
+
+### Network Configuration
+
+Network configurations are defined in:
+
+- **Network settings**: `/config/networks.ts`
+- **Chain parameters**: `/config/config.json`
+- **Contract addresses**: Automatically loaded per network
+
+To use a network, ensure:
+
+1. The corresponding RPC URL environment variable is set in your encrypted environment variables
+2. You have testnet tokens for gas fees on that network
+3. Your private key is configured in the `PRIVATE_KEY` environment variable
+
+### Environment Variable Setup
+
+This project uses `@chainlink/env-enc` for encrypted environment variable management. This package stores your secrets in an encrypted `.env.enc` file instead of plain text `.env` files, providing better security for sensitive information like private keys and RPC URLs.
+
+**Initial Setup:**
+
+1. Set your encryption password (required at the start of each session):
+
+```bash
+npx env-enc set-pw
+```
+
+2. Add environment variables:
+
+```bash
+npx env-enc set
+```
+
+3. View your current variables:
+
+```bash
+npx env-enc view
+```
+
+4. Remove a specific variable:
+
+```bash
+npx env-enc remove VARIABLE_NAME
+```
+
+**Required Environment Variables:**
+
+- `PRIVATE_KEY`: Your wallet's private key (without 0x prefix)
+- `AVALANCHE_FUJI_RPC_URL`: RPC URL for Avalanche Fuji testnet
+- `ARBITRUM_SEPOLIA_RPC_URL`: RPC URL for Arbitrum Sepolia testnet
+- `ETHEREUM_SEPOLIA_RPC_URL`: RPC URL for Ethereum Sepolia testnet
+- `BASE_SEPOLIA_RPC_URL`: RPC URL for Base Sepolia testnet
+- `POLYGON_AMOY_RPC_URL`: RPC URL for Polygon Amoy testnet
+
+**Security Notes:**
+
+- The `.env.enc` file should be included in `.gitignore`
+- Your encryption password is required each time you start a new terminal session
+- Never commit your `.env.enc` file to version control
+
+### Example Usage
+
+```bash
+# Deploy a token on Avalanche Fuji
+npx hardhat deployToken --name "My Token" --symbol "MTK" --network avalancheFuji
+
+# Claim admin on Ethereum Sepolia
+npx hardhat claimAdmin --tokenaddress 0x123... --network sepolia
+
+# Transfer tokens on Arbitrum Sepolia
+npx hardhat transferTokens --tokenaddress 0x123... --amount 1000 --destinationchain avalancheFuji --receiveraddress 0x456... --network arbitrumSepolia
+```
+
 ## Table of Contents
+
+**Getting Started**:
+
+- [Prerequisites](#prerequisites)
+- [Global Options](#global-options)
+- [Supported Networks](#supported-networks)
+- [Network Configuration](#network-configuration)
+- [Environment Variable Setup](#environment-variable-setup)
+- [Example Usage](#example-usage)
 
 **EOA**:
 
@@ -22,6 +132,7 @@ Find a list of available tutorials on the Chainlink documentation: [Cross-Chain 
 - [updateAllowList](#updateallowlist)
 - [transferTokenAdminRole](#transfertokenadminrole)
 - [getCurrentRateLimits](#getcurrentratelimits)
+- [deployFaucet](#deployfaucet)
 
 **Safe Multisig**:
 
@@ -31,6 +142,7 @@ Find a list of available tutorials on the Chainlink documentation: [Cross-Chain 
 - [deployTokenPoolWithSafe](#deploytokenpoolwithsafe)
 - [claimAndAcceptAdminRoleFromSafe](#claimandacceptadminrolefromsafe)
 - [grantMintBurnRoleFromSafe](#grantmintburnrolefromsafe)
+- [mintTokensFromSafe](#minttokensfromsafe)
 - [setPoolFromSafe](#setpoolfromsafe)
 - [applyChainUpdatesFromSafe](#applychainupdatesfromsafe)
 
@@ -55,8 +167,6 @@ npx hardhat deployToken [parameters]
     - The name of the token.
   - `--symbol`: **string**
     - The symbol of the token.
-  - `--network`: **string**
-    - The network to deploy the token to. Must be a valid network name from the Hardhat config.
 - Optional:
   - `--decimals`: **integer** (default: `18`)
     - The number of decimals the token uses.
@@ -93,6 +203,7 @@ npx hardhat deployToken [parameters]
     --verifycontract true \
     --network avalancheFuji
   ```
+
 ##### Notes
 
 - **Maximum Supply**:
@@ -107,6 +218,12 @@ npx hardhat deployToken [parameters]
 #### Description
 
 Deploys a new token pool, which can either be a Burn & Mint or a Lock & Release token pool. These pools enable token management features like burning, minting, or locking and releasing tokens.
+
+#### Usage
+
+```bash
+npx hardhat deployTokenPool [parameters]
+```
 
 #### Parameters
 
@@ -146,7 +263,7 @@ npx hardhat deployTokenPool \
 
 #### Description
 
-Claims the admin role for a token contract. This task allows the user to claim admin through the `getCCIPAdmin()` function.
+Claims the admin role for a token contract using different registration methods. This task supports multiple modes to accommodate different token types and their access control mechanisms. The default mode uses `getCCIPAdmin()` for backward compatibility, while additional modes support tokens with standard ownership patterns or AccessControl-based permissions.
 
 #### Usage
 
@@ -159,16 +276,65 @@ npx hardhat claimAdmin [parameters]
 - Required:
   - `--tokenaddress`: **string**
     - The address of the token for which the admin role is being claimed.
+- Optional:
+  - `--mode`: **string** (default: `"getCCIPAdmin"`)
+    - The registration mode to use for claiming admin rights. Available options:
+      - `"getCCIPAdmin"`: Uses the token's `getCCIPAdmin()` method (default, backward compatible)
+      - `"owner"`: Uses the token's `owner()` method via IOwner interface
+      - `"accessControl"`: Uses the token's `DEFAULT_ADMIN_ROLE` via AccessControl
 
 #### Examples
 
-```bash
-npx hardhat claimAdmin \
-  --tokenaddress 0xYourTokenAddress \
-  --network avalancheFuji
-```
+- **Default mode** (getCCIPAdmin - backward compatible):
+
+  ```bash
+  npx hardhat claimAdmin \
+    --tokenaddress 0xYourTokenAddress \
+    --network avalancheFuji
+  ```
+
+- **Owner mode** for Ownable tokens:
+
+  ```bash
+  npx hardhat claimAdmin \
+    --tokenaddress 0xYourTokenAddress \
+    --mode owner \
+    --network avalancheFuji
+  ```
+
+- **AccessControl mode** for tokens using OpenZeppelin's AccessControl:
+
+  ```bash
+  npx hardhat claimAdmin \
+    --tokenaddress 0xYourTokenAddress \
+    --mode accessControl \
+    --network avalancheFuji
+  ```
 
 ##### Notes
+
+- **Registration Modes**:
+
+  - **getCCIPAdmin**: For tokens that implement the `getCCIPAdmin()` method. The signer must be the current CCIP admin.
+  - **owner**: For tokens that implement the standard `owner()` method (Ownable pattern). The signer must be the current owner.
+  - **accessControl**: For tokens using OpenZeppelin's AccessControl with `DEFAULT_ADMIN_ROLE`. The signer must have the default admin role.
+
+- **Mode Selection**:
+
+  - Choose the mode that matches your token's access control implementation.
+  - If unsure, try the default `getCCIPAdmin` mode first, then fallback to other modes if needed.
+  - The task will provide clear error messages if the selected mode is incompatible with the token.
+
+- **Backward Compatibility**:
+
+  - Existing scripts and workflows continue to work without modification.
+  - The default behavior remains unchanged (uses `getCCIPAdmin` mode).
+
+- **Error Handling**:
+
+  - Natural error propagation provides accurate debugging information across different chains and RPC providers.
+  - Contract method compatibility is verified at runtime.
+  - Clear error messages guide users to alternative modes when needed.
 
 ### acceptAdminRole
 
@@ -881,6 +1047,66 @@ Inbound Rate Limiter:
   - Validates both local and remote chain configurations
   - Provides clear error messages for invalid addresses or missing configurations
 
+### deployFaucet
+
+#### Description
+
+Deploys a Faucet contract that manages token distribution. The faucet contract allows users to request tokens and dispenses a predetermined amount per request, useful for testing and development purposes.
+
+#### Usage
+
+```bash
+npx hardhat deployFaucet [parameters]
+```
+
+#### Parameters
+
+- Required:
+  - `--tokenaddress`: **string**
+    - The address of the IBurnMintERC20 token that the Faucet will manage.
+  - `--initialdripamount`: **string**
+    - The initial amount of tokens the Faucet will dispense per drip (in wei).
+- Optional:
+  - `--verifycontract`: **boolean** (default: `false`)
+    - If set to `true`, the contract will be verified on a blockchain explorer like Etherscan.
+
+#### Examples
+
+- Deploy a basic faucet:
+
+  ```bash
+  npx hardhat deployFaucet \
+    --tokenaddress 0xYourTokenAddress \
+    --initialdripamount 1000000000000000000 \
+    --network avalancheFuji
+  ```
+
+- Deploy a faucet and verify the contract:
+
+  ```bash
+  npx hardhat deployFaucet \
+    --tokenaddress 0xYourTokenAddress \
+    --initialdripamount 1000000000000000000 \
+    --verifycontract true \
+    --network avalancheFuji
+  ```
+
+##### Notes
+
+- **Initial Drip Amount**:
+
+  - The `--initialdripamount` is specified in the smallest unit (wei). For a token with 18 decimals, 1 token equals `1e18` wei.
+  - This amount determines how many tokens users will receive per faucet request.
+
+- **Token Requirements**:
+
+  - The token must implement the IBurnMintERC20 interface.
+  - The faucet contract will need appropriate permissions to mint tokens or must be funded with tokens to distribute.
+
+- **Testing and Development**:
+  - Faucets are primarily used for testing and development environments.
+  - Consider the drip amount carefully to balance usability and token economy in test environments.
+
 ## Safe Multisig
 
 ### deploySafe
@@ -1184,6 +1410,59 @@ npx hardhat grantMintBurnRoleFromSafe [parameters]
 - **Meta-Transactions**:
 
   - The task creates a series of meta-transactions for each burner/minter address, which are signed by the Safe owners before being executed.
+
+### mintTokensFromSafe
+
+#### Description
+
+Mints tokens to multiple receivers using a Safe multisig wallet. This task allows you to securely mint a specified amount of tokens to multiple addresses through the Safe, requiring signatures from multiple owners.
+
+#### Usage
+
+```bash
+npx hardhat mintTokensFromSafe [parameters]
+```
+
+#### Parameters
+
+- Required:
+  - `--tokenaddress`: **string**
+    - The address of the token contract to mint from.
+  - `--amount`: **string**
+    - The amount of tokens to mint to each address (in wei).
+  - `--receiveraddresses`: **string**
+    - Comma-separated list of addresses that will receive the minted tokens.
+  - `--safeaddress`: **string**
+    - The address of the Safe multisig wallet that will execute the transaction.
+
+#### Examples
+
+- Mint tokens to multiple addresses:
+
+  ```bash
+  npx hardhat mintTokensFromSafe \
+    --tokenaddress 0xYourTokenAddress \
+    --amount 1000000000000000000 \
+    --receiveraddresses "0xReceiver1,0xReceiver2,0xReceiver3" \
+    --safeaddress 0xYourSafeAddress \
+    --network avalancheFuji
+  ```
+
+##### Notes
+
+- **Receiver Addresses**:
+
+  - The `--receiveraddresses` parameter must be a comma-separated list of valid Ethereum addresses.
+  - Each address will receive the same amount of tokens as specified by the `--amount` parameter.
+
+- **Amount**:
+
+  - The amount is specified in the smallest unit (wei). For a token with 18 decimals, 1 token equals `1e18` wei.
+
+- **Meta-Transactions**:
+
+  - The task creates a series of meta-transactions for each receiver address, which are signed by the Safe owners before being executed.
+  - All minting operations are batched together in a single Safe transaction for efficiency.
 
 ### setPoolFromSafe
 

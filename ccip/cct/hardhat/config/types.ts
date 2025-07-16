@@ -42,6 +42,7 @@ export enum Chains {
   sepolia = "sepolia",
   baseSepolia = "baseSepolia",
   solanaDevnet = "solanaDevnet",
+  polygonAmoy = "polygonAmoy",
 }
 
 // EVM-only chains for Hardhat networks
@@ -50,6 +51,7 @@ export enum EVMChains {
   arbitrumSepolia = "arbitrumSepolia",
   sepolia = "sepolia",
   baseSepolia = "baseSepolia",
+  polygonAmoy = "polygonAmoy",
 }
 
 export type Configs = {
