@@ -47,6 +47,14 @@ const networks: Networks = {
     nonce: undefined,
     accounts,
   },
+  [EVMChains.polygonAmoy]: {
+    ...configData.polygonAmoy,
+    url: process.env.POLYGON_AMOY_RPC_URL || "UNSET",
+    chainType: "evm" as const,
+    gasPrice: undefined,
+    nonce: undefined,
+    accounts,
+  },
 };
 
 const etherscan: EtherscanConfig = {
@@ -55,6 +63,7 @@ const etherscan: EtherscanConfig = {
     [EVMChains.sepolia]: process.env.ETHERSCAN_API_KEY || "UNSET",
     [EVMChains.arbitrumSepolia]: process.env.ARBISCAN_API_KEY || "UNSET",
     [EVMChains.baseSepolia]: process.env.BASESCAN_API_KEY || "UNSET",
+    [EVMChains.polygonAmoy]: process.env.POLYGONSCAN_API_KEY || "UNSET",
   },
   customChains: [
     {
