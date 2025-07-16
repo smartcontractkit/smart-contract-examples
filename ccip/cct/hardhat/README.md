@@ -8,7 +8,7 @@ Find a list of available tutorials on the Chainlink documentation: [Cross-Chain 
 
 Before running any tasks, ensure you have:
 
-1. **Environment Setup**: Copy `.env.example` to `.env` and configure your private keys and RPC URLs
+1. **Environment Setup**: Set up encrypted environment variables using `@chainlink/env-enc` and configure your private keys and RPC URLs
 2. **Network Configuration**: All tasks require the `--network` flag to specify which blockchain to use
 
 ### Global Options
@@ -41,9 +41,54 @@ Network configurations are defined in:
 
 To use a network, ensure:
 
-1. The corresponding RPC URL environment variable is set in your `.env` file
+1. The corresponding RPC URL environment variable is set in your encrypted environment variables
 2. You have testnet tokens for gas fees on that network
 3. Your private key is configured in the `PRIVATE_KEY` environment variable
+
+### Environment Variable Setup
+
+This project uses `@chainlink/env-enc` for encrypted environment variable management. This package stores your secrets in an encrypted `.env.enc` file instead of plain text `.env` files, providing better security for sensitive information like private keys and RPC URLs.
+
+**Initial Setup:**
+
+1. Set your encryption password (required at the start of each session):
+
+```bash
+npx env-enc set-pw
+```
+
+2. Add environment variables:
+
+```bash
+npx env-enc set
+```
+
+3. View your current variables:
+
+```bash
+npx env-enc view
+```
+
+4. Remove a specific variable:
+
+```bash
+npx env-enc remove VARIABLE_NAME
+```
+
+**Required Environment Variables:**
+
+- `PRIVATE_KEY`: Your wallet's private key (without 0x prefix)
+- `AVALANCHE_FUJI_RPC_URL`: RPC URL for Avalanche Fuji testnet
+- `ARBITRUM_SEPOLIA_RPC_URL`: RPC URL for Arbitrum Sepolia testnet
+- `ETHEREUM_SEPOLIA_RPC_URL`: RPC URL for Ethereum Sepolia testnet
+- `BASE_SEPOLIA_RPC_URL`: RPC URL for Base Sepolia testnet
+- `POLYGON_AMOY_RPC_URL`: RPC URL for Polygon Amoy testnet
+
+**Security Notes:**
+
+- The `.env.enc` file should be included in `.gitignore`
+- Your encryption password is required each time you start a new terminal session
+- Never commit your `.env.enc` file to version control
 
 ### Example Usage
 
@@ -66,6 +111,7 @@ npx hardhat transferTokens --tokenaddress 0x123... --amount 1000 --destinationch
 - [Global Options](#global-options)
 - [Supported Networks](#supported-networks)
 - [Network Configuration](#network-configuration)
+- [Environment Variable Setup](#environment-variable-setup)
 - [Example Usage](#example-usage)
 
 **EOA**:
