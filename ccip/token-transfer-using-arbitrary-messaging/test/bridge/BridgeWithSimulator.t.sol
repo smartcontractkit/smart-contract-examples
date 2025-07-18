@@ -21,7 +21,7 @@ import {BurnMintTokenPool} from "../../src/pools/BurnMintTokenPool.sol";
 import {MockBurnMintERC20} from "../mocks/MockBurnMintERC20.sol";
 import {IRouterClient, WETH9, LinkToken, BurnMintERC677Helper} from "@chainlink/local/src/ccip/CCIPLocalSimulator.sol";
 import {CCIPLocalSimulator} from "@chainlink/local/src/ccip/CCIPLocalSimulator.sol";
-import {Client} from "@chainlink/contracts-ccip/src/v0.8/ccip/libraries/Client.sol";
+import {Client} from "@chainlink/contracts-ccip/contracts/libraries/Client.sol";
 
 contract BridgeTestSimulator is Test, ICustom {
     CCIPLocalSimulator public ccipLocalSimulator;

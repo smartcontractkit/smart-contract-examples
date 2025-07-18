@@ -20,7 +20,7 @@ import {MockERC20, IERC20} from "../mocks/MockERC20.sol";
 import {BurnMintTokenPool} from "../../src/pools/BurnMintTokenPool.sol";
 import {MockBurnMintERC20} from "../mocks/MockBurnMintERC20.sol";
 import {CCIPLocalSimulatorFork, Register} from "@chainlink/local/src/ccip/CCIPLocalSimulatorFork.sol";
-import {Client} from "@chainlink/contracts-ccip/src/v0.8/ccip/libraries/Client.sol";
+import {Client} from "@chainlink/contracts-ccip/contracts/libraries/Client.sol";
 
 contract BridgeTestSimulatorFork is Test, ICustom {
     CCIPLocalSimulatorFork public ccipLocalSimulatorFork;
