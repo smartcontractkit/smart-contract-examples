@@ -18,7 +18,7 @@ import {IConfiguration, Configuration} from "../../src/bridge/Configuration.sol"
 import {LockReleaseTokenPool} from "../../src/pools/LockReleaseTokenPool.sol";
 import {MockERC20, IERC20} from "../mocks/MockERC20.sol";
 import {BurnMintTokenPool} from "../../src/pools/BurnMintTokenPool.sol";
-import {MockBurnMintERC20} from "../mocks/MockBurnMintERC20.sol";
+import {BurnMintERC20} from "@chainlink/contracts/src/v0.8/shared/token/ERC20/BurnMintERC20.sol";
 import {CCIPLocalSimulatorFork, Register} from "@chainlink/local/src/ccip/CCIPLocalSimulatorFork.sol";
 import {Client} from "@chainlink/contracts-ccip/contracts/libraries/Client.sol";
 
@@ -38,9 +38,9 @@ contract BridgeTestSimulatorFork is Test, ICustom {
     BurnMintTokenPool sepoliaBurnMintPool;
     BurnMintTokenPool fujiBurnMintPool;
     BurnMintTokenPool arbSepoliaBurnMintPool;
-    MockBurnMintERC20 sepoliaBurnMintToken;
-    MockBurnMintERC20 fujiBurnMintToken;
-    MockBurnMintERC20 arbSepoliaBurnMintToken;
+    BurnMintERC20 sepoliaBurnMintToken;
+    BurnMintERC20 fujiBurnMintToken;
+    BurnMintERC20 arbSepoliaBurnMintToken;
     MockERC20 sepoliaLockableToken;
     MockERC20 fujiLockableToken;
     address owner;
@@ -77,10 +77,12 @@ contract BridgeTestSimulatorFork is Test, ICustom {
             "MTKlnu",
             type(uint256).max
         );
-        sepoliaBurnMintToken = new MockBurnMintERC20(
+        sepoliaBurnMintToken = new BurnMintERC20(
             "Mock Token Sepolia",
             "MTKbnm",
-            18
+            18,
+            0, // unlimited max supply
+            0  // no premint
         );
         sepoliaLockableToken.transfer(liquidityProviderAddress, 1_000_000);
         sepoliaConfiguration = new Configuration();
@@ -94,9 +96,18 @@ contract BridgeTestSimulatorFork is Test, ICustom {
             liquidityProviderAddress
         );
         sepoliaBurnMintPool = new BurnMintTokenPool(
-            sepoliaBurnMintToken,
+            IERC20(address(sepoliaBurnMintToken)),
             address(sepoliaBridge)
         );
+        
+        // Grant minter and burner roles to the sepolia pool
+        sepoliaBurnMintToken.grantRole(sepoliaBurnMintToken.MINTER_ROLE(), address(sepoliaBurnMintPool));
+        sepoliaBurnMintToken.grantRole(sepoliaBurnMintToken.BURNER_ROLE(), address(sepoliaBurnMintPool));
+        // Grant minter role to senderAddress for testing
+        sepoliaBurnMintToken.grantRole(sepoliaBurnMintToken.MINTER_ROLE(), senderAddress);
+        // Grant minter role to the test contract for testing
+        sepoliaBurnMintToken.grantRole(sepoliaBurnMintToken.MINTER_ROLE(), address(this));
+        
         sepoliaConfiguration.setTokenPool(sepoliaLockReleasePool);
         sepoliaConfiguration.setTokenPool(sepoliaBurnMintPool);
         vm.selectFork(fujiFork);
@@ -109,10 +120,12 @@ contract BridgeTestSimulatorFork is Test, ICustom {
             type(uint256).max
         );
         fujiLockableToken.transfer(liquidityProviderAddress, 1_000_000);
-        fujiBurnMintToken = new MockBurnMintERC20(
+        fujiBurnMintToken = new BurnMintERC20(
             "Mock Token Fuji",
             "MTKbnm",
-            18
+            18,
+            0, // unlimited max supply
+            0  // no premint
         );
         fujiConfiguration = new Configuration();
         fujiBridge = new Bridge(
@@ -125,9 +138,18 @@ contract BridgeTestSimulatorFork is Test, ICustom {
             liquidityProviderAddress
         );
         fujiBurnMintPool = new BurnMintTokenPool(
-            fujiBurnMintToken,
+            IERC20(address(fujiBurnMintToken)),
             address(fujiBridge)
         );
+        
+        // Grant minter and burner roles to the fuji pool
+        fujiBurnMintToken.grantRole(fujiBurnMintToken.MINTER_ROLE(), address(fujiBurnMintPool));
+        fujiBurnMintToken.grantRole(fujiBurnMintToken.BURNER_ROLE(), address(fujiBurnMintPool));
+        // Grant minter role to senderAddress for testing
+        fujiBurnMintToken.grantRole(fujiBurnMintToken.MINTER_ROLE(), senderAddress);
+        // Grant minter role to the test contract for testing
+        fujiBurnMintToken.grantRole(fujiBurnMintToken.MINTER_ROLE(), address(this));
+        
         fujiConfiguration.setRemoteBridge(
             sepoliaNetworkDetails.chainSelector,
             address(sepoliaBridge)
@@ -141,13 +163,16 @@ contract BridgeTestSimulatorFork is Test, ICustom {
             sepoliaLockableToken
         );
         fujiConfiguration.setDestinationToken(
-            fujiBurnMintToken,
+            IERC20(address(fujiBurnMintToken)),
             sepoliaNetworkDetails.chainSelector,
-            sepoliaBurnMintToken
+            IERC20(address(sepoliaBurnMintToken))
         );
         fujiConfiguration.setExtraArgs(
             sepoliaNetworkDetails.chainSelector,
-            Client._argsToBytes(Client.EVMExtraArgsV1({gasLimit: 300_000}))
+            Client._argsToBytes(Client.GenericExtraArgsV2({
+                gasLimit: 300_000,
+                allowOutOfOrderExecution: true
+            }))
         );
 
         vm.startPrank(liquidityProviderAddress);
@@ -176,28 +201,42 @@ contract BridgeTestSimulatorFork is Test, ICustom {
             arbSepoliaConfiguration
         );
 
-        arbSepoliaBurnMintToken = new MockBurnMintERC20(
+        arbSepoliaBurnMintToken = new BurnMintERC20(
             "Mock Token ARbitrum Sepolia",
             "MTKbnm",
-            18
+            18,
+            0, // unlimited max supply
+            0  // no premint
         );
         arbSepoliaBurnMintPool = new BurnMintTokenPool(
-            arbSepoliaBurnMintToken,
+            IERC20(address(arbSepoliaBurnMintToken)),
             address(arbSepoliaBridge)
         );
+        
+        // Grant minter and burner roles to the arbitrum sepolia pool
+        arbSepoliaBurnMintToken.grantRole(arbSepoliaBurnMintToken.MINTER_ROLE(), address(arbSepoliaBurnMintPool));
+        arbSepoliaBurnMintToken.grantRole(arbSepoliaBurnMintToken.BURNER_ROLE(), address(arbSepoliaBurnMintPool));
+        // Grant minter role to senderAddress for testing
+        arbSepoliaBurnMintToken.grantRole(arbSepoliaBurnMintToken.MINTER_ROLE(), senderAddress);
+        // Grant minter role to the test contract for testing
+        arbSepoliaBurnMintToken.grantRole(arbSepoliaBurnMintToken.MINTER_ROLE(), address(this));
+        
         arbSepoliaConfiguration.setTokenPool(arbSepoliaBurnMintPool);
         arbSepoliaConfiguration.setRemoteBridge(
             sepoliaNetworkDetails.chainSelector,
             address(sepoliaBridge)
         );
         arbSepoliaConfiguration.setDestinationToken(
-            arbSepoliaBurnMintToken,
+            IERC20(address(arbSepoliaBurnMintToken)),
             sepoliaNetworkDetails.chainSelector,
-            sepoliaLockableToken
+            IERC20(address(sepoliaLockableToken))
         );
         arbSepoliaConfiguration.setExtraArgs(
             sepoliaNetworkDetails.chainSelector,
-            Client._argsToBytes(Client.EVMExtraArgsV1({gasLimit: 300_000}))
+            Client._argsToBytes(Client.GenericExtraArgsV2({
+                gasLimit: 300_000,
+                allowOutOfOrderExecution: true
+            }))
         );
         vm.prank(senderAddress);
         IERC20(arbSepoliaNetworkDetails.linkAddress).approve(
@@ -224,22 +263,28 @@ contract BridgeTestSimulatorFork is Test, ICustom {
             fujiLockableToken
         );
         sepoliaConfiguration.setDestinationToken(
-            sepoliaBurnMintToken,
+            IERC20(address(sepoliaBurnMintToken)),
             fujiNetworkDetails.chainSelector,
-            fujiBurnMintToken
+            IERC20(address(fujiBurnMintToken))
         );
         sepoliaConfiguration.setDestinationToken(
             sepoliaLockableToken,
             arbSepoliaNetworkDetails.chainSelector,
-            arbSepoliaBurnMintToken
+            IERC20(address(arbSepoliaBurnMintToken))
         );
         sepoliaConfiguration.setExtraArgs(
             fujiNetworkDetails.chainSelector,
-            Client._argsToBytes(Client.EVMExtraArgsV1({gasLimit: 300_000}))
+            Client._argsToBytes(Client.GenericExtraArgsV2({
+                gasLimit: 300_000,
+                allowOutOfOrderExecution: true
+            }))
         );
         sepoliaConfiguration.setExtraArgs(
             arbSepoliaNetworkDetails.chainSelector,
-            Client._argsToBytes(Client.EVMExtraArgsV1({gasLimit: 300_000}))
+            Client._argsToBytes(Client.GenericExtraArgsV2({
+                gasLimit: 300_000,
+                allowOutOfOrderExecution: true
+            }))
         );
         vm.deal(senderAddress, 10 * 10 ** 18); // send 10 ETH to sender
         ccipLocalSimulatorFork.requestLinkFromFaucet(
@@ -276,17 +321,17 @@ contract BridgeTestSimulatorFork is Test, ICustom {
         );
         vm.expectEmit(true, true, true, false);
         emit TokensTransferred(
-            sepoliaBurnMintToken,
+            IERC20(address(sepoliaBurnMintToken)),
             sepoliaBurnMintPool,
             fujiNetworkDetails.chainSelector,
-            fujiBurnMintToken,
+            IERC20(address(fujiBurnMintToken)),
             amount,
             0 // don't check fees
         );
         emit Burned(address(sepoliaBridge), amount);
         (, uint256 fees) = sepoliaBridge.transferTokensToDestinationChain(
             fujiNetworkDetails.chainSelector,
-            sepoliaBurnMintToken,
+            IERC20(address(sepoliaBurnMintToken)),
             amount,
             receiverAddress,
             IERC20(sepoliaNetworkDetails.linkAddress)
@@ -329,10 +374,10 @@ contract BridgeTestSimulatorFork is Test, ICustom {
         );
         vm.expectEmit(true, true, true, false);
         emit TokensTransferred(
-            sepoliaBurnMintToken,
+            IERC20(address(sepoliaBurnMintToken)),
             sepoliaBurnMintPool,
             fujiNetworkDetails.chainSelector,
-            fujiBurnMintToken,
+            IERC20(address(fujiBurnMintToken)),
             amount,
             0 // don't check fees
         );
@@ -341,7 +386,7 @@ contract BridgeTestSimulatorFork is Test, ICustom {
             value: senderBalance
         }(
             fujiNetworkDetails.chainSelector,
-            sepoliaBurnMintToken,
+            IERC20(address(sepoliaBurnMintToken)),
             amount,
             receiverAddress,
             IERC20(address(0))
@@ -383,17 +428,17 @@ contract BridgeTestSimulatorFork is Test, ICustom {
         );
         vm.expectEmit(true, true, true, false);
         emit TokensTransferred(
-            fujiBurnMintToken,
+            IERC20(address(fujiBurnMintToken)),
             fujiBurnMintPool,
             sepoliaNetworkDetails.chainSelector,
-            sepoliaBurnMintToken,
+            IERC20(address(sepoliaBurnMintToken)),
             amount,
             0 // don't check fees
         );
         emit Burned(address(fujiBridge), amount);
         (, uint256 fees) = fujiBridge.transferTokensToDestinationChain(
             sepoliaNetworkDetails.chainSelector,
-            fujiBurnMintToken,
+            IERC20(address(fujiBurnMintToken)),
             amount,
             receiverAddress,
             IERC20(fujiNetworkDetails.linkAddress)
@@ -636,7 +681,7 @@ contract BridgeTestSimulatorFork is Test, ICustom {
             sepoliaLockableToken,
             sepoliaLockReleasePool,
             arbSepoliaNetworkDetails.chainSelector,
-            arbSepoliaBurnMintToken,
+            IERC20(address(arbSepoliaBurnMintToken)),
             amount,
             0 // don't check fees
         );
@@ -697,7 +742,7 @@ contract BridgeTestSimulatorFork is Test, ICustom {
         );
         vm.expectEmit(true, true, true, false);
         emit TokensTransferred(
-            arbSepoliaBurnMintToken,
+            IERC20(address(arbSepoliaBurnMintToken)),
             arbSepoliaBurnMintPool,
             sepoliaNetworkDetails.chainSelector,
             sepoliaLockableToken,
@@ -707,7 +752,7 @@ contract BridgeTestSimulatorFork is Test, ICustom {
         emit Burned(address(arbSepoliaBridge), amount);
         (, uint256 fees) = arbSepoliaBridge.transferTokensToDestinationChain(
             sepoliaNetworkDetails.chainSelector,
-            arbSepoliaBurnMintToken,
+            IERC20(address(arbSepoliaBurnMintToken)),
             amount,
             receiverAddress,
             IERC20(arbSepoliaNetworkDetails.linkAddress)
@@ -760,7 +805,7 @@ contract BridgeTestSimulatorFork is Test, ICustom {
             sepoliaLockableToken,
             sepoliaLockReleasePool,
             arbSepoliaNetworkDetails.chainSelector,
-            arbSepoliaBurnMintToken,
+            IERC20(address(arbSepoliaBurnMintToken)),
             amount,
             0 // don't check fees
         );
@@ -826,7 +871,7 @@ contract BridgeTestSimulatorFork is Test, ICustom {
         );
         vm.expectEmit(true, true, true, false);
         emit TokensTransferred(
-            arbSepoliaBurnMintToken,
+            IERC20(address(arbSepoliaBurnMintToken)),
             arbSepoliaBurnMintPool,
             sepoliaNetworkDetails.chainSelector,
             sepoliaLockableToken,
@@ -836,7 +881,7 @@ contract BridgeTestSimulatorFork is Test, ICustom {
         emit Burned(address(arbSepoliaBridge), amount);
         (, fees) = arbSepoliaBridge.transferTokensToDestinationChain(
             sepoliaNetworkDetails.chainSelector,
-            arbSepoliaBurnMintToken,
+            IERC20(address(arbSepoliaBurnMintToken)),
             amount,
             senderAddress,
             IERC20(arbSepoliaNetworkDetails.linkAddress)

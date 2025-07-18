@@ -14,7 +14,8 @@ pragma solidity 0.8.24;
 import "forge-std/Script.sol";
 import "../src/bridge/Bridge.sol";
 import "../src/pools/BurnMintTokenPool.sol";
-import "../test/mocks/MockBurnMintERC20.sol";
+import {IBurnMintERC20} from "@chainlink/contracts/src/v0.8/shared/token/ERC20/IBurnMintERC20.sol";
+import {BurnMintERC20} from "@chainlink/contracts/src/v0.8/shared/token/ERC20/BurnMintERC20.sol";
 
 contract TestBurnAndReleaseFromArbitrumToSepolia is Script {
     using stdJson for string;
@@ -41,7 +42,7 @@ contract TestBurnAndReleaseFromArbitrumToSepolia is Script {
         });
 
         IBridge bridge = IBridge(arbitrum.bridge);
-        MockBurnMintERC20 burnMintToken = MockBurnMintERC20(
+        IBurnMintERC20 burnMintToken = IBurnMintERC20(
             arbitrum.burnMintToken
         );
         IERC20 linkToken = IERC20(arbitrum.linkToken);
@@ -52,12 +53,18 @@ contract TestBurnAndReleaseFromArbitrumToSepolia is Script {
         vm.createSelectFork(arbitrum.rpcUrl);
         vm.startBroadcast(deployerPrivateKey);
 
+        // Grant minter role to the sender address so they can mint tokens
+        BurnMintERC20(arbitrum.burnMintToken).grantRole(
+            BurnMintERC20(arbitrum.burnMintToken).MINTER_ROLE(), 
+            senderAndReceiverAddress
+        );
+
         uint256 amount = 1000;
         burnMintToken.mint(senderAndReceiverAddress, amount);
 
         uint256 fees = bridge.getFee(
             arbitrum.chainSelector,
-            burnMintToken,
+            IERC20(address(burnMintToken)),
             amount,
             senderAndReceiverAddress,
             linkToken
@@ -68,7 +75,7 @@ contract TestBurnAndReleaseFromArbitrumToSepolia is Script {
         (bytes32 messageId, uint256 actualFees) = bridge
             .transferTokensToDestinationChain(
                 arbitrum.chainSelector,
-                burnMintToken,
+                IERC20(address(burnMintToken)),
                 amount,
                 senderAndReceiverAddress,
                 linkToken

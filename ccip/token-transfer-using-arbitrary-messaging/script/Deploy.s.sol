@@ -17,7 +17,7 @@ import "../src/bridge/Configuration.sol";
 import "../src/pools/LockReleaseTokenPool.sol";
 import "../src/pools/BurnMintTokenPool.sol";
 import "../test/mocks/MockERC20.sol";
-import "../test/mocks/MockBurnMintERC20.sol";
+import {BurnMintERC20} from "@chainlink/contracts/src/v0.8/shared/token/ERC20/BurnMintERC20.sol";
 
 contract Deploy is Script {
     struct NetworkDetails {
@@ -32,7 +32,7 @@ contract Deploy is Script {
         LockReleaseTokenPool lockReleasePool;
         BurnMintTokenPool burnMintPool;
         MockERC20 lockableToken;
-        MockBurnMintERC20 burnMintToken;
+        BurnMintERC20 burnMintToken;
     }
 
     function run() external {
@@ -51,7 +51,7 @@ contract Deploy is Script {
             lockReleasePool: LockReleaseTokenPool(address(0)),
             burnMintPool: BurnMintTokenPool(address(0)),
             lockableToken: MockERC20(address(0)),
-            burnMintToken: MockBurnMintERC20(address(0))
+            burnMintToken: BurnMintERC20(address(0))
         });
 
         // Arbitrum Sepolia
@@ -67,7 +67,7 @@ contract Deploy is Script {
             lockReleasePool: LockReleaseTokenPool(address(0)),
             burnMintPool: BurnMintTokenPool(address(0)),
             lockableToken: MockERC20(address(0)),
-            burnMintToken: MockBurnMintERC20(address(0))
+            burnMintToken: BurnMintERC20(address(0))
         });
 
         // Avalanche Fuji
@@ -83,7 +83,7 @@ contract Deploy is Script {
             lockReleasePool: LockReleaseTokenPool(address(0)),
             burnMintPool: BurnMintTokenPool(address(0)),
             lockableToken: MockERC20(address(0)),
-            burnMintToken: MockBurnMintERC20(address(0))
+            burnMintToken: BurnMintERC20(address(0))
         });
 
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
@@ -99,10 +99,12 @@ contract Deploy is Script {
                 "MTKlnu",
                 type(uint256).max
             );
-            network.burnMintToken = new MockBurnMintERC20(
+            network.burnMintToken = new BurnMintERC20(
                 string(abi.encodePacked("Mock Token ", network.name)),
                 "MTKbnm",
-                18
+                18,
+                0, // unlimited max supply
+                0  // no premint
             );
             network.configuration = new Configuration();
             network.bridge = new Bridge(network.router, network.configuration);
@@ -112,9 +114,13 @@ contract Deploy is Script {
                 msg.sender
             );
             network.burnMintPool = new BurnMintTokenPool(
-                network.burnMintToken,
+                IERC20(address(network.burnMintToken)),
                 address(network.bridge)
             );
+
+            // Grant minter and burner roles to the pool
+            network.burnMintToken.grantRole(network.burnMintToken.MINTER_ROLE(), address(network.burnMintPool));
+            network.burnMintToken.grantRole(network.burnMintToken.BURNER_ROLE(), address(network.burnMintPool));
 
             network.configuration.setTokenPool(network.lockReleasePool);
             network.configuration.setTokenPool(network.burnMintPool);
@@ -160,7 +166,10 @@ contract Deploy is Script {
                     network.configuration.setExtraArgs(
                         networks[j].chainSelector,
                         Client._argsToBytes(
-                            Client.EVMExtraArgsV1({gasLimit: 300_000})
+                            Client.GenericExtraArgsV2({
+                                gasLimit: 300_000,
+                                allowOutOfOrderExecution: true
+                            })
                         )
                     );
                 }
@@ -176,9 +185,9 @@ contract Deploy is Script {
                     MockERC20(networks[0].lockableToken) // lock and Release with Sepolia
                 );
                 Configuration(network.configuration).setDestinationToken(
-                    MockBurnMintERC20(network.burnMintToken),
+                    IERC20(address(network.burnMintToken)),
                     networks[0].chainSelector,
-                    MockBurnMintERC20(networks[0].burnMintToken) // Burn and Mint with Sepolia
+                    IERC20(address(networks[0].burnMintToken)) // Burn and Mint with Sepolia
                 );
             } else if (
                 keccak256(bytes(network.name)) ==
@@ -186,9 +195,9 @@ contract Deploy is Script {
             ) {
                 console.log("Setting destination tokens for ArbitrumSepolia");
                 Configuration(network.configuration).setDestinationToken(
-                    MockBurnMintERC20(network.burnMintToken),
+                    IERC20(address(BurnMintERC20(network.burnMintToken))),
                     networks[0].chainSelector,
-                    MockERC20(networks[0].lockableToken)
+                    IERC20(address(MockERC20(networks[0].lockableToken)))
                 ); // Burn and Release with Sepolia
             } else if (
                 keccak256(bytes(network.name)) == keccak256(bytes("Sepolia"))
@@ -200,14 +209,14 @@ contract Deploy is Script {
                     MockERC20(networks[2].lockableToken)
                 ); // lock and Release with Fuji
                 Configuration(network.configuration).setDestinationToken(
-                    MockBurnMintERC20(network.burnMintToken),
+                    IERC20(address(BurnMintERC20(network.burnMintToken))),
                     networks[2].chainSelector,
-                    MockBurnMintERC20(networks[2].burnMintToken)
+                    IERC20(address(BurnMintERC20(networks[2].burnMintToken)))
                 ); // Burn and Mint with Fuji
                 Configuration(network.configuration).setDestinationToken(
-                    MockERC20(network.lockableToken),
+                    IERC20(address(MockERC20(network.lockableToken))),
                     networks[1].chainSelector,
-                    MockBurnMintERC20(networks[1].burnMintToken)
+                    IERC20(address(BurnMintERC20(networks[1].burnMintToken)))
                 ); // lock and Mint with ArbitrumSepolia
             }
 

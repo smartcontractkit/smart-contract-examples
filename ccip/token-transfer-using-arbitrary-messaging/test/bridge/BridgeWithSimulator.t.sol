@@ -18,7 +18,7 @@ import {ICustom} from "../mocks/ICustom.sol";
 import {LockReleaseTokenPool} from "../../src/pools/LockReleaseTokenPool.sol";
 import {MockERC20, IERC20} from "../mocks/MockERC20.sol";
 import {BurnMintTokenPool} from "../../src/pools/BurnMintTokenPool.sol";
-import {MockBurnMintERC20} from "../mocks/MockBurnMintERC20.sol";
+import {BurnMintERC20} from "@chainlink/contracts/src/v0.8/shared/token/ERC20/BurnMintERC20.sol";
 import {IRouterClient, WETH9, LinkToken, BurnMintERC677Helper} from "@chainlink/local/src/ccip/CCIPLocalSimulator.sol";
 import {CCIPLocalSimulator} from "@chainlink/local/src/ccip/CCIPLocalSimulator.sol";
 import {Client} from "@chainlink/contracts-ccip/contracts/libraries/Client.sol";
@@ -33,8 +33,8 @@ contract BridgeTestSimulator is Test, ICustom {
     LockReleaseTokenPool destinationLockReleasePool;
     BurnMintTokenPool sourceBurnMintPool;
     BurnMintTokenPool destinationBurnMintPool;
-    MockBurnMintERC20 sourceBurnMintToken;
-    MockBurnMintERC20 destinationBurnMintToken;
+    BurnMintERC20 sourceBurnMintToken;
+    BurnMintERC20 destinationBurnMintToken;
     MockERC20 sourceLockableToken;
     MockERC20 destinationLockableToken;
     address owner;
@@ -84,15 +84,19 @@ contract BridgeTestSimulator is Test, ICustom {
             type(uint256).max
         );
         destinationLockableToken.transfer(liquidityProviderAddress, 1_000_000);
-        sourceBurnMintToken = new MockBurnMintERC20(
+        sourceBurnMintToken = new BurnMintERC20(
             "Mock Token Src",
             "MTKbnm",
-            18
+            18,
+            0, // unlimited max supply
+            0  // no premint
         );
-        destinationBurnMintToken = new MockBurnMintERC20(
+        destinationBurnMintToken = new BurnMintERC20(
             "Mock Token Dest",
             "MTKbnm",
-            18
+            18,
+            0, // unlimited max supply
+            0  // no premint
         );
         // Set bridges
         sourceConfiguration = new Configuration();
@@ -114,13 +118,24 @@ contract BridgeTestSimulator is Test, ICustom {
             liquidityProviderAddress
         );
         sourceBurnMintPool = new BurnMintTokenPool(
-            sourceBurnMintToken,
+            IERC20(address(sourceBurnMintToken)),
             address(sourceBridge)
         );
         destinationBurnMintPool = new BurnMintTokenPool(
-            destinationBurnMintToken,
+            IERC20(address(destinationBurnMintToken)),
             address(destinationBridge)
         );
+        
+        // Grant minter and burner roles to the pools
+        sourceBurnMintToken.grantRole(sourceBurnMintToken.MINTER_ROLE(), address(sourceBurnMintPool));
+        sourceBurnMintToken.grantRole(sourceBurnMintToken.BURNER_ROLE(), address(sourceBurnMintPool));
+        destinationBurnMintToken.grantRole(destinationBurnMintToken.MINTER_ROLE(), address(destinationBurnMintPool));
+        destinationBurnMintToken.grantRole(destinationBurnMintToken.BURNER_ROLE(), address(destinationBurnMintPool));
+        // Grant minter role to senderAddress for testing
+        sourceBurnMintToken.grantRole(sourceBurnMintToken.MINTER_ROLE(), senderAddress);
+        // Grant minter role to the test contract (owner) for testing
+        sourceBurnMintToken.grantRole(sourceBurnMintToken.MINTER_ROLE(), owner);
+        destinationBurnMintToken.grantRole(destinationBurnMintToken.MINTER_ROLE(), owner);
         // Set configuration
         sourceConfiguration.setRemoteBridge(
             destinationChainSelector,
@@ -145,23 +160,29 @@ contract BridgeTestSimulator is Test, ICustom {
             sourceLockableToken
         );
         sourceConfiguration.setDestinationToken(
-            sourceBurnMintToken,
+            IERC20(address(sourceBurnMintToken)),
             destinationChainSelector,
-            destinationBurnMintToken
+            IERC20(address(destinationBurnMintToken))
         );
         destinationConfiguration.setDestinationToken(
-            destinationBurnMintToken,
+            IERC20(address(destinationBurnMintToken)),
             sourceChainSelector,
-            sourceBurnMintToken
+            IERC20(address(sourceBurnMintToken))
         );
         // Set args
         sourceConfiguration.setExtraArgs(
             destinationChainSelector,
-            Client._argsToBytes(Client.EVMExtraArgsV1({gasLimit: 300_000}))
+            Client._argsToBytes(Client.GenericExtraArgsV2({
+                gasLimit: 300_000,
+                allowOutOfOrderExecution: true
+            }))
         );
         destinationConfiguration.setExtraArgs(
             sourceChainSelector,
-            Client._argsToBytes(Client.EVMExtraArgsV1({gasLimit: 300_000}))
+            Client._argsToBytes(Client.GenericExtraArgsV2({
+                gasLimit: 300_000,
+                allowOutOfOrderExecution: true
+            }))
         );
     }
 
@@ -179,10 +200,10 @@ contract BridgeTestSimulator is Test, ICustom {
         );
         vm.expectEmit(true, true, true, true);
         emit TokensTransferred(
-            sourceBurnMintToken,
+            IERC20(address(sourceBurnMintToken)),
             sourceBurnMintPool,
             destinationChainSelector,
-            destinationBurnMintToken,
+            IERC20(address(destinationBurnMintToken)),
             amount,
             0
         );
@@ -190,7 +211,7 @@ contract BridgeTestSimulator is Test, ICustom {
         emit Minted(address(destinationBridge), receiverAddress, amount);
         sourceBridge.transferTokensToDestinationChain(
             destinationChainSelector,
-            sourceBurnMintToken,
+            IERC20(address(sourceBurnMintToken)),
             amount,
             receiverAddress,
             IERC20(address(linkToken))
@@ -218,10 +239,10 @@ contract BridgeTestSimulator is Test, ICustom {
         );
         vm.expectEmit(true, true, true, true);
         emit TokensTransferred(
-            sourceBurnMintToken,
+            IERC20(address(sourceBurnMintToken)),
             sourceBurnMintPool,
             destinationChainSelector,
-            destinationBurnMintToken,
+            IERC20(address(destinationBurnMintToken)),
             amount,
             0
         );
@@ -229,7 +250,7 @@ contract BridgeTestSimulator is Test, ICustom {
         emit Minted(address(destinationBridge), receiverAddress, amount);
         sourceBridge.transferTokensToDestinationChain{value: 100}(
             destinationChainSelector,
-            sourceBurnMintToken,
+            IERC20(address(sourceBurnMintToken)),
             amount,
             receiverAddress,
             IERC20(address(0))
@@ -249,17 +270,10 @@ contract BridgeTestSimulator is Test, ICustom {
         vm.startPrank(senderAddress);
         sourceBurnMintToken.approve(address(sourceBridge), amount + 1);
 
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                ERC20InsufficientBalance.selector,
-                senderAddress,
-                amount,
-                amount + 1
-            )
-        );
+        vm.expectRevert("ERC20: transfer amount exceeds balance");
         sourceBridge.transferTokensToDestinationChain(
             destinationChainSelector,
-            sourceBurnMintToken,
+            IERC20(address(sourceBurnMintToken)),
             amount + 1,
             receiverAddress,
             IERC20(address(linkToken))
