@@ -72,18 +72,23 @@ Types of Token Pools:
 ### Technical Implementation
 
 #### Token Interfaces
+
 This project uses official Chainlink contracts and interfaces:
+
 - **IBurnMintERC20**: Official Chainlink interface for burn/mint token functionality
 - **BurnMintERC20**: Official Chainlink implementation with built-in access control
 - **Access Control**: All mint/burn operations require proper role grants (`MINTER_ROLE`, `BURNER_ROLE`)
 
 #### Role Management
+
 The BurnMintERC20 tokens implement OpenZeppelin's AccessControl:
+
 - Token pools must be granted appropriate roles during deployment (`MINTER_ROLE`, `BURNER_ROLE`)
 - Test accounts require minting permissions for test execution
 - Deployment scripts automatically handle role assignments
 
 #### Important Implementation Notes
+
 - **Chain Selectors**: Each test script uses the destination chain selector, not the source chain selector, when calling `transferTokensToDestinationChain`
 - **Liquidity Management**: LockRelease scenarios require pre-funded token pools on destination chains
 - **Role Grants**: BurnMint test scripts must grant `MINTER_ROLE` to sender addresses before minting test tokens
@@ -169,6 +174,7 @@ To run the tests:
 ### Deploy Contracts
 
 First, deploy the contracts to the specified networks. This script will:
+
 1. Deploy Bridge, Configuration, Token Pool, and Token contracts to all three networks
 2. Configure cross-chain relationships between the contracts
 3. Save all deployed contract addresses to `addresses.json` for use by the test scripts
@@ -183,7 +189,7 @@ forge script script/Deploy.s.sol --broadcast --legacy --with-gas-price 100000000
 
 After deployment, you can test different token transfer scenarios. Each test script reads the contract addresses from the `addresses.json` file created by the deployment.
 
-### Burn and Mint from Fuji to Sepolia
+### Burn and Mint from Avalanche Fuji to Ethereum Sepolia
 
 This script tests the burn and mint functionality, transferring tokens from Fuji to Sepolia.
 
@@ -191,7 +197,7 @@ This script tests the burn and mint functionality, transferring tokens from Fuji
 forge script script/BurnAndMint.s.sol --broadcast --legacy --with-gas-price 100000000000 -vvvvv
 ```
 
-### Lock and Mint from Sepolia to Arbitrum
+### Lock and Mint from Ethereum Sepolia to Arbitrum Sepolia
 
 This script tests the lock and mint functionality, transferring tokens from Sepolia to Arbitrum.
 
@@ -199,10 +205,140 @@ This script tests the lock and mint functionality, transferring tokens from Sepo
 forge script script/LockAndMint.s.sol --broadcast --legacy --with-gas-price 100000000000 -vvvvv
 ```
 
-### Burn and Release from Arbitrum to Sepolia
+### Burn and Release from Arbitrum Sepolia to Ethereum Sepolia
 
 This script tests the burn and release functionality, transferring tokens from Arbitrum to Sepolia.
 
 ```sh
 forge script script/BurnAndRelease.s.sol --broadcast --legacy --with-gas-price 100000000000 -vvvvv
 ```
+
+## Tracking Cross-Chain Transactions
+
+After running any of the test scripts, you can track the progress of your cross-chain token transfer using the transaction logs and the [Chainlink CCIP Explorer](https://ccip.chain.link/).
+
+### Reading the Important Log Information
+
+When a test script completes successfully, look for these key events in the output:
+
+#### 1. CrossChainMessageSent Event
+
+```
+emit CrossChainMessageSent(messageId: 0xb0ee445819469dbb75034d3176a817df8692e00588acc9df89e4dedf1467d230, sender: 0x9d087fC03ae39b088326b67fA3C788236645b717, receiver: 0x9d087fC03ae39b088326b67fA3C788236645b717)
+```
+
+**Key Information:**
+
+- **messageId**: `0xb0ee445819469dbb75034d3176a817df8692e00588acc9df89e4dedf1467d230` - This is your unique transaction identifier
+- **sender**: The address that initiated the transfer
+- **receiver**: The address that will receive tokens on the destination chain
+
+#### 2. TokensTransferred Event
+
+**Burn and Mint Example (Fuji → Sepolia):**
+
+```
+emit TokensTransferred(tokenSource: 0x41c619bd8539B04c89B305E4523B491E9a9d8aDE, tokenSourcePool: 0x95a66F64E5cCdC714474886AA0e228f40D6987C9, destinationChainSelector: 16015286601757825753, tokenDestination: 0xB9bbeF3582D4726CF2611f931b3f3B0426C9526C, amount: 1000, fees: 24950998476540937)
+```
+
+**Lock and Mint Example (Sepolia → ArbitrumSepolia):**
+
+```
+emit TokensTransferred(tokenSource: 0x9a27B7268E29fc10B809C0921dFa86477886DC5B, tokenSourcePool: 0x227e98E683c178d9096A7D8b6a5CA5bCd08c3749, destinationChainSelector: 3478487238524512106, tokenDestination: 0xB74dC068486cEB67cbf9b62Ba10F0623FaFFD82D, amount: 1000, fees: 43680043224555953)
+```
+
+**Burn and Release Example (ArbitrumSepolia → Sepolia):**
+
+```
+emit TokensTransferred(tokenSource: 0xB74dC068486cEB67cbf9b62Ba10F0623FaFFD82D, tokenSourcePool: 0x0Ba199bD57d72dD9D50aC44B5ed0a797c2bdB630, destinationChainSelector: 16015286601757825753, tokenDestination: 0x9a27B7268E29fc10B809C0921dFa86477886DC5B, amount: 1000, fees: 24633191249502071)
+```
+
+**Key Information:**
+
+- **amount**: Number of tokens transferred (1000 in all examples)
+- **fees**: CCIP fees paid for the cross-chain transaction
+- **destinationChainSelector**: Target chain (16015286601757825753 = Ethereum Sepolia, 3478487238524512106 = Arbitrum Sepolia)
+
+#### 3. Token Pool Events (Scenario-Specific)
+
+Different scenarios emit different events depending on the token pool type:
+
+**Burn and Mint:**
+
+```
+emit Burned(sender: 0x0178b1F8Eb54D469F8Ce2e24c554b64BD2fC5393, amount: 1000)
+```
+
+**Lock and Mint/Release:**
+
+```
+emit Locked(sender: 0x6DDE0d425f0eBde9747460360Ca63E06B93d1025, amount: 1000)
+```
+
+**Pool Balance Information:**
+
+- **Lock scenarios**: Check `poolBalance` in logs to confirm tokens are locked in the pool
+- **Burn scenarios**: Tokens are destroyed, reducing total supply
+
+### Using the CCIP Explorer
+
+1. **Copy the messageId** from the `CrossChainMessageSent` event
+2. **Open the CCIP Explorer**: [https://ccip.chain.link/](https://ccip.chain.link/)
+3. **Track your transaction**: Navigate to `https://ccip.chain.link/#/side-drawer/msg/{messageId}`
+
+**Examples**:
+
+- **Burn and Mint** messageId `0xb0ee445819469dbb75034d3176a817df8692e00588acc9df89e4dedf1467d230`:  
+  [https://ccip.chain.link/#/side-drawer/msg/0xb0ee445819469dbb75034d3176a817df8692e00588acc9df89e4dedf1467d230](https://ccip.chain.link/#/side-drawer/msg/0xb0ee445819469dbb75034d3176a817df8692e00588acc9df89e4dedf1467d230)
+
+- **Lock and Mint** messageId `0x6078bb971566af2195fe33c1647ab1a28af20d172d8f7980f2d8fb68ab73cb1a`:  
+  [https://ccip.chain.link/#/side-drawer/msg/0x6078bb971566af2195fe33c1647ab1a28af20d172d8f7980f2d8fb68ab73cb1a](https://ccip.chain.link/#/side-drawer/msg/0x6078bb971566af2195fe33c1647ab1a28af20d172d8f7980f2d8fb68ab73cb1a)
+
+- **Burn and Release** messageId `0xd0f514dc055fa27f11d8527985f25547d6a97aba642cafaa2084fa608a827876`:  
+  [https://ccip.chain.link/#/side-drawer/msg/0xd0f514dc055fa27f11d8527985f25547d6a97aba642cafaa2084fa608a827876](https://ccip.chain.link/#/side-drawer/msg/0xd0f514dc055fa27f11d8527985f25547d6a97aba642cafaa2084fa608a827876)
+
+### What to Expect
+
+#### Transaction States in CCIP Explorer:
+
+The CCIP Explorer will show your transaction progressing through these stages:
+
+1. **Waiting for finality**: Transaction awaits finality on the source chain
+
+2. **Committed**: Merkle root of transaction batch is committed to the destination chain
+
+3. **Blessed**: Merkle root is blessed by the Risk Management Network (RMN)
+
+4. **Success**: Transaction completed successfully, tokens delivered to receiver
+   - **Manual execution**: Indicates execution failed on destination chain - requires intervention
+
+#### Upon Successful Completion:
+
+- **Burn and Mint**: Tokens are burned on source chain (e.g., Fuji) and minted on destination chain (e.g., Sepolia)
+- **Lock and Release**: Tokens are locked on source chain and released from destination pool
+- **Lock and Mint**: Tokens are locked on source chain and minted on destination chain
+
+**Verification**: Check the receiver's token balance on the destination chain to confirm the tokens were received.
+
+For more details on CCIP execution latency and architecture, see:
+
+- [CCIP Execution Latency](https://docs.chain.link/ccip/ccip-execution-latency)
+- [CCIP Architecture Overview](https://docs.chain.link/ccip/concepts/architecture/overview)
+
+### Expected End-to-End Transaction Times
+
+Complete transaction times from submission to final completion:
+
+- **Avalanche Fuji → Ethereum Sepolia**: < 10 minutes
+- **Ethereum Sepolia → Arbitrum Sepolia**: ~25 minutes
+- **Arbitrum Sepolia → Ethereum Sepolia**: ~35 minutes
+
+_Note: These times include all CCIP stages: finality, commitment, blessing, and execution._
+
+### Troubleshooting
+
+If your transaction shows as "Failed" in the CCIP Explorer:
+
+- Check that all token approvals were granted correctly
+- Ensure destination chain has sufficient liquidity (for Lock/Release scenarios)
+- Verify all contracts are properly configured with correct roles
