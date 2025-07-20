@@ -12,17 +12,19 @@ This project showcases three main scenarios:
 
 ### Burn and Mint
 
-![burn-and-mint](./img/tokens-messaing-burn-and-mint.jpg)
+![burn-and-mint](./img/tokens-messaging-burn-and-mint.jpg)
 
 In this scenario, tokens are burned on the source chain and minted on the destination chain. When the sender initiates a transfer, the Bridge contract on the source chain transfers the tokens to the token pool then calls the `lockOrBurn` function of the token pool to burn the tokens. On the destination chain, the bridge contract receives the CCIP message and calls the `releaseOrMint` function of the token pool to mint the tokens for the receiver.
 
-### Lock and Mint / Burn and Release
+### Lock and Mint
 
-![lock-and-mint](./img/tokens-messaing-lock-and-mint.jpg)
+![lock-and-mint](./img/tokens-messaging-lock-and-mint.jpg)
 
 In this scenario, tokens are locked on the source chain and minted on the destination chain. When the sender initiates a transfer, the Bridge contract on the source chain transfers the tokens to the token pool then calls the `lockOrBurn` function of the token pool to lock the tokens. On the destination chain, the bridge contract receives the CCIP message and calls the `releaseOrMint` function of the token pool to mint the tokens for the receiver.
 
-The reverse scenario works as follows: When the sender initiates a transfer, the Bridge contract on the source chain transfers the tokens to the token pool then calls the `lockOrBurn` function of the token pool to burn the tokens. On the destination chain, the bridge contract receives the CCIP message and calls the `releaseOrMint` function of the token pool to release the tokens for the receiver. **Note**: This scenario requires active liquidity management to ensure that there are enough tokens on the destination chain to release tokens for the receivers.
+### Burn and Release
+
+In this scenario, tokens are burned on the source chain and released on the destination chain. When the sender initiates a transfer, the Bridge contract on the source chain transfers the tokens to the token pool then calls the `lockOrBurn` function of the token pool to burn the tokens. On the destination chain, the bridge contract receives the CCIP message and calls the `releaseOrMint` function of the token pool to release the tokens for the receiver. **Note**: This scenario requires active liquidity management to ensure that there are enough tokens on the destination chain to release tokens for the receivers.
 
 ### Lock and Release
 
@@ -77,9 +79,14 @@ This project uses official Chainlink contracts and interfaces:
 
 #### Role Management
 The BurnMintERC20 tokens implement OpenZeppelin's AccessControl:
-- Token pools must be granted appropriate roles during deployment
+- Token pools must be granted appropriate roles during deployment (`MINTER_ROLE`, `BURNER_ROLE`)
 - Test accounts require minting permissions for test execution
 - Deployment scripts automatically handle role assignments
+
+#### Important Implementation Notes
+- **Chain Selectors**: Each test script uses the destination chain selector, not the source chain selector, when calling `transferTokensToDestinationChain`
+- **Liquidity Management**: LockRelease scenarios require pre-funded token pools on destination chains
+- **Role Grants**: BurnMint test scripts must grant `MINTER_ROLE` to sender addresses before minting test tokens
 
 ### Transfer tokens using arbitrary data
 
@@ -161,11 +168,20 @@ To run the tests:
 
 ### Deploy Contracts
 
-First, deploy the contracts to the specified networks. This script reads from the `addresses.json` file to get the necessary contract addresses.
+First, deploy the contracts to the specified networks. This script will:
+1. Deploy Bridge, Configuration, Token Pool, and Token contracts to all three networks
+2. Configure cross-chain relationships between the contracts
+3. Save all deployed contract addresses to `addresses.json` for use by the test scripts
 
 ```sh
 forge script script/Deploy.s.sol --broadcast --legacy --with-gas-price 100000000000
 ```
+
+**Note**: The `addresses.json` file in this repository contains pre-deployed contract addresses from a previous deployment. When you run the deployment script above, it will overwrite this file with your new contract addresses.
+
+### Test Cross-Chain Token Transfers
+
+After deployment, you can test different token transfer scenarios. Each test script reads the contract addresses from the `addresses.json` file created by the deployment.
 
 ### Burn and Mint from Fuji to Sepolia
 
