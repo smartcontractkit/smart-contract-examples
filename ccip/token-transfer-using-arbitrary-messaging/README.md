@@ -67,6 +67,20 @@ Types of Token Pools:
 - BurnMint Token Pools: These pools refer to crosschain tokens that can be minted or burned. In this model, tokens are burned on the source chain and minted on the destination chain.
 - LockRelease Token Pools: These are designed for scenarios where tokens cannot be directly minted or burned across chains. Instead, tokens are "locked" in the pool on the source chain and an equivalent amount of tokens is "released" from a similar pool on the destination chain. This method requires active liquidity management to ensure sufficient tokens on the destination chain to release tokens for the receivers.
 
+### Technical Implementation
+
+#### Token Interfaces
+This project uses official Chainlink contracts and interfaces:
+- **IBurnMintERC20**: Official Chainlink interface for burn/mint token functionality
+- **BurnMintERC20**: Official Chainlink implementation with built-in access control
+- **Access Control**: All mint/burn operations require proper role grants (`MINTER_ROLE`, `BURNER_ROLE`)
+
+#### Role Management
+The BurnMintERC20 tokens implement OpenZeppelin's AccessControl:
+- Token pools must be granted appropriate roles during deployment
+- Test accounts require minting permissions for test execution
+- Deployment scripts automatically handle role assignments
+
 ### Transfer tokens using arbitrary data
 
 Here’s a step-by-step breakdown for transferring tokens using arbitrary data:

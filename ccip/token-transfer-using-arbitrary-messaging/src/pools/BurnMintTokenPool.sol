@@ -10,7 +10,7 @@ pragma solidity 0.8.24;
  * Use it at your own risk. The authors are not responsible for any loss of
  * funds or other damages caused by the use of this code.
  */
-import {IBurnMintERC20} from "../interfaces/IBurnMintERC20.sol";
+import {IBurnMintERC20} from "@chainlink/contracts/src/v0.8/shared/token/ERC20/IBurnMintERC20.sol";
 import {Pool} from "./Pool.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";

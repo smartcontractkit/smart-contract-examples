@@ -15,7 +15,8 @@ import "forge-std/Script.sol";
 import "../src/bridge/Bridge.sol";
 import "../src/bridge/Configuration.sol";
 import "../src/pools/BurnMintTokenPool.sol";
-import "../test/mocks/MockBurnMintERC20.sol";
+import {IBurnMintERC20} from "@chainlink/contracts/src/v0.8/shared/token/ERC20/IBurnMintERC20.sol";
+import {BurnMintERC20} from "@chainlink/contracts/src/v0.8/shared/token/ERC20/BurnMintERC20.sol";
 
 contract TestBurnAndMintFromFujiToSepolia is Script {
     using stdJson for string;
@@ -29,7 +30,7 @@ contract TestBurnAndMintFromFujiToSepolia is Script {
         address linkTokenAddress = 0x0b9d5D9136855f6FEc3c0993feE6E9CE8a297846;
 
         IBridge bridge = IBridge(bridgeAddress);
-        MockBurnMintERC20 burnMintToken = MockBurnMintERC20(
+        IBurnMintERC20 burnMintToken = IBurnMintERC20(
             burnMintTokenAddress
         );
         IERC20 linkToken = IERC20(linkTokenAddress);
@@ -41,12 +42,18 @@ contract TestBurnAndMintFromFujiToSepolia is Script {
         vm.createSelectFork(rpcUrl);
         vm.startBroadcast(deployerPrivateKey);
 
+        // Grant minter role to the sender address so they can mint tokens
+        BurnMintERC20(burnMintTokenAddress).grantRole(
+            BurnMintERC20(burnMintTokenAddress).MINTER_ROLE(), 
+            senderAndReceiverAddress
+        );
+
         uint256 amount = 1000;
         burnMintToken.mint(senderAndReceiverAddress, amount);
 
         uint256 fees = bridge.getFee(
             sepoliaChainSelector,
-            burnMintToken,
+            IERC20(address(burnMintToken)),
             amount,
             senderAndReceiverAddress,
             linkToken
@@ -57,7 +64,7 @@ contract TestBurnAndMintFromFujiToSepolia is Script {
         (bytes32 messageId, uint256 actualFees) = bridge
             .transferTokensToDestinationChain(
                 sepoliaChainSelector,
-                burnMintToken,
+                IERC20(address(burnMintToken)),
                 amount,
                 senderAndReceiverAddress,
                 linkToken

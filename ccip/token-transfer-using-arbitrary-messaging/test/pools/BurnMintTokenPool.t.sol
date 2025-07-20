@@ -14,20 +14,29 @@ pragma solidity 0.8.24;
 import "forge-std/Test.sol";
 import "forge-std/console.sol";
 import {BurnMintTokenPool} from "../../src/pools/BurnMintTokenPool.sol";
-import {MockBurnMintERC20} from "../mocks/MockBurnMintERC20.sol";
+import {BurnMintERC20} from "@chainlink/contracts/src/v0.8/shared/token/ERC20/BurnMintERC20.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ICustom} from "../mocks/ICustom.sol";
 
 contract BurnMintTokenPoolTest is Test, ICustom {
     BurnMintTokenPool pool;
-    MockBurnMintERC20 token;
+    BurnMintERC20 token;
     address owner;
     address bridgeAddress = address(0x1);
     address nonOwner = address(0x2);
 
     function setUp() public {
         owner = address(this);
-        token = new MockBurnMintERC20("MockBurnMintERC20", "MBM", 18);
-        pool = new BurnMintTokenPool(token, address(0));
+        token = new BurnMintERC20("MockBurnMintERC20", "MBM", 18, 0, 0);
+        pool = new BurnMintTokenPool(IERC20(address(token)), address(0));
+        
+        // Grant minter and burner roles to the pool
+        token.grantRole(token.MINTER_ROLE(), address(pool));
+        token.grantRole(token.BURNER_ROLE(), address(pool));
+        // Grant minter role to the test account (owner) for testing
+        token.grantRole(token.MINTER_ROLE(), owner);
+        // Grant burner role to nonOwner for testing burn functionality
+        token.grantRole(token.BURNER_ROLE(), nonOwner);
     }
 
     function testGetToken() public view {
@@ -173,14 +182,7 @@ contract BurnMintTokenPoolTest is Test, ICustom {
         pool.setBridge(bridgeAddress);
         vm.prank(bridgeAddress);
 
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                ERC20InsufficientBalance.selector,
-                pool,
-                0,
-                amount
-            )
-        );
+        vm.expectRevert("ERC20: burn amount exceeds balance");
         pool.lockOrBurn(amount);
     }
 

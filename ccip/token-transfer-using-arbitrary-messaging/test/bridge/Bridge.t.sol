@@ -17,8 +17,8 @@ import {IConfiguration, Configuration} from "../../src/bridge/Configuration.sol"
 import {LockReleaseTokenPool} from "../../src/pools/LockReleaseTokenPool.sol";
 import {MockERC20, IERC20} from "../mocks/MockERC20.sol";
 import {ICustom} from "../mocks/ICustom.sol";
-import {Client} from "@chainlink/contracts-ccip/src/v0.8/ccip/libraries/Client.sol";
-import {IAny2EVMMessageReceiver} from "@chainlink/contracts-ccip/src/v0.8/ccip/interfaces/IAny2EVMMessageReceiver.sol";
+import {Client} from "@chainlink/contracts-ccip/contracts/libraries/Client.sol";
+import {IAny2EVMMessageReceiver} from "@chainlink/contracts-ccip/contracts/interfaces/IAny2EVMMessageReceiver.sol";
 
 contract BridgeTest is Test, ICustom {
     Bridge bridge;
