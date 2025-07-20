@@ -6,6 +6,70 @@
 
 This project demonstrates how to use Chainlink CCIP to send tokens to a receiver using arbitrary data. This example is interesting for projects that want to send tokens crosschain that are not supported by Chainlink CCIP.
 
+## Prerequisites
+
+### Development Environment
+
+Before running this project, ensure you have the following tools installed:
+
+1. **Foundry** - Required for compiling and deploying smart contracts
+
+   ```bash
+   curl -L https://foundry.paradigm.xyz | bash
+   foundryup
+   ```
+
+   Installation guide: [https://getfoundry.sh/introduction/installation](https://getfoundry.sh/introduction/installation)
+
+1. **Node.js and npm** - Required for managing dependencies (v20 or higher)
+
+   ```bash
+   # Recommended: Use Node Version Manager (nvm) for easy version switching
+   curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+
+   # Install and use Node.js v20
+   nvm install 20
+   nvm use 20
+
+   # Alternative: Download directly from https://nodejs.org/
+
+   # Install project dependencies
+   npm install
+   ```
+
+   **Recommended**: Use [Node Version Manager (nvm)](https://github.com/nvm-sh/nvm) to easily switch between Node.js versions
+
+1. **Git** - Required for cloning the repository and submodules
+   ```bash
+   git --version  # Verify Git is installed
+   ```
+
+### Environment Setup
+
+- **Environment Variables**: Copy the example environment file and configure your settings:
+
+  ```bash
+  # Copy the environment template
+  cp .env.example .env
+
+  # Edit .env file with your variables
+  ```
+
+  **Required Environment Variables:**
+
+  - `PRIVATE_KEY`: Your EOA private key for deploying and testing contracts
+  - `ETHEREUM_SEPOLIA_RPC_URL`: RPC URL for Ethereum Sepolia (for local testing)
+  - `AVALANCHE_FUJI_RPC_URL`: RPC URL for Avalanche Fuji (for local testing)
+  - `ARBITRUM_SEPOLIA_RPC_URL`: RPC URL for Arbitrum Sepolia (for local testing)
+
+- **Testnet Tokens**: Your EOA must have enough LINK and native gas tokens on:
+
+  - Avalanche Fuji
+  - Ethereum Sepolia
+  - Arbitrum Sepolia
+
+  Get testnet tokens from the [Chainlink Faucet](https://faucets.chain.link/)
+
 ## Overview
 
 This project showcases three main scenarios:
@@ -101,25 +165,25 @@ Here’s a step-by-step breakdown for transferring tokens using arbitrary data:
 
    - The sender on the source chain approves the Bridge contract to spend tokens on their behalf, enabling the Bridge to handle tokens during the transfer process.
 
-2. **Initiating Transfer**:
+1. **Initiating Transfer**:
 
    - The sender initiates the transfer by calling the `transferTokensToDestinationChain` function on the Bridge contract on the source chain, specifying the amount of tokens, the destination chain selector, the receiver's address on the destination chain, and any applicable fee tokens.
 
-3. **Configuration Fetch**:
+1. **Configuration Fetch**:
 
    - The Bridge contract interacts with the Configuration contract to fetch necessary details such as the associated token pool, the destination token address on the destination chain, and extra arguments needed for cross-chain communication.
 
-4. **Token Handling (Lock or Burn)**:
+1. **Token Handling (Lock or Burn)**:
 
    - Depending on the type of token pool:
      - **LockRelease Token Pool**: Tokens are locked in the pool on the source chain, withheld from circulation but not destroyed.
      - **BurnMint Token Pool**: Tokens are burned on the source chain, reducing the total supply on that chain.
 
-5. **CCIP Message Preparation and Sending**:
+1. **CCIP Message Preparation and Sending**:
 
    - A CCIP message containing details about the receiver, amount, and destination token is sent to the Bridge on the destination chain via the CCIP Router. Fees are calculated and handled accordingly.
 
-6. **Receiving on the destination chain**:
+1. **Receiving on the destination chain**:
    - The Bridge on the destination chain processes the message, validates the data against its Configuration contract, and performs token operations:
      - **LockRelease Token Pool**: Tokens equivalent to the locked amount on the source chain are released and transferred to the receiver.
      - **BurnMint Token Pool**: New tokens are minted equivalent to the burned amount on the source chain and transferred to the receiver.
@@ -129,55 +193,23 @@ Here’s a step-by-step breakdown for transferring tokens using arbitrary data:
 The tests are written in Solidity and can be found in the `test` directory. The tests cover the core functionalities of the Bridge, Configuration, and Token Pool contracts.
 `BridgeWithSimulator.t.sol` uses the Chainlink CCIP simulator locally. While the `BridgeWithSimulatorFork.t.sol` uses the Chainlink CCIP simulator with forked Ethereum Sepolia (as source chain) and Avalanche Fuji (as destination chain).
 
+**Note**: Ensure you have completed the [Prerequisites](#prerequisites) setup, including configuring your `.env` file with the required RPC URLs.
+
 To run the tests:
 
-- Set three environment variables that will be used to fork the source and destination chains:
-
-  - `ETHEREUM_SEPOLIA_RPC_URL`: The RPC URL of Ethereum Sepolia.
-
-    ```text
-    export ETHEREUM_SEPOLIA_RPC_URL=YOUR_SEPOLIA_RPC_URL
-    ```
-
-  - `AVALANCHE_FUJI_RPC_URL`: The RPC URL of Avalanche Fuji.
-
-    ```text
-    export AVALANCHE_FUJI_RPC_URL=YOUR_FUJI_RPC_URL
-    ```
-
-  - `ARBITRUM_SEPOLIA_RPC_URL`: The RPC URL of Arbitrum Sepolia.
-
-    ```text
-    export ARBITRUM_SEPOLIA_RPC_URL=YOUR_ARBITRUM_SEPOLIA_RPC_URL
-    ```
-
-- Run the tests:
-
-  ```bash
-  forge test
-  ```
+```bash
+forge test
+```
 
 ## Test on testnets
-
-### Prerequisites
-
-- To test on testnets, you need to set the private key environment variable for the sender account:
-
-  - `PRIVATE_KEY`: Your EOA private key.
-
-    ```text
-    export PRIVATE_KEY=YOUR_PRIVATE_KEY
-    ```
-
-- Your EOA must have enough LINK and native gas tokens on Avalanche Fuji, Ethereum Sepolia, and Arbitrum Sepolia. You can use the [Chainlink Faucet](https://faucets.chain.link/) to get testnet tokens.
 
 ### Deploy Contracts
 
 First, deploy the contracts to the specified networks. This script will:
 
 1. Deploy Bridge, Configuration, Token Pool, and Token contracts to all three networks
-2. Configure cross-chain relationships between the contracts
-3. Save all deployed contract addresses to `addresses.json` for use by the test scripts
+1. Configure cross-chain relationships between the contracts
+1. Save all deployed contract addresses to `addresses.json` for use by the test scripts
 
 ```sh
 forge script script/Deploy.s.sol --broadcast --legacy --with-gas-price 100000000000
@@ -283,8 +315,8 @@ emit Locked(sender: 0x6DDE0d425f0eBde9747460360Ca63E06B93d1025, amount: 1000)
 ### Using the CCIP Explorer
 
 1. **Copy the messageId** from the `CrossChainMessageSent` event
-2. **Open the CCIP Explorer**: [https://ccip.chain.link/](https://ccip.chain.link/)
-3. **Track your transaction**: Navigate to `https://ccip.chain.link/#/side-drawer/msg/{messageId}`
+1. **Open the CCIP Explorer**: [https://ccip.chain.link/](https://ccip.chain.link/)
+1. **Track your transaction**: Navigate to `https://ccip.chain.link/#/side-drawer/msg/{messageId}`
 
 **Examples**:
 
@@ -305,11 +337,11 @@ The CCIP Explorer will show your transaction progressing through these stages:
 
 1. **Waiting for finality**: Transaction awaits finality on the source chain
 
-2. **Committed**: Merkle root of transaction batch is committed to the destination chain
+1. **Committed**: Merkle root of transaction batch is committed to the destination chain
 
-3. **Blessed**: Merkle root is blessed by the Risk Management Network (RMN)
+1. **Blessed**: Merkle root is blessed by the Risk Management Network (RMN)
 
-4. **Success**: Transaction completed successfully, tokens delivered to receiver
+1. **Success**: Transaction completed successfully, tokens delivered to receiver
    - **Manual execution**: Indicates execution failed on destination chain - requires intervention
 
 #### Upon Successful Completion:
