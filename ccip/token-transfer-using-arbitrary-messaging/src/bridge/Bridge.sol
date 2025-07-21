@@ -95,7 +95,7 @@ contract Bridge is
     function getConfiguration()
         public
         view
-        returns (IConfiguration configuration)
+        returns (IConfiguration)
     {
         return s_configuration;
     }
@@ -106,7 +106,7 @@ contract Bridge is
         s_ccipRouter = router;
     }
 
-    function getRouter() public view returns (address router) {
+    function getRouter() public view returns (address) {
         return s_ccipRouter;
     }
 
@@ -130,7 +130,7 @@ contract Bridge is
 
     function getFailedMessageContent(
         bytes32 messageId
-    ) external view returns (FailedMessageContent memory content) {
+    ) external view returns (FailedMessageContent memory) {
         return s_messageContents[messageId];
     }
 
@@ -145,7 +145,7 @@ contract Bridge is
         view
         validateConfiguration
         validateToken(token)
-        returns (uint256 fees)
+        returns (uint256)
     {
         IConfiguration.ConfigOut memory configuration = s_configuration
             .getConfigOut(token, destinationChainSelector);
@@ -360,8 +360,6 @@ contract Bridge is
             });
 
             emit MessageFailed(message.messageId, receiver, tokenAmount, err);
-
-            return;
         }
     }
 
@@ -404,7 +402,7 @@ contract Bridge is
         uint256 amount,
         IERC20 feeToken,
         bytes memory extraArgs
-    ) private pure returns (Client.EVM2AnyMessage memory message) {
+    ) private pure returns (Client.EVM2AnyMessage memory) {
         TokenAmount memory tokenAmount = TokenAmount({
             token: destinationToken,
             amount: amount
