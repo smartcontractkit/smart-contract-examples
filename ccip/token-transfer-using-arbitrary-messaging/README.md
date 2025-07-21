@@ -211,28 +211,57 @@ forge test
 
 ### Deploy Contracts
 
-First, deploy the contracts to the specified networks. This script will:
+This project uses a reliable split deployment architecture that eliminates RPC reliability issues. Deployment consists of two phases:
 
-1. Deploy Bridge, Configuration, Token Pool, and Token contracts to all three networks
-1. Configure cross-chain relationships between the contracts
-1. Save all deployed contract addresses to `addresses.json` for use by the test scripts
+#### Phase 1: Deploy Contracts (Independent)
+
+Deploy contracts to each chain independently. These commands use separate RPC endpoints and can run in parallel:
 
 ```sh
-forge script script/Deploy.s.sol --broadcast --legacy --with-gas-price 100000000000
+# Deploy to Sepolia
+forge script script/deploy/DeploySepolia.s.sol --broadcast
+
+# Deploy to Arbitrum Sepolia  
+forge script script/deploy/DeployArbitrumSepolia.s.sol --broadcast
+
+# Deploy to Fuji
+forge script script/deploy/DeployFuji.s.sol --broadcast
 ```
 
-**Note**: The `addresses.json` file in this repository contains pre-deployed contract addresses from a previous deployment. When you run the deployment script above, it will overwrite this file with your new contract addresses.
+#### Phase 2: Configure Cross-Chain Relationships (Independent)
+
+After ALL deployments complete successfully, configure cross-chain relationships:
+
+```sh
+# Configure Sepolia
+forge script script/configure/ConfigureSepolia.s.sol --broadcast
+
+# Configure Arbitrum Sepolia
+forge script script/configure/ConfigureArbitrumSepolia.s.sol --broadcast
+
+# Configure Fuji
+forge script script/configure/ConfigureFuji.s.sol --broadcast
+```
+
+#### Benefits of Split Deployment
+
+- **RPC Reliability**: Each script uses its own RPC endpoint, eliminating multi-RPC failures
+- **Error Recovery**: Retry individual failed deployments without affecting successful ones
+- **Parallel Execution**: Deploy to multiple chains simultaneously
+- **Better Debugging**: Smaller, focused scripts are easier to troubleshoot
+
+**Note**: Each deployment creates a network-specific address file (`script/addresses-Sepolia.json`, `script/addresses-ArbitrumSepolia.json`, `script/addresses-Fuji.json`) with the deployed contract addresses. This ensures deployments don't overwrite each other and provides better error isolation.
 
 ### Test Cross-Chain Token Transfers
 
-After deployment, you can test different token transfer scenarios. Each test script reads the contract addresses from the `addresses.json` file created by the deployment.
+After deployment, you can test different token transfer scenarios. Each test script reads the contract addresses from the network-specific address files created by the deployment (`addresses-Sepolia.json`, `addresses-ArbitrumSepolia.json`, `addresses-Fuji.json`).
 
 ### Burn and Mint from Avalanche Fuji to Ethereum Sepolia
 
 This script tests the burn and mint functionality, transferring tokens from Fuji to Sepolia.
 
 ```sh
-forge script script/BurnAndMint.s.sol --broadcast --legacy --with-gas-price 100000000000 -vvvvv
+forge script script/BurnAndMint.s.sol --broadcast --with-gas-price 100000000000 -vvvvv
 ```
 
 ### Lock and Mint from Ethereum Sepolia to Arbitrum Sepolia
@@ -240,7 +269,7 @@ forge script script/BurnAndMint.s.sol --broadcast --legacy --with-gas-price 1000
 This script tests the lock and mint functionality, transferring tokens from Sepolia to Arbitrum.
 
 ```sh
-forge script script/LockAndMint.s.sol --broadcast --legacy --with-gas-price 100000000000 -vvvvv
+forge script script/LockAndMint.s.sol --broadcast --with-gas-price 100000000000 -vvvvv
 ```
 
 ### Burn and Release from Arbitrum Sepolia to Ethereum Sepolia
@@ -248,7 +277,7 @@ forge script script/LockAndMint.s.sol --broadcast --legacy --with-gas-price 1000
 This script tests the burn and release functionality, transferring tokens from Arbitrum to Sepolia.
 
 ```sh
-forge script script/BurnAndRelease.s.sol --broadcast --legacy --with-gas-price 100000000000 -vvvvv
+forge script script/BurnAndRelease.s.sol --broadcast --with-gas-price 100000000000 -vvvvv
 ```
 
 ## Tracking Cross-Chain Transactions
