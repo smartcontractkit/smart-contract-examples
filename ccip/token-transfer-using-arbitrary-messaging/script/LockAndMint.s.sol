@@ -29,12 +29,12 @@ contract TestLockAndMintFromSepoliaToArbitrum is Script {
     }
 
     function run() external {
-        string memory json = vm.readFile("./script/addresses.json");
+        string memory json = vm.readFile("./script/addresses-Sepolia.json");
 
         NetworkDetails memory sepolia = NetworkDetails({
-            bridge: json.readAddress(".Sepolia_bridge"),
-            lockReleasePool: json.readAddress(".Sepolia_lockReleasePool"),
-            lockableToken: json.readAddress(".Sepolia_lockableToken"),
+            bridge: json.readAddress(".bridge"),
+            lockReleasePool: json.readAddress(".lockReleasePool"),
+            lockableToken: json.readAddress(".lockableToken"),
             linkToken: 0x779877A7B0D9E8603169DdbD7836e478b4624789,
             chainSelector: 3478487238524512106,
             rpcUrl: vm.envString("ETHEREUM_SEPOLIA_RPC_URL")
