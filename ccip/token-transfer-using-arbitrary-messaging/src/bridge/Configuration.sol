@@ -165,7 +165,7 @@ contract Configuration is IConfiguration, Ownable2Step {
         IERC20 token,
         uint64 destinationChainSelector
     ) external view returns (ConfigOut memory config) {
-        config = ConfigOut({
+        return ConfigOut({
             receiverBridge: getRemoteBridge(destinationChainSelector),
             destinationToken: getDestinationToken(
                 token,
@@ -180,7 +180,7 @@ contract Configuration is IConfiguration, Ownable2Step {
         IERC20 token,
         uint64 sourceChainSelector
     ) external view returns (ConfigIn memory config) {
-        config = ConfigIn({
+        return ConfigIn({
             senderBridge: getRemoteBridge(sourceChainSelector),
             pool: getTokenPool(token)
         });

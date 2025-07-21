@@ -195,7 +195,13 @@ The tests are written in Solidity and can be found in the `test` directory. The 
 
 **Note**: Ensure you have completed the [Prerequisites](#prerequisites) setup, including configuring your `.env` file with the required RPC URLs.
 
-To run the tests:
+First, verify that your contracts compile successfully:
+
+```bash
+forge build
+```
+
+Once the build completes without errors, run the tests:
 
 ```bash
 forge test

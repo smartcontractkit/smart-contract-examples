@@ -97,7 +97,7 @@ contract Bridge is
         view
         returns (IConfiguration configuration)
     {
-        configuration = s_configuration;
+        return s_configuration;
     }
 
     function setRouter(address router) external onlyOwner {
@@ -107,7 +107,7 @@ contract Bridge is
     }
 
     function getRouter() public view returns (address router) {
-        router = s_ccipRouter;
+        return s_ccipRouter;
     }
 
     function getFailedMessages(
@@ -125,12 +125,13 @@ contract Bridge is
             );
             failedMessages[i] = FailedMessage(messageId, ErrorCode(errorCode));
         }
+        return failedMessages;
     }
 
     function getFailedMessageContent(
         bytes32 messageId
     ) external view returns (FailedMessageContent memory content) {
-        content = s_messageContents[messageId];
+        return s_messageContents[messageId];
     }
 
     function getFee(
@@ -174,7 +175,7 @@ contract Bridge is
         );
 
         IRouterClient router = IRouterClient(getRouter());
-        fees = router.getFee(destinationChainSelector, message);
+        return router.getFee(destinationChainSelector, message);
     }
 
     function transferTokensToDestinationChain(
@@ -285,6 +286,7 @@ contract Bridge is
             amount,
             fees
         );
+        return (messageId, fees);
     }
 
     function processMessage(
@@ -407,7 +409,7 @@ contract Bridge is
             token: destinationToken,
             amount: amount
         });
-        message = Client.EVM2AnyMessage({
+        return Client.EVM2AnyMessage({
             receiver: abi.encode(receiverBridge),
             data: abi.encode(receiver, tokenAmount),
             tokenAmounts: new Client.EVMTokenAmount[](0),

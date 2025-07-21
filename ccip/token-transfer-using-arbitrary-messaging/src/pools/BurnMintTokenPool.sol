@@ -25,7 +25,7 @@ contract BurnMintTokenPool is Pool {
     ) Pool(token, TokenPoolType.BurnMint, bridge) {}
 
     function _lockOrBurn(uint256 amount) internal override {
-        IBurnMintERC20(address(I_TOKEN)).burn(amount);
+        IBurnMintERC20(address(i_token)).burn(amount);
         emit Burned(msg.sender, amount);
     }
 
@@ -33,7 +33,7 @@ contract BurnMintTokenPool is Pool {
         uint256 amount,
         address receiver
     ) internal override {
-        IBurnMintERC20(address(I_TOKEN)).mint(receiver, amount);
+        IBurnMintERC20(address(i_token)).mint(receiver, amount);
         emit Minted(msg.sender, receiver, amount);
     }
 }
