@@ -35,4 +35,4 @@
 		"chainlink-solidity/inherited-constructor-args-not-in-contract-definition": "warn",
 		"chainlink-solidity/explicit-returns": "warn"
 	}
-} 
+}
