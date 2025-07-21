@@ -11,18 +11,22 @@ pragma solidity 0.8.24;
  * funds or other damages caused by the use of this code.
  */
 
-import "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 import {ICustom} from "../mocks/ICustom.sol";
-import {IBridge, Bridge} from "../../src/bridge/Bridge.sol";
-import {IConfiguration, Configuration} from "../../src/bridge/Configuration.sol";
+import {Bridge} from "../../src/bridge/Bridge.sol";
+import {Configuration} from "../../src/bridge/Configuration.sol";
 import {LockReleaseTokenPool} from "../../src/pools/LockReleaseTokenPool.sol";
-import {MockERC20, IERC20} from "../mocks/MockERC20.sol";
+import {MockERC20} from "../mocks/MockERC20.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {BurnMintTokenPool} from "../../src/pools/BurnMintTokenPool.sol";
 import {BurnMintERC20} from "@chainlink/contracts/src/v0.8/shared/token/ERC20/BurnMintERC20.sol";
 import {CCIPLocalSimulatorFork, Register} from "@chainlink/local/src/ccip/CCIPLocalSimulatorFork.sol";
 import {Client} from "@chainlink/contracts-ccip/contracts/libraries/Client.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract BridgeTestSimulatorFork is Test, ICustom {
+    using SafeERC20 for IERC20;
+    
     CCIPLocalSimulatorFork public ccipLocalSimulatorFork;
     Register.NetworkDetails sepoliaNetworkDetails;
     Register.NetworkDetails fujiNetworkDetails;
@@ -54,18 +58,18 @@ contract BridgeTestSimulatorFork is Test, ICustom {
     uint256 arbSepoliaFork;
 
     function setUp() public {
-        string memory ETHEREUM_SEPOLIA_RPC_URL = vm.envString(
+        string memory ethereumSepoliaRpcUrl = vm.envString(
             "ETHEREUM_SEPOLIA_RPC_URL"
         );
-        string memory AVALANCHE_FUJI_RPC_URL = vm.envString(
+        string memory avalancheFujiRpcUrl = vm.envString(
             "AVALANCHE_FUJI_RPC_URL"
         );
-        string memory ARBITRUM_SEPOLIA_RPC_URL = vm.envString(
+        string memory arbitrumSepoliaRpcUrl = vm.envString(
             "ARBITRUM_SEPOLIA_RPC_URL"
         );
-        sepoliaFork = vm.createSelectFork(ETHEREUM_SEPOLIA_RPC_URL);
-        fujiFork = vm.createFork(AVALANCHE_FUJI_RPC_URL);
-        arbSepoliaFork = vm.createFork(ARBITRUM_SEPOLIA_RPC_URL);
+        sepoliaFork = vm.createSelectFork(ethereumSepoliaRpcUrl);
+        fujiFork = vm.createFork(avalancheFujiRpcUrl);
+        arbSepoliaFork = vm.createFork(arbitrumSepoliaRpcUrl);
 
         ccipLocalSimulatorFork = new CCIPLocalSimulatorFork();
         vm.makePersistent(address(ccipLocalSimulatorFork));
@@ -84,7 +88,7 @@ contract BridgeTestSimulatorFork is Test, ICustom {
             0, // unlimited max supply
             0  // no premint
         );
-        sepoliaLockableToken.transfer(liquidityProviderAddress, 1_000_000);
+        IERC20(address(sepoliaLockableToken)).safeTransfer(liquidityProviderAddress, 1_000_000);
         sepoliaConfiguration = new Configuration();
         sepoliaBridge = new Bridge(
             sepoliaNetworkDetails.routerAddress,
@@ -119,7 +123,7 @@ contract BridgeTestSimulatorFork is Test, ICustom {
             "MTKlnu",
             type(uint256).max
         );
-        fujiLockableToken.transfer(liquidityProviderAddress, 1_000_000);
+        IERC20(address(fujiLockableToken)).safeTransfer(liquidityProviderAddress, 1_000_000);
         fujiBurnMintToken = new BurnMintERC20(
             "Mock Token Fuji",
             "MTKbnm",
@@ -473,7 +477,7 @@ contract BridgeTestSimulatorFork is Test, ICustom {
 
     function testLockAndReleaseFromSepoliaToFujiPayLINK() public {
         uint256 amount = 1000;
-        sepoliaLockableToken.transfer(senderAddress, amount);
+        IERC20(address(sepoliaLockableToken)).safeTransfer(senderAddress, amount);
         uint256 senderLinkBalance = IERC20(sepoliaNetworkDetails.linkAddress)
             .balanceOf(address(senderAddress));
         vm.startPrank(senderAddress);
@@ -537,7 +541,7 @@ contract BridgeTestSimulatorFork is Test, ICustom {
 
     function testLockAndReleaseFromSepoliaToFujiPayNative() public {
         uint256 amount = 1000;
-        sepoliaLockableToken.transfer(senderAddress, amount);
+        IERC20(address(sepoliaLockableToken)).safeTransfer(senderAddress, amount);
         uint256 senderBalance = senderAddress.balance;
         vm.startPrank(senderAddress);
         sepoliaLockableToken.approve(address(sepoliaBridge), amount);
@@ -600,7 +604,7 @@ contract BridgeTestSimulatorFork is Test, ICustom {
     function testLockReleaseFromFujiToSepoliaPayLINK() public {
         vm.selectFork(fujiFork);
         uint256 amount = 1000;
-        fujiLockableToken.transfer(senderAddress, amount);
+        IERC20(address(fujiLockableToken)).safeTransfer(senderAddress, amount);
         uint256 senderLinkBalance = IERC20(fujiNetworkDetails.linkAddress)
             .balanceOf(address(senderAddress));
         vm.startPrank(senderAddress);
@@ -664,7 +668,7 @@ contract BridgeTestSimulatorFork is Test, ICustom {
 
     function testLockAndMintFromSepoliaToArbSepoliaPayLINK() public {
         uint256 amount = 1000;
-        sepoliaLockableToken.transfer(senderAddress, amount);
+        IERC20(address(sepoliaLockableToken)).safeTransfer(senderAddress, amount);
         uint256 senderLinkBalance = IERC20(sepoliaNetworkDetails.linkAddress)
             .balanceOf(address(senderAddress));
         vm.startPrank(senderAddress);
@@ -788,7 +792,7 @@ contract BridgeTestSimulatorFork is Test, ICustom {
 
     function testLockAndReleaseFromSepoliaToArbSepoliaAndBackPayLINK() public {
         uint256 amount = 1000;
-        sepoliaLockableToken.transfer(senderAddress, amount);
+        IERC20(address(sepoliaLockableToken)).safeTransfer(senderAddress, amount);
         uint256 senderLinkBalance = IERC20(sepoliaNetworkDetails.linkAddress)
             .balanceOf(address(senderAddress));
         vm.startPrank(senderAddress);

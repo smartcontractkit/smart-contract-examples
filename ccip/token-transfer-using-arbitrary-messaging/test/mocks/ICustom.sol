@@ -12,7 +12,7 @@ pragma solidity 0.8.24;
  */
 
 import {IPool} from "../../src/interfaces/IPool.sol";
-import {IConfiguration} from "../../src/interfaces/IConfiguration.sol";
+
 import {IBridge} from "../../src/interfaces/IBridge.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 

@@ -11,12 +11,15 @@ pragma solidity 0.8.24;
  * funds or other damages caused by the use of this code.
  */
 
-import "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 import {LockReleaseTokenPool} from "../../src/pools/LockReleaseTokenPool.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
 import {ICustom} from "../mocks/ICustom.sol";
+import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract LockReleaseTokenPoolTest is Test, ICustom {
+    using SafeERC20 for IERC20;
+    
     LockReleaseTokenPool pool;
     MockERC20 token;
     address owner;
@@ -87,7 +90,7 @@ contract LockReleaseTokenPoolTest is Test, ICustom {
 
     function testLockOrBurn() public {
         uint256 amount = 500;
-        token.transfer(address(pool), amount);
+        IERC20(address(token)).safeTransfer(address(pool), amount);
         vm.prank(bridge);
         vm.expectEmit(true, true, false, false);
         emit Locked(bridge, amount);
@@ -119,7 +122,7 @@ contract LockReleaseTokenPoolTest is Test, ICustom {
 
     function testReleaseOrMint() public {
         uint256 amount = 500;
-        token.transfer(address(pool), amount);
+        IERC20(address(token)).safeTransfer(address(pool), amount);
         vm.prank(bridge);
         vm.expectEmit(true, true, true, true);
         emit Released(bridge, nonOwner, amount);
@@ -156,7 +159,7 @@ contract LockReleaseTokenPoolTest is Test, ICustom {
 
     function testProvideLiquidity() public {
         uint256 amount = 500;
-        token.transfer(liquidityProvider, amount);
+        IERC20(address(token)).safeTransfer(liquidityProvider, amount);
         vm.startPrank(liquidityProvider);
         token.approve(address(pool), amount);
         vm.expectEmit(true, true, true, true);
@@ -190,7 +193,7 @@ contract LockReleaseTokenPoolTest is Test, ICustom {
 
     function testWithdrawLiquidity() public {
         uint256 amount = 500;
-        token.transfer(liquidityProvider, amount);
+        IERC20(address(token)).safeTransfer(liquidityProvider, amount);
         vm.startPrank(liquidityProvider);
         token.approve(address(pool), amount);
         pool.provideLiquidity(amount);

@@ -87,7 +87,7 @@ contract LockReleaseTokenPool is ILockReleaseTokenPool, Pool {
     }
 
     function _lockOrBurn(uint256 amount) internal override {
-        uint256 newLiquidity = i_token.balanceOf(address(this)) -
+        uint256 newLiquidity = I_TOKEN.balanceOf(address(this)) -
             s_cachedLiquidity;
         if (amount > newLiquidity) {
             revert NoAmountToLock(amount, msg.sender);
@@ -100,7 +100,7 @@ contract LockReleaseTokenPool is ILockReleaseTokenPool, Pool {
         uint256 amount,
         address receiver
     ) internal override mustHaveEnoughLiquidity(amount) {
-        i_token.safeTransfer(receiver, amount);
+        I_TOKEN.safeTransfer(receiver, amount);
         _syncLiquidity();
         emit Released(msg.sender, receiver, amount);
     }
@@ -109,7 +109,7 @@ contract LockReleaseTokenPool is ILockReleaseTokenPool, Pool {
      * @inheritdoc ILockReleaseTokenPool
      */
     function provideLiquidity(uint256 amount) external onlyLiquidityProvider {
-        i_token.safeTransferFrom(msg.sender, address(this), amount);
+        I_TOKEN.safeTransferFrom(msg.sender, address(this), amount);
         _syncLiquidity();
         emit LiquidityProvided(msg.sender, amount);
     }
@@ -120,7 +120,7 @@ contract LockReleaseTokenPool is ILockReleaseTokenPool, Pool {
     function withdrawLiquidity(
         uint256 amount
     ) external onlyLiquidityProvider mustHaveEnoughLiquidity(amount) {
-        i_token.safeTransfer(msg.sender, amount);
+        I_TOKEN.safeTransfer(msg.sender, amount);
         _syncLiquidity();
         emit LiquidityWithdrawn(msg.sender, amount);
     }
@@ -140,10 +140,10 @@ contract LockReleaseTokenPool is ILockReleaseTokenPool, Pool {
      * @inheritdoc ILockReleaseTokenPool
      */
     function getAvailableLiquidity() public view returns (uint256 liquidity) {
-        return i_token.balanceOf(address(this));
+        return I_TOKEN.balanceOf(address(this));
     }
 
     function _syncLiquidity() private {
-        s_cachedLiquidity = i_token.balanceOf(address(this));
+        s_cachedLiquidity = I_TOKEN.balanceOf(address(this));
     }
 }

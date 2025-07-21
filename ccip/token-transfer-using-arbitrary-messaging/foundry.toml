@@ -8,6 +8,7 @@ remappings = [
     "@chainlink/contracts-ccip/contracts/=node_modules/@chainlink/contracts-ccip/contracts/",
     "@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/",
     "@chainlink/local/=node_modules/@chainlink/local/",
+    "forge-std/=lib/forge-std/src/",
 ]
 gas_reports = ["*"]
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

@@ -15,8 +15,8 @@ import {IPool} from "../interfaces/IPool.sol";
 import {Ownable2Step, Ownable} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 
 abstract contract Pool is IPool, Ownable2Step {
-    IERC20 internal immutable i_token;
-    TokenPoolType internal immutable i_tokenPoolType;
+    IERC20 internal immutable I_TOKEN;
+    TokenPoolType internal immutable I_TOKEN_POOL_TYPE;
     address internal s_bridge;
 
     modifier onlyBridge() {
@@ -31,8 +31,8 @@ abstract contract Pool is IPool, Ownable2Step {
         TokenPoolType tokenPoolType,
         address bridge
     ) Ownable(msg.sender) {
-        i_token = token;
-        i_tokenPoolType = tokenPoolType;
+        I_TOKEN = token;
+        I_TOKEN_POOL_TYPE = tokenPoolType;
         if (bridge != address(0)) {
             s_bridge = bridge;
             emit BridgeSet(address(0), bridge, msg.sender);
@@ -75,7 +75,7 @@ abstract contract Pool is IPool, Ownable2Step {
      * @inheritdoc IPool
      */
     function getToken() external view returns (IERC20 token) {
-        token = i_token;
+        token = I_TOKEN;
     }
 
     /**
@@ -86,7 +86,7 @@ abstract contract Pool is IPool, Ownable2Step {
         view
         returns (TokenPoolType tokenPoolType)
     {
-        tokenPoolType = i_tokenPoolType;
+        tokenPoolType = I_TOKEN_POOL_TYPE;
     }
 
     /**
