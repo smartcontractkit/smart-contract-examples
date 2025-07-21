@@ -74,15 +74,21 @@ contract TestLockAndMintFromSepoliaToArbitrum is Script {
                 linkToken
             );
 
-        console.logBytes32(messageId);
-        console.log("fees", actualFees);
-
         // Check that the amount is locked in the pool
         uint256 poolBalance = lockableToken.balanceOf(sepolia.lockReleasePool);
-        console.log("poolBalance", poolBalance);
         require(
             poolBalance - initialPoolBalance == amount,
             "The amount should be locked in the pool"
+        );
+
+        console.logBytes32(messageId);
+        console.log("fees", actualFees);
+        console.log("poolBalance", poolBalance);
+        console.log(
+            string.concat(
+                unicode"👉 Track your CCIP message at: https://ccip.chain.link/#/side-drawer/msg/",
+                vm.toString(messageId)
+            )
         );
 
         vm.stopBroadcast();

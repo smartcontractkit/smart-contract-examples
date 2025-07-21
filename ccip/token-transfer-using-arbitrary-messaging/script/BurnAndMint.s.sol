@@ -71,6 +71,12 @@ contract TestBurnAndMintFromFujiToSepolia is Script {
 
         console.logBytes32(messageId);
         console.log("fees", actualFees);
+        console.log(
+            string.concat(
+                unicode"👉 Track your CCIP message at: https://ccip.chain.link/#/side-drawer/msg/",
+                vm.toString(messageId)
+            )
+        );
 
         vm.stopBroadcast();
     }
