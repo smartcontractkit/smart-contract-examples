@@ -11,8 +11,8 @@ pragma solidity 0.8.24;
  * funds or other damages caused by the use of this code.
  */
 
-import "forge-std/Test.sol";
-import "forge-std/console.sol";
+import {Test} from "forge-std/Test.sol";
+
 import {BurnMintTokenPool} from "../../src/pools/BurnMintTokenPool.sol";
 import {BurnMintERC20} from "@chainlink/contracts/src/v0.8/shared/token/ERC20/BurnMintERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";

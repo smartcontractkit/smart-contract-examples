@@ -11,13 +11,15 @@ pragma solidity 0.8.24;
  * funds or other damages caused by the use of this code.
  */
 
-import "forge-std/Script.sol";
-import "../src/bridge/Bridge.sol";
-import "../src/bridge/Configuration.sol";
-import "../src/pools/LockReleaseTokenPool.sol";
-import "../src/pools/BurnMintTokenPool.sol";
-import "../test/mocks/MockERC20.sol";
+import {Script, console} from "forge-std/Script.sol";
+import {Bridge} from "../src/bridge/Bridge.sol";
+import {Configuration} from "../src/bridge/Configuration.sol";
+import {LockReleaseTokenPool} from "../src/pools/LockReleaseTokenPool.sol";
+import {BurnMintTokenPool} from "../src/pools/BurnMintTokenPool.sol";
+import {MockERC20} from "../test/mocks/MockERC20.sol";
 import {BurnMintERC20} from "@chainlink/contracts/src/v0.8/shared/token/ERC20/BurnMintERC20.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {Client} from "@chainlink/contracts-ccip/contracts/libraries/Client.sol";
 
 contract Deploy is Script {
     struct NetworkDetails {

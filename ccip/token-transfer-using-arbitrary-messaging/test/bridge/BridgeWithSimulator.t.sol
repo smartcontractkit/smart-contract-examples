@@ -11,19 +11,23 @@ pragma solidity 0.8.24;
  * funds or other damages caused by the use of this code.
  */
 
-import "forge-std/Test.sol";
-import {IBridge, Bridge} from "../../src/bridge/Bridge.sol";
-import {IConfiguration, Configuration} from "../../src/bridge/Configuration.sol";
+import {Test} from "forge-std/Test.sol";
+import {Bridge} from "../../src/bridge/Bridge.sol";
+import {Configuration} from "../../src/bridge/Configuration.sol";
 import {ICustom} from "../mocks/ICustom.sol";
 import {LockReleaseTokenPool} from "../../src/pools/LockReleaseTokenPool.sol";
-import {MockERC20, IERC20} from "../mocks/MockERC20.sol";
+import {MockERC20} from "../mocks/MockERC20.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {BurnMintTokenPool} from "../../src/pools/BurnMintTokenPool.sol";
 import {BurnMintERC20} from "@chainlink/contracts/src/v0.8/shared/token/ERC20/BurnMintERC20.sol";
-import {IRouterClient, WETH9, LinkToken, BurnMintERC677Helper} from "@chainlink/local/src/ccip/CCIPLocalSimulator.sol";
+import {IRouterClient, LinkToken} from "@chainlink/local/src/ccip/CCIPLocalSimulator.sol";
 import {CCIPLocalSimulator} from "@chainlink/local/src/ccip/CCIPLocalSimulator.sol";
 import {Client} from "@chainlink/contracts-ccip/contracts/libraries/Client.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract BridgeTestSimulator is Test, ICustom {
+    using SafeERC20 for IERC20;
+    
     CCIPLocalSimulator public ccipLocalSimulator;
     Bridge sourceBridge;
     Bridge destinationBridge;
@@ -77,13 +81,13 @@ contract BridgeTestSimulator is Test, ICustom {
             "MTKlnu",
             type(uint256).max
         );
-        sourceLockableToken.transfer(liquidityProviderAddress, 1_000_000);
+        IERC20(address(sourceLockableToken)).safeTransfer(liquidityProviderAddress, 1_000_000);
         destinationLockableToken = new MockERC20(
             "Mock Token Dest",
             "MTKlnu",
             type(uint256).max
         );
-        destinationLockableToken.transfer(liquidityProviderAddress, 1_000_000);
+        IERC20(address(destinationLockableToken)).safeTransfer(liquidityProviderAddress, 1_000_000);
         sourceBurnMintToken = new BurnMintERC20(
             "Mock Token Src",
             "MTKbnm",
@@ -289,7 +293,7 @@ contract BridgeTestSimulator is Test, ICustom {
 
     function testLockAndReleaseTokensPayLINKSuccess() public {
         uint256 amount = 1000;
-        sourceLockableToken.transfer(senderAddress, amount);
+        IERC20(address(sourceLockableToken)).safeTransfer(senderAddress, amount);
         // provide some liquidity to the destination pool
         vm.startPrank(liquidityProviderAddress);
         destinationLockableToken.approve(

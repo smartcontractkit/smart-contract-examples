@@ -1,0 +1,38 @@
+{
+	"extends": "solhint:recommended",
+	"plugins": ["chainlink-solidity"],
+	"rules": {
+		"compiler-version": ["off", "^0.8.0"],
+		"const-name-snakecase": "off",
+		"var-name-mixedcase": "off",
+		"func-named-parameters": "off",
+		"immutable-vars-naming": "off",
+		"no-inline-assembly": "off",
+		"contract-name-capwords": "off",
+		"use-natspec": "off",
+		"gas-indexed-events": "off",
+		"function-max-lines": "off",
+		"gas-strict-inequalities": "off",
+		"gas-increment-by-one": "off",
+		"gas-calldata-parameters": "off",
+		"gas-small-strings": "off",
+		"not-rely-on-time": "off",
+		"no-empty-blocks": "off",
+		"no-unused-import": "error",
+		"func-visibility": [
+			"error",
+			{
+				"ignoreConstructors": true
+			}
+		],
+		"quotes": ["error", "double"],
+		"chainlink-solidity/prefix-internal-functions-with-underscore": "warn",
+		"chainlink-solidity/prefix-private-functions-with-underscore": "warn",
+		"chainlink-solidity/prefix-storage-variables-with-s-underscore": "warn",
+		"chainlink-solidity/prefix-immutable-variables-with-i": "warn",
+		"chainlink-solidity/all-caps-constant-storage-variables": "warn",
+		"chainlink-solidity/no-hardhat-imports": "warn",
+		"chainlink-solidity/inherited-constructor-args-not-in-contract-definition": "warn",
+		"chainlink-solidity/explicit-returns": "warn"
+	}
+}

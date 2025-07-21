@@ -11,16 +11,20 @@ pragma solidity 0.8.24;
  * funds or other damages caused by the use of this code.
  */
 
-import "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 import {IBridge, Bridge} from "../../src/bridge/Bridge.sol";
 import {IConfiguration, Configuration} from "../../src/bridge/Configuration.sol";
 import {LockReleaseTokenPool} from "../../src/pools/LockReleaseTokenPool.sol";
-import {MockERC20, IERC20} from "../mocks/MockERC20.sol";
+import {MockERC20} from "../mocks/MockERC20.sol";
 import {ICustom} from "../mocks/ICustom.sol";
 import {Client} from "@chainlink/contracts-ccip/contracts/libraries/Client.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IAny2EVMMessageReceiver} from "@chainlink/contracts-ccip/contracts/interfaces/IAny2EVMMessageReceiver.sol";
 
 contract BridgeTest is Test, ICustom {
+    using SafeERC20 for IERC20;
+    
     Bridge bridge;
     Configuration configuration;
     LockReleaseTokenPool pool;
@@ -39,7 +43,7 @@ contract BridgeTest is Test, ICustom {
     function setUp() public {
         owner = address(this);
         token = new MockERC20("Mock Token", "MTK", type(uint256).max);
-        token.transfer(liquidityProviderAddress, 1_000_000);
+        IERC20(address(token)).safeTransfer(liquidityProviderAddress, 1_000_000);
         destinationToken = new MockERC20(
             "Mock Token",
             "MTK",

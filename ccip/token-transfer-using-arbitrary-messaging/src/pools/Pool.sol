@@ -68,14 +68,14 @@ abstract contract Pool is IPool, Ownable2Step {
      * @inheritdoc IPool
      */
     function getBridge() external view returns (address bridge) {
-        bridge = s_bridge;
+        return s_bridge;
     }
 
     /**
      * @inheritdoc IPool
      */
     function getToken() external view returns (IERC20 token) {
-        token = i_token;
+        return i_token;
     }
 
     /**
@@ -86,7 +86,7 @@ abstract contract Pool is IPool, Ownable2Step {
         view
         returns (TokenPoolType tokenPoolType)
     {
-        tokenPoolType = i_tokenPoolType;
+        return i_tokenPoolType;
     }
 
     /**

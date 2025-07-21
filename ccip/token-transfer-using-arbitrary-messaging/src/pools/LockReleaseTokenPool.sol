@@ -133,7 +133,7 @@ contract LockReleaseTokenPool is ILockReleaseTokenPool, Pool {
         view
         returns (address liquidityProvider)
     {
-        liquidityProvider = s_liquidityProvider;
+        return s_liquidityProvider;
     }
 
     /**

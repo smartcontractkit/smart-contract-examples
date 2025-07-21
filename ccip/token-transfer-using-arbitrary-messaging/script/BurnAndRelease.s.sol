@@ -11,11 +11,11 @@ pragma solidity 0.8.24;
  * funds or other damages caused by the use of this code.
  */
 
-import "forge-std/Script.sol";
-import "../src/bridge/Bridge.sol";
-import "../src/pools/BurnMintTokenPool.sol";
+import {Script, stdJson, console} from "forge-std/Script.sol";
+import {IBridge} from "../src/bridge/Bridge.sol";
 import {IBurnMintERC20} from "@chainlink/contracts/src/v0.8/shared/token/ERC20/IBurnMintERC20.sol";
 import {BurnMintERC20} from "@chainlink/contracts/src/v0.8/shared/token/ERC20/BurnMintERC20.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract TestBurnAndReleaseFromArbitrumToSepolia is Script {
     using stdJson for string;
@@ -83,6 +83,12 @@ contract TestBurnAndReleaseFromArbitrumToSepolia is Script {
 
         console.logBytes32(messageId);
         console.log("fees", actualFees);
+        console.log(
+            string.concat(
+                unicode"👉 Track your CCIP message at: https://ccip.chain.link/#/side-drawer/msg/",
+                vm.toString(messageId)
+            )
+        );
 
         vm.stopBroadcast();
     }

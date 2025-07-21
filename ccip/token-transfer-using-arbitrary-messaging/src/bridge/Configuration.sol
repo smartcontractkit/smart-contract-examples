@@ -120,7 +120,7 @@ contract Configuration is IConfiguration, Ownable2Step {
     function isTokenAvailableOnDestination(
         IERC20 token,
         uint64 destinationChainSelector
-    ) external view returns (bool available) {
+    ) external view returns (bool) {
         return
             address(getDestinationToken(token, destinationChainSelector)) !=
             address(0);
@@ -128,44 +128,44 @@ contract Configuration is IConfiguration, Ownable2Step {
 
     function getExtraArgs(
         uint64 destinationChainSelector
-    ) public view returns (bytes memory extraArgs) {
+    ) public view returns (bytes memory) {
         return s_extraArgs[destinationChainSelector];
     }
 
-    function getTokenPool(IERC20 token) public view returns (IPool pool) {
+    function getTokenPool(IERC20 token) public view returns (IPool) {
         return s_tokenPools[token];
     }
 
     function getDestinationToken(
         IERC20 sourceToken,
         uint64 destinationChainSelector
-    ) public view returns (IERC20 destinationToken) {
+    ) public view returns (IERC20) {
         return s_destinationTokens[sourceToken][destinationChainSelector];
     }
 
     function isBridgeAvailableOnChain(
         uint64 chainSelector
-    ) public view returns (bool available) {
+    ) public view returns (bool) {
         return getRemoteBridge(chainSelector) != address(0);
     }
 
     function getRemoteBridge(
         uint64 chainSelector
-    ) public view returns (address remoteBridge) {
+    ) public view returns (address) {
         return s_bridges[chainSelector];
     }
 
     function isTokenPoolAvailable(
         IERC20 token
-    ) public view returns (bool available) {
+    ) public view returns (bool) {
         return address(getTokenPool(token)) != address(0);
     }
 
     function getConfigOut(
         IERC20 token,
         uint64 destinationChainSelector
-    ) external view returns (ConfigOut memory config) {
-        config = ConfigOut({
+    ) external view returns (ConfigOut memory) {
+        return ConfigOut({
             receiverBridge: getRemoteBridge(destinationChainSelector),
             destinationToken: getDestinationToken(
                 token,
@@ -179,8 +179,8 @@ contract Configuration is IConfiguration, Ownable2Step {
     function getConfigIn(
         IERC20 token,
         uint64 sourceChainSelector
-    ) external view returns (ConfigIn memory config) {
-        config = ConfigIn({
+    ) external view returns (ConfigIn memory) {
+        return ConfigIn({
             senderBridge: getRemoteBridge(sourceChainSelector),
             pool: getTokenPool(token)
         });

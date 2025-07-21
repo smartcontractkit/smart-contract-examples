@@ -11,10 +11,11 @@ pragma solidity 0.8.24;
  * funds or other damages caused by the use of this code.
  */
 
-import "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 import {Configuration} from "../../src/bridge/Configuration.sol";
 import {LockReleaseTokenPool} from "../../src/pools/LockReleaseTokenPool.sol";
-import {MockERC20, IERC20} from "../mocks/MockERC20.sol";
+import {MockERC20} from "../mocks/MockERC20.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ICustom} from "../mocks/ICustom.sol";
 
 contract ConfigurationTest is Test, ICustom {

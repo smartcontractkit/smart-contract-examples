@@ -95,9 +95,9 @@ contract Bridge is
     function getConfiguration()
         public
         view
-        returns (IConfiguration configuration)
+        returns (IConfiguration)
     {
-        configuration = s_configuration;
+        return s_configuration;
     }
 
     function setRouter(address router) external onlyOwner {
@@ -106,8 +106,8 @@ contract Bridge is
         s_ccipRouter = router;
     }
 
-    function getRouter() public view returns (address router) {
-        router = s_ccipRouter;
+    function getRouter() public view returns (address) {
+        return s_ccipRouter;
     }
 
     function getFailedMessages(
@@ -125,12 +125,13 @@ contract Bridge is
             );
             failedMessages[i] = FailedMessage(messageId, ErrorCode(errorCode));
         }
+        return failedMessages;
     }
 
     function getFailedMessageContent(
         bytes32 messageId
-    ) external view returns (FailedMessageContent memory content) {
-        content = s_messageContents[messageId];
+    ) external view returns (FailedMessageContent memory) {
+        return s_messageContents[messageId];
     }
 
     function getFee(
@@ -144,7 +145,7 @@ contract Bridge is
         view
         validateConfiguration
         validateToken(token)
-        returns (uint256 fees)
+        returns (uint256)
     {
         IConfiguration.ConfigOut memory configuration = s_configuration
             .getConfigOut(token, destinationChainSelector);
@@ -174,7 +175,7 @@ contract Bridge is
         );
 
         IRouterClient router = IRouterClient(getRouter());
-        fees = router.getFee(destinationChainSelector, message);
+        return router.getFee(destinationChainSelector, message);
     }
 
     function transferTokensToDestinationChain(
@@ -285,6 +286,7 @@ contract Bridge is
             amount,
             fees
         );
+        return (messageId, fees);
     }
 
     function processMessage(
@@ -358,8 +360,6 @@ contract Bridge is
             });
 
             emit MessageFailed(message.messageId, receiver, tokenAmount, err);
-
-            return;
         }
     }
 
@@ -402,12 +402,12 @@ contract Bridge is
         uint256 amount,
         IERC20 feeToken,
         bytes memory extraArgs
-    ) private pure returns (Client.EVM2AnyMessage memory message) {
+    ) private pure returns (Client.EVM2AnyMessage memory) {
         TokenAmount memory tokenAmount = TokenAmount({
             token: destinationToken,
             amount: amount
         });
-        message = Client.EVM2AnyMessage({
+        return Client.EVM2AnyMessage({
             receiver: abi.encode(receiverBridge),
             data: abi.encode(receiver, tokenAmount),
             tokenAmounts: new Client.EVMTokenAmount[](0),
