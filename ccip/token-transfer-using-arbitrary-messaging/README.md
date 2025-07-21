@@ -221,7 +221,7 @@ Deploy contracts to each chain independently. These commands use separate RPC en
 # Deploy to Sepolia
 forge script script/deploy/DeploySepolia.s.sol --broadcast
 
-# Deploy to Arbitrum Sepolia  
+# Deploy to Arbitrum Sepolia
 forge script script/deploy/DeployArbitrumSepolia.s.sol --broadcast
 
 # Deploy to Fuji
@@ -252,33 +252,119 @@ forge script script/configure/ConfigureFuji.s.sol --broadcast
 
 **Note**: Each deployment creates a network-specific address file (`script/addresses-Sepolia.json`, `script/addresses-ArbitrumSepolia.json`, `script/addresses-Fuji.json`) with the deployed contract addresses. This ensures deployments don't overwrite each other and provides better error isolation.
 
-### Test Cross-Chain Token Transfers
+## Test Cross-Chain Token Transfers
 
-After deployment, you can test different token transfer scenarios. Each test script reads the contract addresses from the network-specific address files created by the deployment (`addresses-Sepolia.json`, `addresses-ArbitrumSepolia.json`, `addresses-Fuji.json`).
+After deployment, test the complete token transfer ecosystem. Each script demonstrates a different mechanism and automatically reads contract addresses from network-specific files.
 
-### Burn and Mint from Avalanche Fuji to Ethereum Sepolia
+### Overview of Transfer Mechanisms
 
-This script tests the burn and mint functionality, transferring tokens from Fuji to Sepolia.
+| Script                 | Source → Destination | Mechanism      | Purpose                 |
+| ---------------------- | -------------------- | -------------- | ----------------------- |
+| `BurnAndMint.s.sol`    | Fuji → Sepolia       | Burn → Mint    | Independent token pools |
+| `LockAndMint.s.sol`    | Sepolia → Arbitrum   | Lock → Mint    | Token bridging (step 1) |
+| `BurnAndRelease.s.sol` | Arbitrum → Sepolia   | Burn → Release | Token bridging (step 2) |
+
+---
+
+### 1. Burn and Mint: Fuji → Sepolia
+
+This script demonstrates the burn and mint functionality by transferring tokens from Avalanche Fuji to Ethereum Sepolia. The script automatically reads deployed contract addresses from `addresses-Fuji.json`.
+
+**Command:**
 
 ```sh
 forge script script/BurnAndMint.s.sol --broadcast --with-gas-price 100000000000 -vvvvv
 ```
 
-### Lock and Mint from Ethereum Sepolia to Arbitrum Sepolia
+**Execution Flow:**
 
-This script tests the lock and mint functionality, transferring tokens from Sepolia to Arbitrum.
+1. **Setup**: Reads `addresses-Fuji.json` → Grants minter role → Mints 1000 test tokens
+2. **Transfer**: Calculates fees → Approves tokens → Calls bridge transfer
+3. **Cross-Chain**: Burns tokens on Fuji → Sends CCIP message → Mints on Sepolia
+
+**Key Details:**
+
+- **Networks**: Avalanche Fuji → Ethereum Sepolia
+- **Amount**: 1000 burn/mint tokens
+- **CCIP Fees**: ~0.023 LINK
+- **Gas Used**: ~360,104
+
+**Success Indicators:**
+
+- ✅ Message ID: `0x02f9b78cec831e4c548de955aa447057e8c93d635dac3eb96f2e8e21a03e4335`
+- ✅ Events: `Burned`, `TokensTransferred`, `CrossChainMessageSent`
+- ✅ [Track on CCIP Explorer](https://ccip.chain.link/#/side-drawer/msg/0x02f9b78cec831e4c548de955aa447057e8c93d635dac3eb96f2e8e21a03e4335)
+
+### 2. Lock and Mint: Sepolia → Arbitrum
+
+This script demonstrates the lock and mint functionality by transferring tokens from Ethereum Sepolia to Arbitrum Sepolia. The script automatically reads deployed contract addresses from `addresses-Sepolia.json`.
+
+**Command:**
 
 ```sh
 forge script script/LockAndMint.s.sol --broadcast --with-gas-price 100000000000 -vvvvv
 ```
 
-### Burn and Release from Arbitrum Sepolia to Ethereum Sepolia
+**Execution Flow:**
 
-This script tests the burn and release functionality, transferring tokens from Arbitrum to Sepolia.
+1. **Setup**: Reads `addresses-Sepolia.json` → Calculates fees → Approves tokens
+2. **Transfer**: Transfers tokens to pool → Locks tokens → Calls bridge transfer
+3. **Cross-Chain**: Sends CCIP message → Arbitrum receives → Mints equivalent tokens
+
+**Key Details:**
+
+- **Networks**: Ethereum Sepolia → Arbitrum Sepolia
+- **Amount**: 1000 lockable tokens
+- **CCIP Fees**: ~0.041 LINK
+- **Gas Used**: ~325,384
+
+**Success Indicators:**
+
+- ✅ Message ID: `0xab14c3e93c2370e736c892d640dad06cc550ce4e277afe3c17af5c631a7491bf`
+- ✅ Events: `Locked`, `TokensTransferred`, `CrossChainMessageSent`
+- ✅ [Track on CCIP Explorer](https://ccip.chain.link/#/side-drawer/msg/0xab14c3e93c2370e736c892d640dad06cc550ce4e277afe3c17af5c631a7491bf)
+
+### 3. Burn and Release: Arbitrum → Sepolia
+
+This script demonstrates the burn and release functionality by transferring tokens from Arbitrum Sepolia back to Ethereum Sepolia. The script automatically reads deployed contract addresses from `addresses-ArbitrumSepolia.json`.
+
+**Command:**
 
 ```sh
 forge script script/BurnAndRelease.s.sol --broadcast --with-gas-price 100000000000 -vvvvv
 ```
+
+**Execution Flow:**
+
+1. **Setup**: Reads `addresses-ArbitrumSepolia.json` → Grants minter role → Mints 1000 test tokens
+2. **Transfer**: Calculates fees → Approves tokens → Calls bridge transfer
+3. **Cross-Chain**: Burns tokens on Arbitrum → Sends CCIP message → Releases locked tokens on Sepolia
+
+**Key Details:**
+
+- **Networks**: Arbitrum Sepolia → Ethereum Sepolia
+- **Amount**: 1000 burn/mint tokens
+- **CCIP Fees**: ~0.024 LINK
+- **Gas Used**: ~364,682
+
+**Success Indicators:**
+
+- ✅ Message ID: `0x8679ffccc5f4f47bea12666d7e10fe514ea0e28de50dc5b978da1fabbbb0fa42`
+- ✅ Events: `Burned`, `TokensTransferred`, `CrossChainMessageSent`
+- ✅ [Track on CCIP Explorer](https://ccip.chain.link/#/side-drawer/msg/0x8679ffccc5f4f47bea12666d7e10fe514ea0e28de50dc5b978da1fabbbb0fa42)
+
+---
+
+### Token Bridging Cycle
+
+The **Lock and Mint** + **Burn and Release** scripts demonstrate a complete token bridging cycle:
+
+| Step | Action                                    | Result                                                       |
+| ---- | ----------------------------------------- | ------------------------------------------------------------ |
+| 1️⃣   | **Lock and Mint** (Sepolia → Arbitrum)    | Tokens locked on Sepolia, equivalent minted on Arbitrum      |
+| 2️⃣   | **Burn and Release** (Arbitrum → Sepolia) | Tokens burned on Arbitrum, locked tokens released on Sepolia |
+
+This creates a **round-trip token bridging system** where the original tokens can be recovered.
 
 ## Tracking Cross-Chain Transactions
 
