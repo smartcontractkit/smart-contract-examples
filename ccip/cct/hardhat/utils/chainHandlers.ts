@@ -1,6 +1,7 @@
 import { CHAIN_TYPE } from "../config/types";
 import bs58 from "bs58";
 import type { HardhatRuntimeEnvironment } from "hardhat/types";
+import { configData } from "../config";
 
 /**
  * Error thrown when an invalid address is provided for a specific chain type
@@ -227,4 +228,99 @@ export function convertChainAddressToHex(
  */
 export function isValidChainType(chainType: string): chainType is CHAIN_TYPE {
   return chainType === "evm" || chainType === "svm";
+}
+
+/**
+ * Interface for chain configuration lookup result
+ */
+export interface ChainInfo {
+  name: string;
+  chainType: CHAIN_TYPE;
+  chainSelector: string;
+  config: any;
+}
+
+/**
+ * Looks up chain information by chain selector
+ * @param chainSelector - The chain selector to look up
+ * @returns Chain information or undefined if not found
+ */
+export function getChainInfoBySelector(
+  chainSelector: string | bigint
+): ChainInfo | undefined {
+  const selectorString = chainSelector.toString();
+
+  const chainName = Object.keys(configData).find(
+    (key) =>
+      configData[key as keyof typeof configData]?.chainSelector?.toString() ===
+      selectorString
+  );
+
+  if (!chainName) {
+    return undefined;
+  }
+
+  const config = configData[chainName as keyof typeof configData];
+  const chainType = config.chainType as CHAIN_TYPE;
+
+  return {
+    name: chainName,
+    chainType,
+    chainSelector: selectorString,
+    config,
+  };
+}
+
+/**
+ * Decodes an encoded address based on the chain type
+ * @param encodedAddress - The encoded address data
+ * @param chainType - The chain type (evm or svm)
+ * @param hre - Hardhat runtime environment (optional, required for EVM)
+ * @returns The decoded address string
+ * @throws Error if decoding fails
+ */
+export function decodeChainAddress(
+  encodedAddress: string,
+  chainType: CHAIN_TYPE,
+  hre?: HardhatRuntimeEnvironment
+): string {
+  if (chainType === "svm") {
+    // For Solana, the encoded address is a hex string (32 bytes)
+    const hexString = encodedAddress.startsWith("0x")
+      ? encodedAddress.slice(2)
+      : encodedAddress;
+    const bytes = Buffer.from(hexString, "hex");
+    return bs58.encode(bytes);
+  } else if (chainType === "evm") {
+    if (!hre) {
+      throw new Error("HardhatRuntimeEnvironment is required for EVM address decoding");
+    }
+    // For EVM chains, use AbiCoder
+    return new hre.ethers.AbiCoder().decode(["address"], encodedAddress)[0];
+  } else {
+    throw new UnsupportedChainTypeError(chainType);
+  }
+}
+
+/**
+ * Decodes an address by first looking up the chain type from the selector
+ * @param encodedAddress - The encoded address data
+ * @param chainSelector - The chain selector
+ * @param hre - Hardhat runtime environment
+ * @returns The decoded address string or "UNKNOWN_CHAIN" if chain not found
+ */
+export function decodeAddressByChainSelector(
+  encodedAddress: string,
+  chainSelector: string | bigint,
+  hre: HardhatRuntimeEnvironment
+): string {
+  try {
+    const chainInfo = getChainInfoBySelector(chainSelector);
+    if (!chainInfo) {
+      return "UNKNOWN_CHAIN";
+    }
+    return decodeChainAddress(encodedAddress, chainInfo.chainType, hre);
+  } catch (error) {
+    return "DECODE_ERROR";
+  }
 }

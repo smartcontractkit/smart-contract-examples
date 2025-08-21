@@ -1,11 +1,13 @@
 import { task } from "hardhat/config";
 import {
   Chains,
-  networks,
   logger,
   getEVMNetworkConfig,
-  configData,
 } from "../config";
+import {
+  getChainInfoBySelector,
+  decodeChainAddress,
+} from "../utils/chainHandlers";
 
 // Define the interface for the task arguments
 interface GetPoolConfigArgs {
@@ -81,43 +83,40 @@ task("getPoolConfig", "Get pool configuration")
           poolContract.getCurrentInboundRateLimiterState(chainSelector), // Get inbound rate limits
         ]);
 
-        // Try to get a human-readable chain name from the network configuration
-        const chainName = Object.keys(networks).find(
-          (key) =>
-            configData[
-              key as keyof typeof configData
-            ]?.chainSelector?.toString() === chainSelector.toString()
-        );
+        // Get chain information using the utility function
+        const chainInfo = getChainInfoBySelector(chainSelector);
+        const chainDisplayName = chainInfo?.name || chainSelector.toString();
 
-        // Decode the remote pool addresses from their encoded form
+        // Decode the remote pool addresses using the utility function
         const remotePoolAddresses = remotePools.map((encodedPool) => {
+          if (!chainInfo) {
+            return "UNKNOWN_CHAIN";
+          }
           try {
-            return new hre.ethers.AbiCoder().decode(
-              ["address"],
-              encodedPool
-            )[0];
+            return decodeChainAddress(encodedPool, chainInfo.chainType, hre);
           } catch (error) {
-            return "DECODE_ERROR"; // Return error string if decoding fails
+            return "DECODE_ERROR";
           }
         });
 
-        // Decode the remote token address from its encoded form
+        // Decode the remote token address using the utility function
         let remoteTokenAddress;
-        try {
-          remoteTokenAddress = new hre.ethers.AbiCoder().decode(
-            ["address"],
-            remoteTokenAddressEncoded
-          )[0];
-        } catch (error) {
-          remoteTokenAddress = "DECODE_ERROR"; // Return error string if decoding fails
+        if (!chainInfo) {
+          remoteTokenAddress = "UNKNOWN_CHAIN";
+        } else {
+          try {
+            remoteTokenAddress = decodeChainAddress(
+              remoteTokenAddressEncoded,
+              chainInfo.chainType,
+              hre
+            );
+          } catch (error) {
+            remoteTokenAddress = "DECODE_ERROR";
+          }
         }
 
         // Display the chain-specific configuration
-        logger.info(
-          `\nConfiguration for Remote Chain: ${
-            chainName || chainSelector.toString()
-          }`
-        );
+        logger.info(`\nConfiguration for Remote Chain: ${chainDisplayName}`);
 
         // Display all remote pool addresses for this chain
         logger.info(`  Remote Pool Addresses:`);
