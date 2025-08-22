@@ -2,7 +2,11 @@
 src = "src"
 out = "out"
 libs = ["lib", "node_modules"]
-fs_permissions = [{ access = "read-write", path = "./script/addresses.json"}]
+fs_permissions = [
+    { access = "read-write", path = "./script/addresses-Sepolia.json"},
+    { access = "read-write", path = "./script/addresses-ArbitrumSepolia.json"},
+    { access = "read-write", path = "./script/addresses-Fuji.json"}
+]
 remappings = [
     "@chainlink/contracts/=node_modules/@chainlink/contracts/",
     "@chainlink/contracts-ccip/contracts/=node_modules/@chainlink/contracts-ccip/contracts/",

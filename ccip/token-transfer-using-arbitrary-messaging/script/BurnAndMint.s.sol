@@ -21,10 +21,10 @@ contract TestBurnAndMintFromFujiToSepolia is Script {
     using stdJson for string;
 
     function run() external {
-        string memory json = vm.readFile("./script/addresses.json");
+        string memory json = vm.readFile("./script/addresses-Fuji.json");
 
-        address bridgeAddress = json.readAddress(".Fuji_bridge");
-        address burnMintTokenAddress = json.readAddress(".Fuji_burnMintToken");
+        address bridgeAddress = json.readAddress(".bridge");
+        address burnMintTokenAddress = json.readAddress(".burnMintToken");
         uint64 sepoliaChainSelector = 16015286601757825753;
         address linkTokenAddress = 0x0b9d5D9136855f6FEc3c0993feE6E9CE8a297846;
 

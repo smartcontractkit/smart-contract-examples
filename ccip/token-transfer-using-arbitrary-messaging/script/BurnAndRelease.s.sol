@@ -30,12 +30,12 @@ contract TestBurnAndReleaseFromArbitrumToSepolia is Script {
     }
 
     function run() external {
-        string memory json = vm.readFile("./script/addresses.json");
+        string memory json = vm.readFile("./script/addresses-ArbitrumSepolia.json");
 
         NetworkDetails memory arbitrum = NetworkDetails({
-            bridge: json.readAddress(".ArbitrumSepolia_bridge"),
-            burnMintPool: json.readAddress(".ArbitrumSepolia_burnMintPool"),
-            burnMintToken: json.readAddress(".ArbitrumSepolia_burnMintToken"),
+            bridge: json.readAddress(".bridge"),
+            burnMintPool: json.readAddress(".burnMintPool"),
+            burnMintToken: json.readAddress(".burnMintToken"),
             linkToken: 0xb1D4538B4571d411F07960EF2838Ce337FE1E80E,
             chainSelector: 16015286601757825753,
             rpcUrl: vm.envString("ARBITRUM_SEPOLIA_RPC_URL")
