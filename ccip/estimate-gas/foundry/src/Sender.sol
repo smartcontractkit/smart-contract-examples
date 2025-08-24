@@ -13,7 +13,7 @@ import {SafeERC20} from "@chainlink/contracts/src/v0.8/vendor/openzeppelin-solid
  * DO NOT USE THIS CODE IN PRODUCTION.
  */
 
-/// @title - A simple sender contract for sending/receving string data across chains.
+/// @title - A simple sender contract for sending/receiving string data across chains.
 contract Sender is OwnerIsCreator {
     using SafeERC20 for IERC20;
 
