@@ -17,8 +17,6 @@ This stablecoin demonstrates key concepts of a reserve-backed cryptocurrency:
 ## Prerequisites
 
 - [Foundry](https://getfoundry.sh/) installed on your machine
-- Basic understanding of Solidity and ERC20 tokens
-- Familiarity with smart contract development
 
 ## Project Structure
 
