@@ -2,12 +2,14 @@
 
 This repository contains a practical implementation of a reserve-backed stablecoin built with Foundry, designed to accompany a YouTube tutorial video.
 
+🎬 **[Watch the full tutorial on YouTube](https://youtube.com/chainlink)**
+
 ## Project Overview
 
 This stablecoin demonstrates key concepts of a reserve-backed cryptocurrency:
 
 - **ERC20 Token**: Implements a standard ERC20 token with additional functionality
-- **Reserve Backing**: The stablecoin is fully backed by reserves verified through an oracle
+- **Reserve Backing**: The stablecoin is fully backed by reserves verified through a DataFeed (mocked in this example)
 - **Minting Controls**: Only mint tokens when sufficient reserves exist
 - **Access Control**: Role-based permissions for administrative actions
 - **Safety Features**: Includes pause/unpause functionality and other safety measures
@@ -53,18 +55,11 @@ forge test
 ### Run Scripts
 
 ```shell
+# In a seperate window
+anvil
 # Run the interaction script on local network
-forge script script/StableCoinInteraction.s.sol --rpc-url localhost
+forge script script/StableCoinInteraction.s.sol --rpc-url http://127.0.0.1:8545 --broadcast
 ```
-
-## Key Features Explained
-
-1. **Reserve Backing**: The stablecoin checks an oracle (price feed) to ensure it's fully backed
-2. **Controlled Minting**: Tokens can only be minted if there are enough reserves
-3. **Transparency**: Public functions to check reserve status and circulating supply
-4. **Security**: Admin controls, pausability, and burning capabilities
-
-🎬 **[Watch the full tutorial on YouTube](https://youtube.com/chainlink)**
 
 ## Disclaimer
 
