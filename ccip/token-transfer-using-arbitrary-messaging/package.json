@@ -10,9 +10,9 @@
   },
   "dependencies": {
     "@chainlink/contracts": "1.4.0",
-    "@chainlink/contracts-ccip": "1.6.0",
-    "@openzeppelin/contracts": "5.4.0",
-    "@chainlink/local": "0.2.5"
+    "@chainlink/contracts-ccip": "1.6.1",
+    "@chainlink/local": "0.2.5",
+    "@openzeppelin/contracts": "5.4.0"
   },
   "devDependencies": {
     "solhint": "^6.0.0",
@@ -25,4 +25,4 @@
     "chainlink",
     "openzeppelin"
   ]
-} 
+}

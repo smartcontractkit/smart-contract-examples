@@ -338,7 +338,6 @@ The script pulls the token address from a previously deployed token in a JSON fi
 
 - **Config-based Deployment**: The script automatically retrieves the token address from the JSON file generated during token deployment. Ensure the token is deployed before running this script.
 - **Chain Name**: The script automatically determines the current chain based on the `block.chainid` and saves the deployed token pool address in a file located in `script/output/`.
-- **Accept Liquidity**: In the script, `acceptLiquidity` is set to `false`. If you want the pool to accept liquidity, you may need to modify this parameter in the script.
 
 ## DeployToken
 

@@ -237,8 +237,6 @@ npx hardhat deployTokenPool [parameters]
       - `"lockRelease"`: A pool that supports locking and releasing tokens.
   - `--localtokendecimals`: **integer** (default: `18`)
     - The number of decimals for the token on this chain.
-  - `--acceptliquidity`: **boolean** (default: `false`)
-    - Indicates if liquidity should be accepted in the pool. This option only applies to the `"lockRelease"` pool type.
   - `--verifycontract`: **boolean** (default: `false`)
     - If set to `true`, the contract will be verified on a blockchain explorer like Etherscan.
 
@@ -255,7 +253,6 @@ npx hardhat deployTokenPool \
 npx hardhat deployTokenPool \
   --tokenaddress 0xYourTokenAddress \
   --pooltype lockRelease \
-  --acceptliquidity true \
   --network avalancheFuji
 ```
 
