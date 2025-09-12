@@ -37,7 +37,6 @@ contract DeployLockReleaseTokenPool is Script {
             18, // The number of decimals of the token
             new address[](0), // Empty array for initial operators
             rmnProxy,
-            false, // Set acceptLiquidity to false
             router
         );
 
