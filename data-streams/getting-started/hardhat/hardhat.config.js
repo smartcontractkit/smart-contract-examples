@@ -6,8 +6,9 @@ import "@nomicfoundation/hardhat-toolbox-mocha-ethers"
 // Load environment variables
 envEncConfig()
 
-// Set EVM private keys (required)
+// Set EVM private keys (required for deployment)
 const PRIVATE_KEY = process.env.PRIVATE_KEY
+const ARBITRUM_SEPOLIA_RPC_URL = process.env.ARBITRUM_SEPOLIA_RPC_URL
 
 const COMPILER_SETTINGS = {
   optimizer: {
@@ -31,7 +32,8 @@ export default {
   networks: {
     arbitrumSepolia: {
       type: "http",
-      url: process.env.ARBITRUM_SEPOLIA_RPC_URL || "https://arbitrum-sepolia.rpc.thirdweb.com",
+      // This is a placeholder URL for compilation. Set ARBITRUM_SEPOLIA_RPC_URL in your environment to deploy.
+      url: ARBITRUM_SEPOLIA_RPC_URL || "http://localhost:8545",
       accounts: PRIVATE_KEY ? [PRIVATE_KEY] : [],
       chainId: 421614,
     },
