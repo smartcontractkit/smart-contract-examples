@@ -1,13 +1,11 @@
-const { networkConfig } = require("../../helper-hardhat-config")
-const utils = require("../utils")
+import { task } from "hardhat/config"
+import { networkConfig } from "../../helper-hardhat-config.js"
+import * as utils from "../utils/index.js"
 
 // Define a Hardhat task named "deployStreamsUpkeepRegistrar" to deploy the StreamsUpkeepRegistrar contract.
-task("deployStreamsUpkeepRegistrar", "Deploys the StreamsUpkeepRegistrar contract").setAction(async () => {
-  // Set the log level to ignore non-error logs for cleaner output.
-  ethers.utils.Logger.setLogLevel(ethers.utils.Logger.levels.ERROR)
-
+task("deployStreamsUpkeepRegistrar", "Deploys the StreamsUpkeepRegistrar contract").setAction(async (taskArgs, hre) => {
   // Retrieve the current network's ID to access network-specific configuration.
-  const networkId = await ethers.provider.getNetwork().then((network) => network.chainId)
+  const networkId = (await hre.ethers.provider.getNetwork()).chainId
   const config = networkConfig[networkId]
 
   // Check if the configuration exists for the current network ID.
@@ -16,7 +14,7 @@ task("deployStreamsUpkeepRegistrar", "Deploys the StreamsUpkeepRegistrar contrac
   }
 
   // Retrieve the deployer/signer account.
-  const [deployer] = await ethers.getSigners()
+  const [deployer] = await hre.ethers.getSigners()
 
   // Initialize the spinner
   const spinner = utils.spin()
@@ -24,7 +22,7 @@ task("deployStreamsUpkeepRegistrar", "Deploys the StreamsUpkeepRegistrar contrac
 
   try {
     // Get the contract factory for the StreamsUpkeepRegistrar contract.
-    const StreamsUpkeepRegistrar = await ethers.getContractFactory("StreamsUpkeepRegistrar")
+    const StreamsUpkeepRegistrar = await hre.ethers.getContractFactory("StreamsUpkeepRegistrar")
 
     // Deploy the StreamsUpkeepRegistrar contract using network-specific configurations.
     const streamsUpkeepRegistrar = await StreamsUpkeepRegistrar.deploy(
@@ -37,15 +35,16 @@ task("deployStreamsUpkeepRegistrar", "Deploys the StreamsUpkeepRegistrar contrac
     )
 
     // Wait for the contract deployment transaction to be mined.
-    await streamsUpkeepRegistrar.deployed()
+    await streamsUpkeepRegistrar.waitForDeployment()
+
+    // Get the deployed contract address
+    const address = await streamsUpkeepRegistrar.getAddress()
 
     // Stop the spinner with a success message, including the deployed contract address.
-    spinner.succeed(`StreamsUpkeepRegistrar deployed at: ${streamsUpkeepRegistrar.address}`)
+    spinner.succeed(`StreamsUpkeepRegistrar deployed at: ${address}`)
   } catch (error) {
     // In case of error, stop the spinner with a failure message.
     spinner.fail("Failed to deploy StreamsUpkeepRegistrar contract.")
     throw error
   }
 })
-
-module.exports = {}

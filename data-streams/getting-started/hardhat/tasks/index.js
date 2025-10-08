@@ -4,22 +4,22 @@
 // by requiring just this single file in the Hardhat configuration.
 
 // Import and export the task for transferring LINK tokens.
-exports.transferLink = require("./transfer-link.js")
+import "./transfer-link.js"
 
 // Import and export the task for registering a log upkeep with Chainlink Automation.
-exports.registerAndFundLogUpkeep = require("./registerAndFundLogUpkeep.js")
+import "./registerAndFundLogUpkeep.js"
 
 // Import and export the task for emitting a log from the LogEmitter contract.
-exports.emitLog = require("./emitLog.js")
+import "./emitLog.js"
 
 // Import and export the task for retrieving the last price updated in the StreamsUpkeep contract.
-exports.getLastRetrievedPrice = require("./getLastRetrievedPrice.js")
+import "./getLastRetrievedPrice.js"
 
 // Import and export the task for deploying the LogEmitter contract.
-exports.deployLogEmitter = require("./deployment/deployLogEmitter.js")
+import "./deployment/deployLogEmitter.js"
 
 // Import and export the task for deploying the StreamsUpkeepRegistrar contract.
-exports.deployStreamsUpkeepRegistrar = require("./deployment/deployStreamsUpkeepRegistrar.js")
+import "./deployment/deployStreamsUpkeepRegistrar.js"
 
 // Import and export the main deployment task that launches other deployment tasks.
-exports.deployAll = require("./deployment/main.js")
+import "./deployment/main.js"

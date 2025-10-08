@@ -15,10 +15,10 @@ This guide uses the [Hardhat](https://hardhat.org/) development environment to d
 ### Requirements
 
 - **Git**: Make sure you have Git installed. You can check your current version by running <CopyText text="git --version" code/> in your terminal and download the latest version from the official [Git website](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git) if necessary.
-- **Nodejs** and **npm**: [Install the latest release of Node.js 20](https://nodejs.org/en/download/). Optionally, you can use the nvm package to switch between Node.js versions with <CopyText text="nvm use 20" code/>. To ensure you are running the correct version in a terminal, type <CopyText text="node -v" code/>.
+- **Nodejs** and **npm**: [Install the latest release of Node.js 22](https://nodejs.org/en/download/). **This project uses Hardhat 3, which requires Node.js 22 or higher.** Optionally, you can use the nvm package to switch between Node.js versions with <CopyText text="nvm use 22" code/>. To ensure you are running the correct version in a terminal, type <CopyText text="node -v" code/>.
   ```bash
    $ node -v
-   v20.11.0
+   v22.0.0
   ```
 - **RPC URL**: You need a Remote Procedure Call (RPC) URL for the Arbitrum Sepolia network. You can obtain one by creating an account on [Alchemy](https://www.alchemy.com/) or [Infura](https://www.infura.io/) and setting up an Arbitrum Sepolia project.
 - **Private key**: You need the private key of the account that will deploy and interact with the contracts. You can use the private key of your [MetaMask wallet](https://metamask.io/).
@@ -40,6 +40,20 @@ This guide uses the [Hardhat](https://hardhat.org/) development environment to d
    ```bash
    npm install
    ```
+
+1. Compile the contracts to verify your setup:
+
+   ```bash
+   npx hardhat compile
+   ```
+
+   You should see output similar to:
+
+   ```bash
+   Compiled 2 Solidity files with solc 0.8.20 (evm target: shanghai)
+   ```
+
+   Note: You don't need to set environment variables to compile the contracts.
 
 1. Set an encryption password for your environment variables. This password needs to be set each time you create or restart a terminal shell session.
 

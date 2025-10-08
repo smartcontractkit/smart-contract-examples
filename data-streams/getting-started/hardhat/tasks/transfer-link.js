@@ -1,6 +1,7 @@
-const { BigNumber } = require("ethers")
-const { networkConfig } = require("../helper-hardhat-config")
-const utils = require("./utils")
+import { task } from "hardhat/config"
+import { formatEther } from "ethers"
+import { networkConfig } from "../helper-hardhat-config.js"
+import * as utils from "./utils/index.js"
 
 // Define a minimal ERC20 ABI focusing on the functions needed for this task.
 const minimalERC20ABI = [
@@ -41,27 +42,25 @@ task("transfer-link", "Transfer LINK tokens to a recipient")
     spinner.info(`LINK token address: ${linkTokenAddress}`)
     // Check the signer's LINK token balance to ensure they have enough to complete the transfer.
     const balance = await linkTokenContract.balanceOf(signer.address)
-    spinner.info(`LINK balance of sender ${signer.address} is ${hre.ethers.utils.formatEther(balance)} LINK`)
+    spinner.info(`LINK balance of sender ${signer.address} is ${formatEther(balance)} LINK`)
 
-    // Convert the transfer amount to a BigNumber for comparison and transfer operations.
-    const amountBN = BigNumber.from(amount)
-    if (balance.gte(amountBN)) {
+    // Convert the transfer amount to a BigInt for comparison and transfer operations.
+    const amountBN = BigInt(amount)
+    if (balance >= amountBN) {
       // Perform the transfer if the balance is sufficient.
       const result = await linkTokenContract.connect(signer).transfer(recipientAddress, amount)
       await result.wait() // Wait for the transaction to be mined.
       spinner.succeed(
-        `${hre.ethers.utils.formatEther(amountBN)} LINK were sent from ${
+        `${formatEther(amountBN)} LINK were sent from ${
           signer.address
         } to ${recipientAddress}. Transaction Hash: ${result.hash}`
       )
     } else {
       // Log an error if the sender does not have enough LINK.
       spinner.fail(
-        `Sender doesn't have enough LINK. Current balance is ${hre.ethers.utils.formatEther(
+        `Sender doesn't have enough LINK. Current balance is ${formatEther(
           balance
-        )} LINK, but tried to send ${hre.ethers.utils.formatEther(amountBN)} LINK.`
+        )} LINK, but tried to send ${formatEther(amountBN)} LINK.`
       )
     }
   })
-
-module.exports = {}

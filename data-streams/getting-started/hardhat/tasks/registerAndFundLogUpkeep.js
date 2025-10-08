@@ -1,4 +1,6 @@
-const utils = require("./utils")
+import { task } from "hardhat/config"
+import { parseUnits, AbiCoder } from "ethers"
+import * as utils from "./utils/index.js"
 
 /**
  * Defines a Hardhat task to register an upkeep with Chainlink Automation.
@@ -9,11 +11,11 @@ const utils = require("./utils")
 task("registerAndFundUpkeep", "Registers and funds an upkeep with Chainlink Automation")
   .addParam("streamsUpkeep", "The address of the deployed StreamsUpkeep contract") // Address of the StreamsUpkeep contract.
   .addParam("logEmitter", "The address of the deployed LogEmitter contract") // Address of the LogEmitter contract used in the trigger.
-  .setAction(async (taskArgs) => {
+  .setAction(async (taskArgs, hre) => {
     const { streamsUpkeep, logEmitter } = taskArgs
 
     // Retrieve the deployer's (admin's) signer object to sign transactions.
-    const [admin] = await ethers.getSigners()
+    const [admin] = await hre.ethers.getSigners()
 
     // Define registration parameters for the upkeep.
     // See more information on https://docs.chain.link/chainlink-automation/guides/register-upkeep-in-contract.
@@ -23,14 +25,15 @@ task("registerAndFundUpkeep", "Registers and funds an upkeep with Chainlink Auto
     const triggerType = 1 // Type of trigger, where `1` represents a Log Trigger.
     const checkData = "0x" // Data passed to checkUpkeep; placeholder in this context.
     const offchainConfig = "0x" // Off-chain configuration data; placeholder in this context.
-    const amount = ethers.utils.parseUnits("1", "ether") // Funding amount in LINK tokens.
+    const amount = parseUnits("1", "ether") // Funding amount in LINK tokens.
 
     // Event signature hash and placeholder topics for the LogEmitter trigger.
     const topic0 = "0xb8a00d6d8ca1be30bfec34d8f97e55f0f0fd9eeb7fb46e030516363d4cfe1ad6" // Event signature hash.
     const topic1 = (topic2 = topic3 = "0x0000000000000000000000000000000000000000000000000000000000000000") // Placeholder topics.
 
     // ABI-encode the trigger configuration data.
-    const triggerConfig = ethers.utils.defaultAbiCoder.encode(
+    const abiCoder = AbiCoder.defaultAbiCoder()
+    const triggerConfig = abiCoder.encode(
       ["address", "uint8", "bytes32", "bytes32", "bytes32", "bytes32"],
       [logEmitter, 0, topic0, topic1, topic2, topic3]
     )
@@ -52,7 +55,7 @@ task("registerAndFundUpkeep", "Registers and funds an upkeep with Chainlink Auto
     const spinner = utils.spin()
     // Interact with the deployed StreamsUpkeep contract to register the upkeep.
     spinner.start(`Registering upkeep with Chainlink Automation using account: ${admin.address}`)
-    const StreamsUpkeepContract = await ethers.getContractAt("StreamsUpkeepRegistrar", streamsUpkeep, admin)
+    const StreamsUpkeepContract = await hre.ethers.getContractAt("StreamsUpkeepRegistrar", streamsUpkeep, admin)
 
     try {
       await StreamsUpkeepContract.registerAndPredictID(params)
@@ -62,5 +65,3 @@ task("registerAndFundUpkeep", "Registers and funds an upkeep with Chainlink Auto
       throw error
     }
   })
-
-module.exports = {}

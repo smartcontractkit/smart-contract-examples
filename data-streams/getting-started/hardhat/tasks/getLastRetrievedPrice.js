@@ -1,4 +1,5 @@
-const utils = require("./utils")
+import { task } from "hardhat/config"
+import * as utils from "./utils/index.js"
 
 /**
  * Defines a Hardhat task to retrieve the last price updated in the StreamsUpkeep contract.
@@ -25,5 +26,3 @@ task("getLastRetrievedPrice", "Gets the last retrieved price from StreamsUpkeep"
       throw error
     }
   })
-
-module.exports = {}

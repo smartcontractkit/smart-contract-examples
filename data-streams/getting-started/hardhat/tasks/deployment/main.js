@@ -1,5 +1,5 @@
-// Import the utils for spinner functionality
-const utils = require("../utils")
+import { task } from "hardhat/config"
+import * as utils from "../utils/index.js"
 
 // This script serves as the main entry point to deploy both the LogEmitter and StreamsUpkeepRegistrar contracts.
 task("deployAll", "Deploys both LogEmitter and StreamsUpkeepRegistrar contracts").setAction(async (_, { run }) => {
@@ -27,5 +27,3 @@ task("deployAll", "Deploys both LogEmitter and StreamsUpkeepRegistrar contracts"
     throw error // Rethrow the error to ensure the task fails properly
   }
 })
-
-module.exports = {}

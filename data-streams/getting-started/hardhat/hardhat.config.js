@@ -1,6 +1,10 @@
-require("@chainlink/env-enc").config()
-require("@nomicfoundation/hardhat-toolbox")
-require("./tasks")
+import { config as envEncConfig } from "@chainlink/env-enc"
+import "@nomicfoundation/hardhat-toolbox-mocha-ethers"
+// Note: Tasks are temporarily disabled due to ESM loading issues in Hardhat 3
+// import "./tasks/index.js"
+
+// Load environment variables
+envEncConfig()
 
 // Set EVM private keys (required)
 const PRIVATE_KEY = process.env.PRIVATE_KEY
@@ -15,19 +19,20 @@ const COMPILER_SETTINGS = {
   },
 }
 
-module.exports = {
+export default {
   solidity: {
     compilers: [
       {
-        version: "0.8.19",
+        version: "0.8.20",
         settings: COMPILER_SETTINGS,
       },
     ],
   },
   networks: {
     arbitrumSepolia: {
-      url: process.env.ARBITRUM_SEPOLIA_RPC_URL || "UNSET",
-      accounts: [PRIVATE_KEY],
+      type: "http",
+      url: process.env.ARBITRUM_SEPOLIA_RPC_URL || "https://arbitrum-sepolia.rpc.thirdweb.com",
+      accounts: PRIVATE_KEY ? [PRIVATE_KEY] : [],
       chainId: 421614,
     },
   },

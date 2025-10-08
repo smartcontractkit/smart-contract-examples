@@ -1,3 +1,1 @@
-module.exports = {
-  ...require("./spin.js"),
-}
+export * from "./spin.js"

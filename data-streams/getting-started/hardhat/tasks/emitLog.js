@@ -1,4 +1,5 @@
-const utils = require("./utils")
+import { task } from "hardhat/config"
+import * as utils from "./utils/index.js"
 
 // Define a Hardhat task named "emitLog" to trigger log emission from the LogEmitter contract.
 task("emitLog", "Emits a log from the LogEmitter contract")
@@ -32,5 +33,3 @@ task("emitLog", "Emits a log from the LogEmitter contract")
       throw error
     }
   })
-
-module.exports = {}
