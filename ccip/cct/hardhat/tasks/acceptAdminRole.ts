@@ -1,66 +1,56 @@
 import { task } from "hardhat/config";
-import { Chains, networks, logger, getEVMNetworkConfig } from "../config";
+import { Chains, logger, getEVMNetworkConfig } from "../config";
+import TokenAdminRegistryABI from "@chainlink/contracts-ccip/abi/TokenAdminRegistry.abi.json";
 
-interface AcceptAdminRoleTaskArgs {
-  tokenaddress: string;
-}
-
-// Task to accept the admin role for a token that has a pending admin
-task("acceptAdminRole", "Accepts the admin role of a token")
-  .addParam("tokenaddress", "The address of the token") // Token address
-  .setAction(async (taskArgs: AcceptAdminRoleTaskArgs, hre) => {
-    const { tokenaddress: tokenAddress } = taskArgs;
+/**
+ * Accepts the admin role for a token with a pending administrator.
+ *
+ * Example:
+ * npx hardhat acceptAdminRole --tokenaddress 0x1234... --network sepolia
+ */
+task("acceptAdminRole", "Accepts the admin role for a token with a pending admin")
+  .setAction(<any>(async (taskArgs: { tokenaddress: string }, hre: any) => {
+    const { tokenaddress } = taskArgs;
     const networkName = hre.network.name as Chains;
 
-    // Retrieve the network configuration
+    // ✅ Retrieve network configuration
     const networkConfig = getEVMNetworkConfig(networkName);
-    if (!networkConfig) {
-      throw new Error(`Network ${networkName} not found in config`);
-    }
+    if (!networkConfig) throw new Error(`Network ${networkName} not found in config`);
+    if (!hre.viem.isAddress(tokenaddress))
+      throw new Error(`Invalid token address: ${tokenaddress}`);
 
-    // Validate the provided token address
-    if (!hre.ethers.isAddress(tokenAddress)) {
-      throw new Error(`Invalid token address: ${tokenAddress}`);
-    }
-
-    // Retrieve the token admin registry and confirmations from the network config
     const { tokenAdminRegistry, confirmations } = networkConfig;
-    if (!tokenAdminRegistry) {
-      throw new Error(`tokenAdminRegistry is not defined for ${networkName}`);
-    }
+    if (!tokenAdminRegistry || confirmations === undefined)
+      throw new Error(`Missing registry or confirmations for ${networkName}`);
 
-    if (confirmations === undefined) {
-      throw new Error(`confirmations is not defined for ${networkName}`);
-    }
+    // ✅ Wallet + public client
+    const [wallet] = await hre.viem.getWalletClients();
+    const publicClient = await hre.viem.getPublicClient();
 
-    // Get the signer (pending admin)
-    const [signer] = await hre.ethers.getSigners();
+    // ✅ Connect to TokenAdminRegistry contract using imported ABI
+    const registry = await hre.viem.getContractAt({
+      address: tokenAdminRegistry,
+      abi: TokenAdminRegistryABI,
+    });
 
-    // Load the TokenAdminRegistry contract factory
-    const { TokenAdminRegistry__factory } = await import("../typechain-types");
+    logger.info(`Checking pending admin for ${tokenaddress} on ${networkName}...`);
 
-    // Connect to the TokenAdminRegistry contract
-    const tokenAdminRegistryContract = TokenAdminRegistry__factory.connect(
-      tokenAdminRegistry,
-      signer
+    // ✅ Retrieve pending admin
+    const cfg = await registry.read.getTokenConfig([tokenaddress]);
+    const pendingAdmin = cfg.pendingAdministrator;
+
+    if (pendingAdmin.toLowerCase() !== wallet.account.address.toLowerCase())
+      throw new Error(`Only pending admin can accept (pending ${pendingAdmin})`);
+
+    logger.info(`Accepting admin role as ${wallet.account.address}...`);
+
+    // ✅ Send transaction to accept admin role
+    const txHash = await registry.write.acceptAdminRole(
+      [tokenaddress],
+      { account: wallet.account }
     );
 
-    // Retrieve the token configuration to check if the signer is the pending administrator
-    const { pendingAdministrator } =
-      await tokenAdminRegistryContract.getTokenConfig(tokenAddress);
+    await publicClient.waitForTransactionReceipt({ hash: txHash });
 
-    // Ensure that the signer is the pending administrator
-    if (pendingAdministrator !== signer.address) {
-      throw new Error(
-        `Only the pending administrator can accept the admin role. Pending administrator: ${pendingAdministrator}`
-      );
-    }
-
-    // Call the acceptAdminRole function to finalize the admin role
-    const tx = await tokenAdminRegistryContract.acceptAdminRole(tokenAddress);
-
-    // Wait for the transaction to be confirmed
-    await tx.wait(confirmations);
-
-    logger.info(`Accepted admin role for token ${tokenAddress} tx: ${tx.hash}`);
-  });
+    logger.info(`✅ Admin role accepted. Tx: ${txHash}`);
+  }));

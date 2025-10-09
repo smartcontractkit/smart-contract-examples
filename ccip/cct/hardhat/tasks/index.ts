@@ -18,3 +18,5 @@ import "./addRemotePool";
 import "./removeRemotePool";
 import "./updateAllowList";
 import "./deployFaucet";
+
+console.log("✅ Tasks loaded from /tasks/index.ts");

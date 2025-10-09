@@ -1,6 +1,7 @@
+import "@nomicfoundation/hardhat-toolbox-viem";
 import { HardhatUserConfig } from "hardhat/config";
-import "@nomicfoundation/hardhat-toolbox";
-require("@chainlink/env-enc").config();
+import * as envEnc from "@chainlink/env-enc";
+envEnc.config();
 
 const SOLC_SETTINGS = {
   optimizer: {
@@ -23,11 +24,13 @@ const config: HardhatUserConfig = {
   },
   networks: {
     ethereumSepolia: {
+      type: "http",
       url: process.env.ETHEREUM_SEPOLIA_RPC_URL || "UNSET",
       chainId: 11155111,
       accounts,
     },
     avalancheFuji: {
+      type: "http",
       url: process.env.AVALANCHE_FUJI_RPC_URL || "UNSET",
       chainId: 43113,
       accounts,

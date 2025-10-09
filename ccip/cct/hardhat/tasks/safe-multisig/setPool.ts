@@ -1,208 +1,144 @@
-import { task } from "hardhat/config"; // Import the "task" utility from Hardhat to define custom tasks
-import { Chains, networks, logger, getEVMNetworkConfig } from "../../config"; // Import chain configurations, network settings, and a logger for logging
+import { task } from "hardhat/config";
+import { Chains, logger, getEVMNetworkConfig } from "../../config";
 import {
   MetaTransactionData,
   SafeTransaction,
   TransactionResult,
-} from "@safe-global/safe-core-sdk-types"; // Import types related to Safe transactions
-import Safe, { SigningMethod } from "@safe-global/protocol-kit"; // Import Safe SDK and signing methods to interact with Safe multisig accounts
-import { HttpNetworkConfig } from "hardhat/types"; // Import Hardhat's HttpNetworkConfig for network configuration
+} from "@safe-global/safe-core-sdk-types";
+import Safe, { SigningMethod } from "@safe-global/protocol-kit";
+import TokenAdminRegistryABI from "@chainlink/contracts-ccip/abi/TokenAdminRegistry.abi.json";
 
-// Define the interface for the task arguments
-interface SetPoolArgs {
-  tokenaddress: string; // The address of the token to be linked to a pool
-  pooladdress: string; // The address of the token pool to be set for the token
-  safeaddress: string; // The Safe multisig account that will execute the transaction
-}
-
-// Define a new Hardhat task named "setPooFromSafe"
-task("setPoolFromSafe", "Set the pool for a token via Safe")
-  // Add parameters for the task with descriptions
-  .addParam("tokenaddress", "The address of the token")
-  .addParam("pooladdress", "The address of the pool")
-  .addParam("safeaddress", "The Safe address to execute the transaction")
-  .setAction(async (taskArgs: SetPoolArgs, hre) => {
-    // Destructure task arguments for easier reference
-    const {
-      tokenaddress: tokenAddress,
-      pooladdress: poolAddress,
-      safeaddress: safeAddress,
-    } = taskArgs;
-
-    // Get the current network's name from Hardhat runtime environment
+/**
+ * Sets the pool for a token through a Safe multisig transaction.
+ *
+ * Example:
+ * npx hardhat setPoolFromSafe \
+ *   --tokenaddress 0xYourToken \
+ *   --pooladdress 0xYourPool \
+ *   --safeaddress 0xYourSafe \
+ *   --network sepolia
+ */
+task("setPoolFromSafe", "Sets the pool for a token via Safe multisig")
+  .setAction(<any>(async (taskArgs: {
+    tokenaddress: string;
+    pooladdress: string;
+    safeaddress: string;
+  }, hre: any) => {
+    const { tokenaddress, pooladdress, safeaddress } = taskArgs;
     const networkName = hre.network.name as Chains;
 
-    // Validate that the network is configured
+    // ✅ Validate network configuration
     const networkConfig = getEVMNetworkConfig(networkName);
-    if (!networkConfig) {
+    if (!networkConfig)
       throw new Error(`Network ${networkName} not found in config`);
-    }
 
-    // Validate that the provided token address is a valid Ethereum address
-    if (!hre.ethers.isAddress(tokenAddress)) {
-      throw new Error(`Invalid token address: ${tokenAddress}`);
-    }
-
-    // Validate that the provided pool address is a valid Ethereum address
-    if (!hre.ethers.isAddress(poolAddress)) {
-      throw new Error(`Invalid pool address: ${poolAddress}`);
-    }
-
-    // Validate that the provided Safe address is a valid Ethereum address
-    if (!hre.ethers.isAddress(safeAddress)) {
-      throw new Error(`Invalid Safe address: ${safeAddress}`);
-    }
-
-    // Retrieve the tokenAdminRegistry address and the number of confirmations from the network configuration
     const { tokenAdminRegistry, confirmations } = networkConfig;
-    if (!tokenAdminRegistry) {
-      throw new Error(`tokenAdminRegistry is not defined for ${networkName}`);
-    }
+    if (!tokenAdminRegistry)
+      throw new Error(`tokenAdminRegistry missing for ${networkName}`);
+    if (confirmations === undefined)
+      throw new Error(`confirmations not defined for ${networkName}`);
 
-    if (confirmations === undefined) {
-      throw new Error(`Confirmations are not defined for ${networkName}`);
-    }
+    // ✅ Validate addresses
+    if (!hre.viem.isAddress(tokenaddress))
+      throw new Error(`Invalid token address: ${tokenaddress}`);
+    if (!hre.viem.isAddress(pooladdress))
+      throw new Error(`Invalid pool address: ${pooladdress}`);
+    if (!hre.viem.isAddress(safeaddress))
+      throw new Error(`Invalid Safe address: ${safeaddress}`);
 
-    // Ensure both private keys are available in environment variables
-    const privateKey = process.env.PRIVATE_KEY;
-    const privateKey2 = process.env.PRIVATE_KEY_2;
+    // ✅ Ensure required environment variables are set
+    const pk1 = process.env.PRIVATE_KEY;
+    const pk2 = process.env.PRIVATE_KEY_2;
+    if (!pk1 || !pk2)
+      throw new Error("Both PRIVATE_KEY and PRIVATE_KEY_2 must be set");
 
-    if (!privateKey || !privateKey2) {
-      throw new Error(
-        "Both PRIVATE_KEY and PRIVATE_KEY_2 environment variables must be set"
-      );
-    }
+    // ✅ Get RPC URL
+    const netCfg = hre.config.networks[networkName] as any;
+    if (!netCfg?.url)
+      throw new Error(`RPC URL not found for network ${networkName}`);
+    const rpcUrl = netCfg.url;
 
-    // Retrieve the RPC URL from the network configuration
-    const networkConfigDetails = hre.config.networks[
-      networkName
-    ] as HttpNetworkConfig;
-    const rpcUrl = networkConfigDetails.url;
-
-    if (!rpcUrl) {
-      throw new Error("RPC URL not found in network config");
-    }
-
-    // Log the connection to the TokenAdminRegistry contract
     logger.info(
-      `Connecting to TokenAdminRegistry contract at ${tokenAdminRegistry}...`
+      `Connecting to TokenAdminRegistry at ${tokenAdminRegistry} on ${networkName}`
     );
 
-    // Import the TokenAdminRegistry factory to interact with the contract
-    const { TokenAdminRegistry__factory } = await import(
-      "../../typechain-types"
-    );
-
-    // Connect to the TokenAdminRegistry contract using the provided address and the provider from Hardhat
-    const tokenAdminRegistryContract = TokenAdminRegistry__factory.connect(
-      tokenAdminRegistry,
-      hre.ethers.provider
-    );
-
-    // Retrieve the current token configuration for the given token address
-    const config = await tokenAdminRegistryContract.getTokenConfig(
-      tokenAddress
-    );
-    const tokenAdministratorAddress = config.administrator; // Get the current administrator address for the token
-
-    // Log the pool setting process
-    logger.info(
-      `Setting pool for token ${tokenAddress} to ${poolAddress} by ${tokenAdministratorAddress}`
-    );
-
-    // Encode the setPool transaction data with the token and pool addresses
-    const setPoolData = tokenAdminRegistryContract.interface.encodeFunctionData(
-      "setPool",
-      [tokenAddress, poolAddress]
-    );
-
-    // Create Safe signers using the Safe Protocol Kit
-    const safeSigner1 = await Safe.init({
-      provider: rpcUrl, // The RPC URL for the network
-      signer: privateKey, // Private key of the first Safe signer
-      safeAddress: safeAddress, // Address of the Safe multisig account
+    // ✅ Connect to registry contract
+    const registry = await hre.viem.getContractAt({
+      address: tokenAdminRegistry,
+      abi: TokenAdminRegistryABI,
     });
 
-    const safeSigner2 = await Safe.init({
-      provider: rpcUrl, // The RPC URL for the network
-      signer: privateKey2, // Private key of the second Safe signer
-      safeAddress: safeAddress, // Address of the Safe multisig account
+    // ✅ Get current token config and admin
+    const config = await registry.read.getTokenConfig([tokenaddress]);
+    const currentAdmin = config.administrator;
+
+    logger.info(
+      `Preparing to set pool for token ${tokenaddress} → ${pooladdress}, current admin: ${currentAdmin}`
+    );
+
+    // ✅ Encode function call data
+    const registryIface = new hre.viem.Interface(TokenAdminRegistryABI);
+    const callData = registryIface.encodeFunctionData("setPool", [
+      tokenaddress,
+      pooladdress,
+    ]);
+
+    // ✅ Initialize Safe signers
+    const safe1 = await Safe.init({
+      provider: rpcUrl,
+      signer: pk1,
+      safeAddress: safeaddress,
+    });
+    const safe2 = await Safe.init({
+      provider: rpcUrl,
+      signer: pk2,
+      safeAddress: safeaddress,
     });
 
-    // Create the meta-transaction data for the setPool function call
-    const metaTransactionData: MetaTransactionData = {
-      to: tokenAdminRegistry, // The address of the TokenAdminRegistry contract
-      data: setPoolData, // The encoded function data to set the pool
-      value: "0", // No Ether is being transferred with this transaction
+    const metaTx: MetaTransactionData = {
+      to: tokenAdminRegistry,
+      data: callData,
+      value: "0",
     };
 
-    // Create the Safe transaction containing the setPool meta-transaction
-    let safeTransaction: SafeTransaction;
+    // ✅ Create Safe transaction
+    let safeTx: SafeTransaction;
     try {
-      safeTransaction = await safeSigner1.createTransaction({
-        transactions: [metaTransactionData], // List of meta-transactions to be executed
-      });
-      logger.info("Safe transaction created for setting the pool");
-    } catch (error) {
-      logger.error("Failed to create Safe transaction", error);
-      throw new Error("Failed to create Safe transaction");
+      safeTx = await safe1.createTransaction({ transactions: [metaTx] });
+      logger.info("✅ Safe transaction created");
+    } catch (err) {
+      logger.error("❌ Failed to create Safe transaction", err);
+      throw err;
     }
 
-    // Sign the Safe transaction with the first owner
-    let signedSafeTransaction: SafeTransaction;
+    // ✅ Sign by both owners
     try {
-      signedSafeTransaction = await safeSigner1.signTransaction(
-        safeTransaction,
-        SigningMethod.ETH_SIGN // Use ETH_SIGN as the signing method
-      );
-      logger.info("Safe transaction signed by owner 1");
-    } catch (error) {
-      logger.error("Failed to sign Safe transaction by owner 1", error);
-      throw new Error("Failed to sign Safe transaction by owner 1");
+      safeTx = await safe1.signTransaction(safeTx, SigningMethod.ETH_SIGN);
+      logger.info("✅ Signed by owner 1");
+      safeTx = await safe2.signTransaction(safeTx, SigningMethod.ETH_SIGN);
+      logger.info("✅ Signed by owner 2");
+    } catch (err) {
+      logger.error("❌ Error signing Safe transaction", err);
+      throw err;
     }
 
-    // Sign the Safe transaction with the second owner
-    try {
-      signedSafeTransaction = await safeSigner2.signTransaction(
-        signedSafeTransaction,
-        SigningMethod.ETH_SIGN // Use ETH_SIGN as the signing method for the second owner
-      );
-      logger.info("Safe transaction signed by owner 2");
-    } catch (error) {
-      logger.error("Failed to sign Safe transaction by owner 2", error);
-      throw new Error("Failed to sign Safe transaction by owner 2");
-    }
-
-    // Execute the signed Safe transaction to set the pool
-    logger.info(
-      `Executing Safe transaction to set pool for token ${tokenAddress}...`
-    );
-
+    // ✅ Execute Safe transaction
+    logger.info(`🚀 Executing Safe transaction to set pool for ${tokenaddress}...`);
     let result: TransactionResult;
     try {
-      result = await safeSigner1.executeTransaction(signedSafeTransaction);
-    } catch (error) {
-      logger.error("Error executing Safe transaction", error);
-      throw new Error("Error executing Safe transaction");
+      result = await safe1.executeTransaction(safeTx);
+    } catch (err) {
+      logger.error("❌ Execution failed", err);
+      throw err;
     }
 
-    logger.info("Executed Safe transaction");
+    if (!result?.transactionResponse)
+      throw new Error("No transaction response returned");
 
-    // Wait for the transaction to be confirmed on the blockchain
-    if (result && result.transactionResponse) {
-      logger.info(
-        `Waiting for ${confirmations} blocks for transaction ${result.hash} to be confirmed...`
-      );
-
-      // Wait for the specified number of block confirmations
-      await (result.transactionResponse as any).wait(confirmations);
-      logger.info(`Transaction confirmed after ${confirmations} blocks.`);
-    } else {
-      throw new Error("No transaction response available");
-    }
-
-    // Log the successful pool setting operation
     logger.info(
-      `Pool set for token ${tokenAddress} to ${poolAddress} successfully.`
+      `⏳ Waiting ${confirmations} blocks for tx ${result.hash} confirmation...`
     );
-  });
+    await (result.transactionResponse as any).wait(confirmations);
+
+    logger.info(`✅ Pool set for token ${tokenaddress} → ${pooladdress}`);
+  }));

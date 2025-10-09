@@ -1,5 +1,5 @@
+import "@nomicfoundation/hardhat-toolbox-viem";
 import { HardhatUserConfig } from "hardhat/config";
-import "@nomicfoundation/hardhat-toolbox";
 import { etherscan, networks } from "./config";
 import "./tasks";
 
@@ -19,8 +19,8 @@ const config: HardhatUserConfig = {
       },
     ],
   },
-  etherscan: { ...etherscan },
-  networks: { ...networks },
+  verify: { etherscan: etherscan as any },
+  networks: { ...(networks as any) },
 };
 
 export default config;

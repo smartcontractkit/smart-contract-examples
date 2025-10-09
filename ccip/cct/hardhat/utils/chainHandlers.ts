@@ -1,6 +1,5 @@
 import { CHAIN_TYPE } from "../config/types";
 import bs58 from "bs58";
-import type { HardhatRuntimeEnvironment } from "hardhat/types";
 import { configData } from "../config";
 
 /**
@@ -39,7 +38,7 @@ export interface ChainAddressHandler {
    * @param hre - Hardhat runtime environment
    * @returns true if valid, false otherwise
    */
-  validateAddress(address: string, hre: HardhatRuntimeEnvironment): boolean;
+  validateAddress(address: string, hre: any): boolean;
 
   /**
    * Prepares address data for contract interaction
@@ -47,7 +46,7 @@ export interface ChainAddressHandler {
    * @param hre - Hardhat runtime environment
    * @returns Prepared address data
    */
-  prepareAddressData(address: string, hre: HardhatRuntimeEnvironment): string;
+  prepareAddressData(address: string, hre: any): string;
 
   /**
    * Converts address to hex format if needed
@@ -61,11 +60,11 @@ export interface ChainAddressHandler {
  * EVM chain address handler implementation
  */
 class EvmAddressHandler implements ChainAddressHandler {
-  validateAddress(address: string, hre: HardhatRuntimeEnvironment): boolean {
+  validateAddress(address: string, hre: any): boolean {
     return hre.ethers.isAddress(address);
   }
 
-  prepareAddressData(address: string, hre: HardhatRuntimeEnvironment): string {
+  prepareAddressData(address: string, hre: any): string {
     if (!this.validateAddress(address, hre)) {
       throw new InvalidAddressError(
         address,
@@ -88,7 +87,7 @@ class EvmAddressHandler implements ChainAddressHandler {
  * Solana (SVM) chain address handler implementation
  */
 class SvmAddressHandler implements ChainAddressHandler {
-  validateAddress(address: string, hre: HardhatRuntimeEnvironment): boolean {
+  validateAddress(address: string, hre: any): boolean {
     try {
       // Validate Solana address format (should be base58 encoded and proper length)
       const decoded = bs58.decode(address);
@@ -98,7 +97,7 @@ class SvmAddressHandler implements ChainAddressHandler {
     }
   }
 
-  prepareAddressData(address: string, hre: HardhatRuntimeEnvironment): string {
+  prepareAddressData(address: string, hre: any): string {
     if (!this.validateAddress(address, hre)) {
       throw new InvalidAddressError(
         address,
@@ -153,7 +152,7 @@ export function getChainHandler(chainType: CHAIN_TYPE): ChainAddressHandler {
 export function validateChainAddress(
   address: string,
   chainType: CHAIN_TYPE,
-  hre: HardhatRuntimeEnvironment
+  hre: any
 ): boolean {
   try {
     const handler = getChainHandler(chainType);
@@ -174,7 +173,7 @@ export function validateChainAddress(
 export function validateChainAddressOrThrow(
   address: string,
   chainType: CHAIN_TYPE,
-  hre: HardhatRuntimeEnvironment
+  hre: any
 ): void {
   const handler = getChainHandler(chainType);
   if (!handler.validateAddress(address, hre)) {
@@ -194,7 +193,7 @@ export function validateChainAddressOrThrow(
 export function prepareChainAddressData(
   address: string,
   chainType: CHAIN_TYPE,
-  hre: HardhatRuntimeEnvironment
+  hre: any
 ): string {
   const handler = getChainHandler(chainType);
   return handler.prepareAddressData(address, hre);
@@ -212,7 +211,7 @@ export function prepareChainAddressData(
 export function convertChainAddressToHex(
   address: string,
   chainType: CHAIN_TYPE,
-  hre: HardhatRuntimeEnvironment
+  hre: any
 ): string {
   const handler = getChainHandler(chainType);
   if (!handler.validateAddress(address, hre)) {
@@ -282,7 +281,7 @@ export function getChainInfoBySelector(
 export function decodeChainAddress(
   encodedAddress: string,
   chainType: CHAIN_TYPE,
-  hre?: HardhatRuntimeEnvironment
+  hre?: any
 ): string {
   if (chainType === "svm") {
     // For Solana, the encoded address is a hex string (32 bytes)
@@ -293,7 +292,7 @@ export function decodeChainAddress(
     return bs58.encode(bytes);
   } else if (chainType === "evm") {
     if (!hre) {
-      throw new Error("HardhatRuntimeEnvironment is required for EVM address decoding");
+      throw new Error("any is required for EVM address decoding");
     }
     // For EVM chains, use AbiCoder
     return new hre.ethers.AbiCoder().decode(["address"], encodedAddress)[0];
@@ -312,7 +311,7 @@ export function decodeChainAddress(
 export function decodeAddressByChainSelector(
   encodedAddress: string,
   chainSelector: string | bigint,
-  hre: HardhatRuntimeEnvironment
+  hre: any
 ): string {
   try {
     const chainInfo = getChainInfoBySelector(chainSelector);

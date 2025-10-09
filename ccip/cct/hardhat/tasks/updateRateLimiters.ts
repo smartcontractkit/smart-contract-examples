@@ -1,198 +1,133 @@
-import { task, types } from "hardhat/config";
+import { task } from "hardhat/config";
 import { Chains, logger, getEVMNetworkConfig, configData } from "../config";
-import { RateLimiter } from "../typechain-types";
+import TokenPoolABI from "@chainlink/contracts-ccip/abi/TokenPool.abi.json";
 
-interface UpdateRateLimitersArgs {
-  pooladdress: string;
-  remotechain: string;
-  ratelimiter: string;
-  outboundratelimitenabled: boolean;
-  outboundratelimitcapacity: number;
-  outboundratelimitrate: number;
-  inboundratelimitenabled: boolean;
-  inboundratelimitcapacity: number;
-  inboundratelimitrate: number;
-}
-
+/**
+ * Updates outbound/inbound/both rate limiters for a given remote chain.
+ *
+ * Example:
+ * npx hardhat updateRateLimiters \
+ *   --pooladdress 0xYourPool \
+ *   --remotechain baseSepolia \
+ *   --ratelimiter both \
+ *   --outboundratelimitenabled true \
+ *   --outboundratelimitcapacity 1000 \
+ *   --outboundratelimitrate 10 \
+ *   --inboundratelimitenabled true \
+ *   --inboundratelimitcapacity 500 \
+ *   --inboundratelimitrate 5 \
+ *   --network sepolia
+ */
 task("updateRateLimiters", "Update rate limiters for an existing chain")
-  .addParam("pooladdress", "The address of the pool")
-  .addParam("remotechain", "The remote chain") // Use the chain name to look up the chain selector
-  .addOptionalParam(
-    "ratelimiter",
-    "Specify whether to update 'inbound', 'outbound', or 'both' rate limiters",
-    "both", // Default value is both
-    types.string
-  )
-  .addOptionalParam(
-    "outboundratelimitenabled",
-    "Whether the outbound rate limit is enabled (Outbound)",
-    false, // Default value is false
-    types.boolean
-  )
-  .addOptionalParam(
-    "outboundratelimitcapacity",
-    "Maximum number of tokens that can be in the bucket (Outbound)",
-    0, // Default value is 0
-    types.int
-  )
-  .addOptionalParam(
-    "outboundratelimitrate",
-    "Number of tokens per second that the bucket is refilled (Outbound)",
-    0, // Default value is 0
-    types.int
-  )
-  .addOptionalParam(
-    "inboundratelimitenabled",
-    "Whether the inbound rate limit is enabled (Inbound)",
-    false, // Default value is false
-    types.boolean
-  )
-  .addOptionalParam(
-    "inboundratelimitcapacity",
-    "Maximum number of tokens that can be in the bucket (Inbound)",
-    0, // Default value is 0
-    types.int
-  )
-  .addOptionalParam(
-    "inboundratelimitrate",
-    "Number of tokens per second that the bucket is refilled (Inbound)",
-    0, // Default value is 0
-    types.int
-  )
-  .setAction(async (taskArgs: UpdateRateLimitersArgs, hre) => {
+  .setAction(<any>(async (taskArgs: {
+    pooladdress: string;
+    remotechain: string;
+    ratelimiter?: string;
+    outboundratelimitenabled?: boolean;
+    outboundratelimitcapacity?: number;
+    outboundratelimitrate?: number;
+    inboundratelimitenabled?: boolean;
+    inboundratelimitcapacity?: number;
+    inboundratelimitrate?: number;
+  }, hre: any) => {
     const {
-      pooladdress: poolAddress,
-      remotechain: remoteChain,
-      ratelimiter: rateLimiterToUpdate,
-      outboundratelimitenabled: outboundRateLimitEnabled,
-      outboundratelimitcapacity: outboundRateLimitCapacity,
-      outboundratelimitrate: outboundRateLimitRate,
-      inboundratelimitenabled: inboundRateLimitEnabled,
-      inboundratelimitcapacity: inboundRateLimitCapacity,
-      inboundratelimitrate: inboundRateLimitRate,
+      pooladdress,
+      remotechain,
+      ratelimiter = "both",
+      outboundratelimitenabled = false,
+      outboundratelimitcapacity = 0,
+      outboundratelimitrate = 0,
+      inboundratelimitenabled = false,
+      inboundratelimitcapacity = 0,
+      inboundratelimitrate = 0,
     } = taskArgs;
 
-    // Get the name of the current network (source chain)
     const networkName = hre.network.name as Chains;
-
-    // Retrieve the network configuration for the source chain
     const networkConfig = getEVMNetworkConfig(networkName);
-    if (!networkConfig) {
-      throw new Error(`Network ${networkName} not found in config`);
-    }
-
+    if (!networkConfig) throw new Error(`Network ${networkName} not found`);
     const { confirmations } = networkConfig;
-    if (confirmations === undefined) {
-      throw new Error(`Confirmations are not defined for ${networkName}`);
-    }
+    if (confirmations === undefined)
+      throw new Error(`confirmations missing for ${networkName}`);
 
-    // Retrieve the network configuration for the remote chain
-    const remoteNetworkConfig =
-      configData[remoteChain as keyof typeof configData];
-    if (!remoteNetworkConfig) {
-      throw new Error(`Remote chain ${remoteChain} not found in config`);
-    }
-
-    // Get the remote chain's selector, which is required for cross-chain operations
+    // ✅ Load remote chain config
+    const remoteNetworkConfig = configData[remotechain as keyof typeof configData];
+    if (!remoteNetworkConfig)
+      throw new Error(`Remote chain ${remotechain} not found in config`);
     const remoteChainSelector = remoteNetworkConfig.chainSelector;
-    if (remoteChainSelector === undefined) {
-      throw new Error(`chainSelector is not defined for ${remoteChain}`);
-    }
+    if (remoteChainSelector === undefined)
+      throw new Error(`chainSelector missing for ${remotechain}`);
 
-    // Retrieve the signer (wallet) to interact with the smart contract
-    const signerAddress = (await hre.ethers.getSigners())[0];
+    // ✅ Wallet & public client
+    const [wallet] = await hre.viem.getWalletClients();
+    const publicClient = await hre.viem.getPublicClient();
 
-    // Load the TokenPool contract factory and connect to the deployed contract using its address
-    const { TokenPool__factory } = await import("../typechain-types");
-    const poolContract = TokenPool__factory.connect(poolAddress, signerAddress);
+    // ✅ Connect to TokenPool contract
+    const pool = await hre.viem.getContractAt({
+      address: pooladdress,
+      abi: TokenPoolABI,
+    });
 
-    // Get the current rate limiter states
-    const currentOutboundRateLimiterState =
-      await poolContract.getCurrentOutboundRateLimiterState(
-        remoteChainSelector
-      );
-    const currentInboundRateLimiterState =
-      await poolContract.getCurrentInboundRateLimiterState(remoteChainSelector);
+    // ✅ Read current limiter states
+    const [currentOutbound, currentInbound] = await Promise.all([
+      pool.read.getCurrentOutboundRateLimiterState([BigInt(remoteChainSelector)]),
+      pool.read.getCurrentInboundRateLimiterState([BigInt(remoteChainSelector)]),
+    ]);
 
-    // Log the current configurations
-    logger.info(`Current Rate Limiters for token pool: ${poolAddress}`);
-
-    // Outbound Rate Limiter
-    logger.info(`  Outbound Rate Limiter:`);
-    logger.info(`    Enabled: ${currentOutboundRateLimiterState.isEnabled}`);
+    logger.info(`\nCurrent Rate Limiters for pool ${pooladdress}`);
     logger.info(
-      `    Capacity: ${currentOutboundRateLimiterState.capacity.toString()}`
+      `Outbound → enabled=${currentOutbound.isEnabled}, cap=${currentOutbound.capacity.toString()}, rate=${currentOutbound.rate.toString()}`
     );
-    logger.info(`    Rate: ${currentOutboundRateLimiterState.rate.toString()}`);
-
-    // Inbound Rate Limiter
-    logger.info(`  Inbound Rate Limiter:`);
-    logger.info(`    Enabled: ${currentInboundRateLimiterState.isEnabled}`);
     logger.info(
-      `    Capacity: ${currentInboundRateLimiterState.capacity.toString()}`
+      `Inbound  → enabled=${currentInbound.isEnabled}, cap=${currentInbound.capacity.toString()}, rate=${currentInbound.rate.toString()}`
     );
-    logger.info(`    Rate: ${currentInboundRateLimiterState.rate.toString()}`);
+    logger.info("\n========== Preparing Update ==========");
 
-    // Add a blank line and separator
-    logger.info("");
-    logger.info(`========== Updating Rate Limiters ==========`);
-
-    // Prepare the rate limiter configurations only if specified
-    let outboundRateLimiterConfig: RateLimiter.ConfigStruct = {
-      isEnabled: currentOutboundRateLimiterState.isEnabled,
-      capacity: currentOutboundRateLimiterState.capacity,
-      rate: currentOutboundRateLimiterState.rate,
+    // ✅ Build updated configs
+    let outboundCfg = {
+      isEnabled: currentOutbound.isEnabled,
+      capacity: currentOutbound.capacity,
+      rate: currentOutbound.rate,
     };
-    if (rateLimiterToUpdate === "outbound" || rateLimiterToUpdate === "both") {
-      outboundRateLimiterConfig = {
-        isEnabled: outboundRateLimitEnabled,
-        capacity: BigInt(outboundRateLimitCapacity),
-        rate: BigInt(outboundRateLimitRate),
+    if (ratelimiter === "outbound" || ratelimiter === "both") {
+      outboundCfg = {
+        isEnabled: outboundratelimitenabled,
+        capacity: BigInt(outboundratelimitcapacity),
+        rate: BigInt(outboundratelimitrate),
       };
-      logger.info(`New Outbound Rate Limiter:`);
-      logger.info(`  Enabled: ${outboundRateLimiterConfig.isEnabled}`);
       logger.info(
-        `  Capacity: ${outboundRateLimiterConfig.capacity.toString()}`
+        `New Outbound → enabled=${outboundCfg.isEnabled}, cap=${outboundCfg.capacity}, rate=${outboundCfg.rate}`
       );
-      logger.info(`  Rate: ${outboundRateLimiterConfig.rate.toString()}`);
     }
 
-    let inboundRateLimiterConfig: RateLimiter.ConfigStruct = {
-      isEnabled: currentInboundRateLimiterState.isEnabled,
-      capacity: currentInboundRateLimiterState.capacity,
-      rate: currentInboundRateLimiterState.rate,
+    let inboundCfg = {
+      isEnabled: currentInbound.isEnabled,
+      capacity: currentInbound.capacity,
+      rate: currentInbound.rate,
     };
-    if (rateLimiterToUpdate === "inbound" || rateLimiterToUpdate === "both") {
-      inboundRateLimiterConfig = {
-        isEnabled: inboundRateLimitEnabled,
-        capacity: BigInt(inboundRateLimitCapacity),
-        rate: BigInt(inboundRateLimitRate),
+    if (ratelimiter === "inbound" || ratelimiter === "both") {
+      inboundCfg = {
+        isEnabled: inboundratelimitenabled,
+        capacity: BigInt(inboundratelimitcapacity),
+        rate: BigInt(inboundratelimitrate),
       };
-      logger.info(`New Inbound Rate Limiter:`);
-      logger.info(`  Enabled: ${inboundRateLimiterConfig.isEnabled}`);
       logger.info(
-        `  Capacity: ${inboundRateLimiterConfig.capacity.toString()}`
+        `New Inbound  → enabled=${inboundCfg.isEnabled}, cap=${inboundCfg.capacity}, rate=${inboundCfg.rate}`
       );
-      logger.info(`  Rate: ${inboundRateLimiterConfig.rate.toString()}`);
     }
 
-    if (rateLimiterToUpdate === "outbound") {
-      logger.info(`Updating outbound rate limiter...`);
-    } else if (rateLimiterToUpdate === "inbound") {
-      logger.info(`Updating inbound rate limiter...`);
-    } else if (rateLimiterToUpdate === "both") {
-      logger.info(`Updating both rate limiters...`);
-    }
-
-    const tx = await poolContract.setChainRateLimiterConfig(
-      BigInt(remoteChainSelector),
-      outboundRateLimiterConfig,
-      inboundRateLimiterConfig
+    // ✅ Execute update
+    logger.info(
+      `\nUpdating ${ratelimiter === "both" ? "both limiters" : `${ratelimiter} limiter(s)`}...`
     );
 
-    await tx.wait(confirmations);
-    logger.info(`Transaction hash: ${tx.hash}`);
+    const txHash = await pool.write.setChainRateLimiterConfig(
+      [BigInt(remoteChainSelector), outboundCfg, inboundCfg],
+      { account: wallet.account }
+    );
 
-    // Log a success message
-    logger.info(`Rate limiters updated successfully`);
-  });
+    logger.info(`⏳ Tx sent: ${txHash}`);
+    logger.info(`Waiting for ${confirmations} confirmations...`);
+    await publicClient.waitForTransactionReceipt({ hash: txHash });
+
+    logger.info(`✅ Rate limiters updated successfully (tx: ${txHash})`);
+  }));

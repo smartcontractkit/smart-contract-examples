@@ -1,75 +1,63 @@
 import { task } from "hardhat/config";
-import { Chains, networks, logger, getEVMNetworkConfig } from "../config";
+import { Chains, logger, getEVMNetworkConfig } from "../config";
+import BurnMintERC20ABI from "@chainlink/contracts/abi/v0.8/shared/BurnMintERC20.abi.json";
 
-interface MintTokensArgs {
-  tokenaddress: string;
-  amount: string;
-  receiveraddress: string;
-}
-
-// Task to mint tokens for a specific receiver, defaults to the signer's address if not provided
-task("mintTokens", "Mint tokens for receiver")
-  .addParam("tokenaddress", "The address of the token") // The token address for minting
-  .addParam("amount", "The amount to mint") // The amount of tokens to mint (in wei)
-  .addOptionalParam("receiveraddress", "The receiver of the minted tokens") // The receiver's address (defaults to the signer's address)
-  .setAction(async (taskArgs: MintTokensArgs, hre) => {
-    const {
-      tokenaddress: tokenAddress,
-      amount,
-      receiveraddress: receiverAddress,
-    } = taskArgs;
-
+/**
+ * Mints tokens for a receiver.
+ * Defaults to the connected signer's address if no receiver is specified.
+ *
+ * Example:
+ * npx hardhat mintTokens \
+ *   --tokenaddress 0xYourTokenAddress \
+ *   --amount 1000000000000000000 \
+ *   --receiveraddress 0xReceiverAddress \
+ *   --network sepolia
+ */
+task("mintTokens", "Mints tokens for a specified receiver (defaults to signer)")
+  .setAction(<any>(async (taskArgs: {
+    tokenaddress: string;
+    amount: string;
+    receiveraddress?: string;
+  }, hre: any) => {
+    const { tokenaddress, amount, receiveraddress } = taskArgs;
     const networkName = hre.network.name as Chains;
 
-    // Retrieve the network configuration
+    // ✅ Load network configuration
     const networkConfig = getEVMNetworkConfig(networkName);
-    if (!networkConfig) {
+    if (!networkConfig)
       throw new Error(`Network ${networkName} not found in config`);
-    }
 
-    // Get the signer (used to mint tokens)
-    const signer = (await hre.ethers.getSigners())[0];
+    // ✅ Wallet and client
+    const [wallet] = await hre.viem.getWalletClients();
+    const publicClient = await hre.viem.getPublicClient();
 
-    // Set the receiver address to the provided value or default to the signer's address
-    const to = receiverAddress || signer.address;
-
-    // Validate the receiver's address
-    if (!hre.ethers.isAddress(to)) {
+    const to = receiveraddress || wallet.account.address;
+    if (!hre.viem.isAddress(to))
       throw new Error(`Invalid receiver address: ${to}`);
-    }
 
-    // Load the BurnMintERC20 contract factory
-    const { BurnMintERC20__factory } = await import("../typechain-types");
+    // ✅ Connect to token contract
+    const token = await hre.viem.getContractAt({
+      address: tokenaddress,
+      abi: BurnMintERC20ABI,
+    });
 
-    // Connect to the token contract
-    const tokenContract = BurnMintERC20__factory.connect(tokenAddress, signer);
+    const symbol = await token.read.symbol();
+    logger.info(`Minting ${amount} ${symbol} to ${to}...`);
 
-    // Log the minting action
-    logger.info(
-      `Minting ${amount} of ${await tokenContract.symbol()} tokens to ${to}`
-    );
+    // ✅ Execute mint transaction
+    const txHash = await token.write.mint([to, BigInt(amount)], {
+      account: wallet.account,
+    });
 
-    // Call the mint function to mint the tokens to the receiver
-    const tx = await tokenContract.mint(to, amount);
-
-    // Retrieve the number of confirmations required from the network config
     const { confirmations } = networkConfig;
-    if (confirmations === undefined) {
+    if (confirmations === undefined)
       throw new Error(`confirmations is not defined for ${networkName}`);
-    }
 
-    // Wait for the transaction to be confirmed
-    await tx.wait(confirmations);
+    logger.info(`⏳ Waiting for ${confirmations} confirmations...`);
+    await publicClient.waitForTransactionReceipt({ hash: txHash });
 
-    // Log the transaction hash and the current balance of the receiver
-    logger.info(
-      `Minted ${amount} of ${await tokenContract.symbol()} tokens to ${to} - transaction hash: ${
-        tx.hash
-      }`
-    );
-    logger.info(
-      `Current balance of ${to} is ${await tokenContract.balanceOf(
-        to
-      )} ${await tokenContract.symbol()}`
-    );
-  });
+    // ✅ Log transaction and new balance
+    const newBalance = await token.read.balanceOf([to]);
+    logger.info(`✅ Minted ${amount} ${symbol} to ${to}. Tx hash: ${txHash}`);
+    logger.info(`Current balance of ${to}: ${newBalance.toString()} ${symbol}`);
+  }));

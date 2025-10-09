@@ -1,56 +1,58 @@
 import { task } from "hardhat/config";
-import { Chains, networks, logger, getEVMNetworkConfig } from "../config";
+import { Chains, logger, getEVMNetworkConfig } from "../config";
+import TokenPoolABI from "@chainlink/contracts-ccip/abi/TokenPool.abi.json";
 
-// Define the interface for the task arguments
-interface SetRateLimitAdminArgs {
-  pooladdress: string; // The address of the token pool
-  adminaddress: string; // The address of the new rate limit administrator
-}
-
-// Task to set the rate limit administrator for a token pool
-// The rate limit admin can update rate limits without being the pool owner
-task("setRateLimitAdmin", "Set the rate limit admin for a token pool")
-  .addParam("pooladdress", "The address of the pool") // The token pool to configure
-  .addParam("adminaddress", "The address of the new rate limit admin") // The address that will have rate limit admin rights
-  .setAction(async (taskArgs: SetRateLimitAdminArgs, hre) => {
-    const { pooladdress: poolAddress, adminaddress: adminAddress } = taskArgs;
+/**
+ * Sets the rate-limit administrator for a TokenPool contract.
+ *
+ * Example:
+ * npx hardhat setRateLimitAdmin \
+ *   --pooladdress 0xYourPool \
+ *   --adminaddress 0xNewAdmin \
+ *   --network sepolia
+ */
+task("setRateLimitAdmin", "Sets the rate-limit administrator for a token pool")
+  .setAction(<any>(async (taskArgs: { pooladdress: string; adminaddress: string }, hre: any) => {
+    const { pooladdress, adminaddress } = taskArgs;
     const networkName = hre.network.name as Chains;
 
-    // Ensure the network is configured in the network settings
+    // ✅ Ensure network configuration exists
     const networkConfig = getEVMNetworkConfig(networkName);
-    if (!networkConfig) {
+    if (!networkConfig)
       throw new Error(`Network ${networkName} not found in config`);
-    }
 
-    // Validate the provided addresses are properly formatted
-    if (!hre.ethers.isAddress(poolAddress)) {
-      throw new Error(`Invalid pool address: ${poolAddress}`);
-    }
+    // ✅ Validate addresses
+    if (!hre.viem.isAddress(pooladdress))
+      throw new Error(`Invalid pool address: ${pooladdress}`);
+    if (!hre.viem.isAddress(adminaddress))
+      throw new Error(`Invalid admin address: ${adminaddress}`);
 
-    if (!hre.ethers.isAddress(adminAddress)) {
-      throw new Error(`Invalid admin address: ${adminAddress}`);
-    }
+    const { confirmations } = networkConfig;
+    if (confirmations === undefined)
+      throw new Error(`confirmations not defined for ${networkName}`);
 
-    // Get the signer to interact with the contract
-    const signer = (await hre.ethers.getSigners())[0];
-    const { TokenPool__factory } = await import("../typechain-types");
-    const poolContract = TokenPool__factory.connect(poolAddress, signer);
+    // ✅ Wallet + public client
+    const [wallet] = await hre.viem.getWalletClients();
+    const publicClient = await hre.viem.getPublicClient();
 
-    // Log the operation being performed
     logger.info(
-      `Setting rate limit admin to ${adminAddress} for pool at ${poolAddress}`
+      `Setting rate-limit admin to ${adminaddress} for pool ${pooladdress} on ${networkName}`
     );
 
-    // Execute the transaction to set the new rate limit admin
-    const tx = await poolContract.setRateLimitAdmin(adminAddress);
+    // ✅ Connect to TokenPool contract
+    const pool = await hre.viem.getContractAt({
+      address: pooladdress,
+      abi: TokenPoolABI,
+    });
 
-    // Get the required confirmations from network config
-    const { confirmations } = networkConfig;
-    if (confirmations === undefined) {
-      throw new Error(`confirmations is not defined for ${networkName}`);
-    }
+    // ✅ Send transaction
+    const txHash = await pool.write.setRateLimitAdmin([adminaddress], {
+      account: wallet.account,
+    });
 
-    // Wait for the transaction to be confirmed
-    await tx.wait(confirmations);
-    logger.info("Rate limit admin updated successfully");
-  });
+    logger.info(`⏳ Tx sent: ${txHash}`);
+    logger.info(`Waiting for ${confirmations} confirmations...`);
+
+    await publicClient.waitForTransactionReceipt({ hash: txHash });
+    logger.info(`✅ Rate-limit admin updated successfully (tx: ${txHash})`);
+  }));

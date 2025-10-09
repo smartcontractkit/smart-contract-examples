@@ -1,97 +1,83 @@
 import { task } from "hardhat/config";
-import { Chains, networks, logger, getEVMNetworkConfig } from "../config";
+import { Chains, logger, getEVMNetworkConfig } from "../config";
+import TokenPoolABI from "@chainlink/contracts-ccip/abi/TokenPool.abi.json";
 
-// Define the interface for the task arguments
-interface UpdateAllowListArgs {
-  pooladdress: string; // The address of the token pool
-  addaddresses: string; // Comma-separated list of addresses to add to the allowlist
-  removeaddresses: string; // Comma-separated list of addresses to remove from the allowlist
-}
-
-// Task to update the allow list for a token pool
-// The allow list controls which addresses can initiate cross-chain transfers
-task("updateAllowList", "Update the allow list for a token pool")
-  .addParam("pooladdress", "The address of the pool") // The token pool to configure
-  .addOptionalParam(
-    "addaddresses", // Addresses to be granted permission to initiate transfers
-    "Comma-separated list of addresses to add to allowlist",
-    ""
-  )
-  .addOptionalParam(
-    "removeaddresses", // Addresses to have their transfer permissions revoked
-    "Comma-separated list of addresses to remove from allowlist",
-    ""
-  )
-  .setAction(async (taskArgs: UpdateAllowListArgs, hre) => {
-    const {
-      pooladdress: poolAddress,
-      addaddresses: addAddressesStr,
-      removeaddresses: removeAddressesStr,
-    } = taskArgs;
-
+/**
+ * Updates the allow list for a TokenPool contract.
+ *
+ * Example:
+ * npx hardhat updateAllowList \
+ *   --pooladdress 0xYourPoolAddress \
+ *   --addaddresses 0x1111...,0x2222... \
+ *   --removeaddresses 0x3333...,0x4444... \
+ *   --network sepolia
+ */
+task("updateAllowList", "Updates the allow list for a token pool (add or remove addresses)")
+  .setAction(<any>(async (taskArgs: {
+    pooladdress: string;
+    addaddresses?: string;
+    removeaddresses?: string;
+  }, hre: any) => {
+    const { pooladdress, addaddresses = "", removeaddresses = "" } = taskArgs;
     const networkName = hre.network.name as Chains;
 
-    // Ensure the network is configured in the network settings
+    // ✅ Retrieve network configuration
     const networkConfig = getEVMNetworkConfig(networkName);
-    if (!networkConfig) {
+    if (!networkConfig)
       throw new Error(`Network ${networkName} not found in config`);
-    }
 
-    // Validate the pool address is properly formatted
-    if (!hre.ethers.isAddress(poolAddress)) {
-      throw new Error(`Invalid pool address: ${poolAddress}`);
-    }
+    // ✅ Validate pool address
+    if (!hre.viem.isAddress(pooladdress))
+      throw new Error(`Invalid pool address: ${pooladdress}`);
 
-    // Parse the comma-separated address strings into arrays
-    const addressesToAdd = addAddressesStr
-      ? addAddressesStr.split(",").map((addr) => addr.trim())
+    // ✅ Parse & validate address lists
+    const addressesToAdd = addaddresses
+      ? addaddresses.split(",").map((a) => a.trim()).filter(Boolean)
       : [];
-    const addressesToRemove = removeAddressesStr
-      ? removeAddressesStr.split(",").map((addr) => addr.trim())
+    const addressesToRemove = removeaddresses
+      ? removeaddresses.split(",").map((a) => a.trim()).filter(Boolean)
       : [];
 
-    // Validate all addresses in both lists are properly formatted
-    [...addressesToAdd, ...addressesToRemove].forEach((address) => {
-      if (!hre.ethers.isAddress(address)) {
-        throw new Error(`Invalid address in list: ${address}`);
-      }
+    for (const addr of [...addressesToAdd, ...addressesToRemove]) {
+      if (!hre.viem.isAddress(addr))
+        throw new Error(`Invalid address in list: ${addr}`);
+    }
+
+    // ✅ Wallet & client
+    const [wallet] = await hre.viem.getWalletClients();
+    const publicClient = await hre.viem.getPublicClient();
+
+    // ✅ Connect to TokenPool contract
+    const pool = await hre.viem.getContractAt({
+      address: pooladdress,
+      abi: TokenPoolABI,
     });
 
-    // Get the signer to interact with the contract
-    const signer = (await hre.ethers.getSigners())[0];
-    const { TokenPool__factory } = await import("../typechain-types");
-    const poolContract = TokenPool__factory.connect(poolAddress, signer);
-
-    // Verify that the allow list feature is enabled for this pool
-    const allowListEnabled = await poolContract.getAllowListEnabled();
-    if (!allowListEnabled) {
+    // ✅ Ensure allow-list feature is enabled
+    const allowListEnabled = await pool.read.getAllowListEnabled();
+    if (!allowListEnabled)
       throw new Error("Allow list is not enabled for this pool");
-    }
 
-    // Log the operations being performed
-    logger.info(`Updating allow list for pool at ${poolAddress}`);
-    if (addressesToAdd.length > 0) {
-      logger.info("Adding addresses:");
-      addressesToAdd.forEach((addr) => logger.info(`  ${addr}`));
-    }
-    if (addressesToRemove.length > 0) {
-      logger.info("Removing addresses:");
-      addressesToRemove.forEach((addr) => logger.info(`  ${addr}`));
-    }
+    // ✅ Log intended operations
+    logger.info(`Updating allow list for pool ${pooladdress}`);
+    if (addressesToAdd.length)
+      logger.info(`Adding: ${addressesToAdd.join(", ")}`);
+    if (addressesToRemove.length)
+      logger.info(`Removing: ${addressesToRemove.join(", ")}`);
 
-    // Execute the transaction to update the allow list
-    const tx = await poolContract.applyAllowListUpdates(
-      addressesToRemove,
-      addressesToAdd
+    // ✅ Execute transaction
+    const txHash = await pool.write.applyAllowListUpdates(
+      [addressesToRemove, addressesToAdd],
+      { account: wallet.account }
     );
 
-    // Get the required confirmations from network config
     const { confirmations } = networkConfig;
-    if (confirmations === undefined) {
-      throw new Error(`confirmations is not defined for ${networkName}`);
-    }
+    if (confirmations === undefined)
+      throw new Error(`confirmations not defined for ${networkName}`);
 
-    // Wait for the transaction to be confirmed
-    await tx.wait(confirmations);
-    logger.info("Allow list updated successfully");
-  });
+    logger.info(`⏳ Tx sent: ${txHash}`);
+    logger.info(`Waiting for ${confirmations} confirmations...`);
+    await publicClient.waitForTransactionReceipt({ hash: txHash });
+
+    logger.info(`✅ Allow list updated successfully (tx: ${txHash})`);
+  }));

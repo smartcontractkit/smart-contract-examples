@@ -1,77 +1,72 @@
 import { task } from "hardhat/config";
-import { Chains, networks, logger, getEVMNetworkConfig } from "../config";
+import { Chains, logger, getEVMNetworkConfig } from "../config";
+import TokenAdminRegistryABI from "@chainlink/contracts-ccip/abi/TokenAdminRegistry.abi.json";
 
-interface SetPoolArgs {
-  tokenaddress: string;
-  pooladdress: string;
-}
-
-// Task to link a token with its respective pool in the TokenAdminRegistry contract
-task("setPool", "Set the pool for a token")
-  .addParam("tokenaddress", "The address of the token") // Address of the token
-  .addParam("pooladdress", "The address of the pool") // Address of the token pool
-  .setAction(async (taskArgs: SetPoolArgs, hre) => {
-    const { tokenaddress: tokenAddress, pooladdress: poolAddress } = taskArgs;
+/**
+ * Links a token with its corresponding pool in the TokenAdminRegistry contract.
+ *
+ * Example usage:
+ * npx hardhat setPool \
+ *   --tokenaddress 0xYourToken \
+ *   --pooladdress 0xYourPool \
+ *   --network sepolia
+ */
+task("setPool", "Links a token with its pool in the TokenAdminRegistry contract")
+  .setAction(<any>(async (taskArgs: { tokenaddress: string; pooladdress: string }, hre: any) => {
+    const { tokenaddress, pooladdress } = taskArgs;
     const networkName = hre.network.name as Chains;
 
-    // Retrieve the network configuration
+    // ✅ Network configuration
     const networkConfig = getEVMNetworkConfig(networkName);
-    if (!networkConfig) {
+    if (!networkConfig)
       throw new Error(`Network ${networkName} not found in config`);
-    }
 
-    // Validate the provided token and pool addresses
-    if (!hre.ethers.isAddress(tokenAddress)) {
-      throw new Error(`Invalid token address: ${tokenAddress}`);
-    }
-
-    if (!hre.ethers.isAddress(poolAddress)) {
-      throw new Error(`Invalid pool address: ${poolAddress}`);
-    }
-
-    // Retrieve the token admin registry and confirmations from the network config
     const { tokenAdminRegistry, confirmations } = networkConfig;
-    if (!tokenAdminRegistry) {
-      throw new Error(`tokenAdminRegistry is not defined for ${networkName}`);
-    }
+    if (!tokenAdminRegistry)
+      throw new Error(`tokenAdminRegistry not defined for ${networkName}`);
+    if (confirmations === undefined)
+      throw new Error(`confirmations not defined for ${networkName}`);
 
-    if (confirmations === undefined) {
-      throw new Error(`confirmations is not defined for ${networkName}`);
-    }
+    // ✅ Validate addresses
+    if (!hre.viem.isAddress(tokenaddress))
+      throw new Error(`Invalid token address: ${tokenaddress}`);
+    if (!hre.viem.isAddress(pooladdress))
+      throw new Error(`Invalid pool address: ${pooladdress}`);
 
-    // Get the signer (token administrator)
-    const signerAddress = (await hre.ethers.getSigners())[0];
+    // ✅ Wallet + client
+    const [wallet] = await hre.viem.getWalletClients();
+    const publicClient = await hre.viem.getPublicClient();
+    logger.info(`🔹 Using signer: ${wallet.account.address}`);
 
-    // Load the TokenAdminRegistry contract factory
-    const { TokenAdminRegistry__factory } = await import("../typechain-types");
+    // ✅ Connect to TokenAdminRegistry
+    const registry = await hre.viem.getContractAt({
+      address: tokenAdminRegistry,
+      abi: TokenAdminRegistryABI,
+    });
 
-    // Connect to the TokenAdminRegistry contract
-    const tokenAdminRegistryContract = TokenAdminRegistry__factory.connect(
-      tokenAdminRegistry,
-      signerAddress
-    );
-
-    // Retrieve the token configuration to find the current administrator
-    const config = await tokenAdminRegistryContract.getTokenConfig(
-      tokenAddress
-    );
+    logger.info(`Fetching token configuration for ${tokenaddress} on ${networkName}...`);
+    const config = await registry.read.getTokenConfig([tokenaddress]);
     const tokenAdministratorAddress = config.administrator;
 
-    logger.info(
-      `Setting pool for token ${tokenAddress} to ${poolAddress} by ${tokenAdministratorAddress}`
+    logger.info(`Token ${tokenaddress} current admin: ${tokenAdministratorAddress}`);
+
+    // ✅ Ensure signer is token administrator
+    if (tokenAdministratorAddress.toLowerCase() !== wallet.account.address.toLowerCase()) {
+      throw new Error(
+        `Only the token administrator (${tokenAdministratorAddress}) can set the pool. Current signer: ${wallet.account.address}`
+      );
+    }
+
+    logger.info(`Setting pool for token ${tokenaddress} → ${pooladdress}...`);
+
+    // ✅ Execute transaction
+    const txHash = await registry.write.setPool(
+      [tokenaddress, pooladdress],
+      { account: wallet.account }
     );
 
-    // Ensure the action is being performed by the token administrator
-    const tokenAdministrator = await hre.ethers.getSigner(
-      tokenAdministratorAddress
-    );
+    logger.info(`⏳ Transaction sent: ${txHash}`);
+    await publicClient.waitForTransactionReceipt({ hash: txHash });
 
-    // Call the setPool function to link the token with the pool
-    const tx = await tokenAdminRegistryContract
-      .connect(tokenAdministrator)
-      .setPool(tokenAddress, poolAddress);
-
-    // Wait for transaction confirmation
-    await tx.wait(confirmations);
-    logger.info(`Pool set for token ${tokenAddress} to ${poolAddress}`);
-  });
+    logger.info(`✅ Pool successfully set for token ${tokenaddress} → ${pooladdress}`);
+  }));

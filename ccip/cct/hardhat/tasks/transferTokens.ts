@@ -1,292 +1,184 @@
-import { task, types } from "hardhat/config";
+import { task } from "hardhat/config";
 import { Chains, logger, getEVMNetworkConfig, configData } from "../config";
+import RouterABI from "@chainlink/contracts-ccip/abi/Router.abi.json";
+import ERC20ABI from "@chainlink/contracts/abi/v0.8/shared/ERC20.abi.json";
+import OnRampABI from "@chainlink/contracts-ccip/abi/OnRamp.abi.json";
 
+/**
+ * CLI arguments interface
+ */
 interface TransferTokensArgs {
   tokenaddress: string;
   amount: string;
   destinationchain: string;
   receiveraddress: string;
-  fee: string;
+  fee?: string;
 }
 
 enum Fee {
-  native = "native", // Native gas token (e.g., ETH, AVAX) used to pay fees
-  link = "LINK", // LINK token used to pay fees
+  native = "native",
+  link = "LINK",
 }
 
-// Helper function to try decoding error data
-async function tryDecodeError(revertData: string) {
-  const {
-    IRouterClient__factory,
-    OnRamp__factory,
-    TokenPool__factory,
-    RateLimiter__factory,
-    Client__factory,
-    ERC20__factory,
-    BurnMintERC20__factory,
-    BurnMintTokenPool__factory,
-    LockReleaseTokenPool__factory,
-  } = await import("../typechain-types");
-
-  const factories = [
-    IRouterClient__factory,
-    OnRamp__factory,
-    TokenPool__factory,
-    RateLimiter__factory,
-    Client__factory,
-    ERC20__factory,
-    BurnMintERC20__factory,
-    BurnMintTokenPool__factory,
-    LockReleaseTokenPool__factory,
-  ];
-
-  // Iterate over the factories, trying to decode with each one
-  for (let i = 0; i < factories.length; i++) {
-    const factory = factories[i];
-    try {
-      const iface = factory.createInterface();
-      const decodedError = iface.parseError(revertData);
-
-      // If successfully decoded, log and stop execution
-      if (decodedError) {
-        console.error(
-          `Decoded error from factory ${factory.name}:`,
-          decodedError.name,
-          decodedError.args
-        );
-        return; // Error successfully decoded, stop execution
-      }
-    } catch (err) {
-      // Continue to the next factory if parsing fails
-      continue;
-    }
-  }
-
-  // If no factory could decode the error, log the final revert data
-  console.error(`Could not decode the revert data. Error data: ${revertData}`);
-}
-
-// Task to transfer tokens across chains using CCIP, with options for paying fees in LINK or native tokens
-task("transferTokens", "Transfer tokens to a receiver on another chain")
-  .addParam("tokenaddress", "The address of the token") // The token address being transferred
-  .addParam("amount", "The amount to transfer") // The amount of tokens to transfer (in wei)
-  .addParam("destinationchain", "The destination chain") // The destination blockchain
-  .addParam("receiveraddress", "The receiver address in the destination chain") // The receiver address on the destination chain
-  .addOptionalParam("fee", "The fee token", Fee.link, types.string) // The token used for paying CCIP fees (LINK or native)
-  .setAction(async (taskArgs: TransferTokensArgs, hre) => {
+/**
+ * Transfers tokens cross-chain using CCIP
+ *
+ * Example:
+ * npx hardhat transferTokens \
+ *   --tokenaddress 0xYourToken \
+ *   --amount 1000000000000000000 \
+ *   --destinationchain baseSepolia \
+ *   --receiveraddress 0xReceiver \
+ *   --fee LINK \
+ *   --network sepolia
+ */
+task("transferTokens", "Transfer tokens cross-chain via CCIP")
+  .setAction(<any>(async (taskArgs: TransferTokensArgs, hre: any) => {
     const {
-      tokenaddress: tokenAddress,
+      tokenaddress,
       amount,
-      destinationchain: destinationChain,
-      receiveraddress: receiverAddress,
-      fee,
+      destinationchain,
+      receiveraddress,
+      fee = Fee.link,
     } = taskArgs;
 
     const networkName = hre.network.name as Chains;
 
-    // Retrieve the network configuration for the local chain
+    // ✅ Load network configs
     const networkConfig = getEVMNetworkConfig(networkName);
-    if (!networkConfig) {
+    if (!networkConfig)
       throw new Error(`Network ${networkName} not found in config`);
-    }
 
-    // Retrieve the network configuration for the destination chain
-    const destinationNetworkName = destinationChain as Chains;
-    const destinationNetworkConfig =
-      configData[destinationNetworkName as keyof typeof configData];
-    if (!destinationNetworkConfig) {
-      throw new Error(`Network ${destinationNetworkName} not found in config`);
-    }
+    const destConfig = configData[destinationchain as keyof typeof configData];
+    if (!destConfig)
+      throw new Error(`Destination chain ${destinationchain} not found in config`);
 
-    // Validate the provided token and receiver addresses
-    if (!hre.ethers.isAddress(tokenAddress)) {
-      throw new Error(`Invalid token address: ${tokenAddress}`);
-    }
+    // ✅ Validate addresses
+    if (!hre.viem.isAddress(tokenaddress))
+      throw new Error(`Invalid token address: ${tokenaddress}`);
+    if (!hre.viem.isAddress(receiveraddress))
+      throw new Error(`Invalid receiver address: ${receiveraddress}`);
 
-    if (!hre.ethers.isAddress(receiverAddress)) {
-      throw new Error(`Invalid receiver address: ${receiverAddress}`);
-    }
-
-    // Determine the fee token based on user input (LINK or native)
-    let feeTokenAddress;
-    switch (fee) {
-      case Fee.native:
-        feeTokenAddress = hre.ethers.ZeroAddress; // Use native token
-        break;
-      case Fee.link:
-        feeTokenAddress = networkConfig.link; // Use LINK token
-        if (!feeTokenAddress) {
-          throw new Error(`Link token address not defined in network config`);
-        }
-        break;
-      default:
-        throw new Error(`Invalid fee token: ${fee}`);
-    }
-
-    // Get router and confirmations from the network config
-    const { router, confirmations } = networkConfig;
-    if (!router) {
-      throw new Error(`Router not defined for ${networkName}`);
-    }
-
-    // Get the chain selector for the destination chain
-    const { chainSelector: destinationChainSelector } =
-      destinationNetworkConfig;
-    if (!destinationChainSelector) {
-      throw new Error(
-        `Chain selector not defined for ${destinationNetworkName}`
-      );
-    }
-
-    // Get the signer (used to approve and send tokens)
-    const signer = (await hre.ethers.getSigners())[0];
-
-    // Load the Router Client and ERC20 contract factories
-    const { IRouterClient__factory, IERC20__factory, OnRamp__factory } =
-      await import("../typechain-types");
-
-    // Connect to the CCIP Router contract
-    const routerContract = IRouterClient__factory.connect(router, signer);
-
-    // Ensure the destination chain is supported by the router
-    if (!(await routerContract.isChainSupported(destinationChainSelector))) {
-      throw new Error(`Chain ${destinationChain} not supported`);
-    }
-
-    const abiCoder = new hre.ethers.AbiCoder();
-
-    // Encode the extra arguments for CCIP V2 (gasLimit and allowOutOfOrderExecution)
-    const functionSelector = hre.ethers.id("CCIP EVMExtraArgsV2").slice(0, 10);
-    const gasLimit = 0; // Set gas limit to 0 as we are only transferring tokens and not calling a contract on the destination chain
-    const allowOutOfOrderExecution = true; // Allow out of order execution - the message can be executed in any order relative to other messages from the same sender
-    const extraArgs = abiCoder.encode(
-      ["uint256", "bool"],
-      [gasLimit, allowOutOfOrderExecution]
-    );
-    const encodedExtraArgs = functionSelector + extraArgs.slice(2);
-
-    // Prepare the token amounts for transfer
-    const tokenAmounts = [
-      {
-        token: tokenAddress,
-        amount: BigInt(amount), // Convert amount to BigInt
-      },
-    ];
-
-    // Build the CCIP message for cross-chain token transfer
-    const message = {
-      receiver: abiCoder.encode(["address"], [receiverAddress]), // Encode the receiver address
-      data: "0x", // No additional data
-      tokenAmounts: tokenAmounts,
-      feeToken: feeTokenAddress, // Use either LINK or native token for fees
-      extraArgs: encodedExtraArgs, // Encoded extra arguments
-    };
-
-    // Estimate the fees required for the transfer
-    const fees = await routerContract.getFee(destinationChainSelector, message);
-    logger.info(`Estimated fees: ${fees.toString()}`);
-
-    let tx;
-
-    // Ensure the number of confirmations is defined
-    if (confirmations === undefined) {
-      throw new Error(`confirmations is not defined for ${networkName}`);
-    }
-
-    // Approve the token transfer
-    const tokenContract = IERC20__factory.connect(tokenAddress, signer);
-    logger.info(`Approving ${amount} ${tokenAddress} to ${router}`);
-    tx = await tokenContract.approve(router, BigInt(amount));
-    await tx.wait(confirmations);
-
-    // If using LINK for fees, approve the router for LINK
-    if (feeTokenAddress !== hre.ethers.ZeroAddress) {
-      const feeTokenContract = IERC20__factory.connect(feeTokenAddress, signer);
-
-      logger.info(`Approving ${fees} ${fee} to ${router}`);
-      tx = await feeTokenContract.approve(router, fees);
-      await tx.wait(confirmations);
-
-      // Send the tokens using CCIP with LINK as fee token
-      logger.info(
-        `Transferring ${amount} of ${tokenAddress} to ${receiverAddress} on chain ${destinationChain} with ${fees} of ${fee} as fees`
-      );
-
-      try {
-        await routerContract.ccipSend.staticCall(
-          destinationChainSelector,
-          message
-        );
-      } catch (e) {
-        console.error("Simulation failed");
-        const revertData = (e as any).data;
-
-        // Call the function to decode the error data
-        await tryDecodeError(revertData);
-        return;
-      }
-
-      tx = await routerContract.ccipSend(destinationChainSelector, message);
+    // ✅ Determine fee token
+    let feeTokenAddress: string;
+    if (fee === Fee.native) {
+      feeTokenAddress = hre.viem.zeroAddress;
+    } else if (fee === Fee.link) {
+      feeTokenAddress = networkConfig.link;
+      if (!feeTokenAddress)
+        throw new Error(`LINK token address not defined in network config`);
     } else {
-      // Send the tokens using CCIP with native token as fee
-      logger.info(
-        `Transferring ${amount} of ${tokenAddress} to ${receiverAddress} on chain ${destinationChain} with ${fees} of native token as fees`
-      );
-
-      try {
-        await routerContract.ccipSend.staticCall(
-          destinationChainSelector,
-          message,
-          {
-            value: fees,
-          }
-        );
-      } catch (e) {
-        console.error("Simulation failed");
-        const revertData = (e as any).data;
-
-        // Call the function to decode the error data
-        await tryDecodeError(revertData);
-        return;
-      }
-      tx = await routerContract.ccipSend(destinationChainSelector, message, {
-        value: fees,
-      });
+      throw new Error(`Invalid fee token: ${fee}`);
     }
 
-    // Wait for the transaction to be confirmed
-    const receipt = await tx.wait(confirmations);
-    logger.info(`Transaction hash: ${tx.hash}`);
-    if (!receipt) throw new Error("Transaction not confirmed");
+    const { router, confirmations } = networkConfig;
+    if (!router) throw new Error(`Router not defined for ${networkName}`);
+    if (confirmations === undefined)
+      throw new Error(`confirmations not defined for ${networkName}`);
 
-    let messageId = "";
-    receipt.logs.forEach((log) => {
-      try {
-        const parsedLog = OnRamp__factory.createInterface().parseLog(log);
+    const destChainSelector = destConfig.chainSelector;
+    if (!destChainSelector)
+      throw new Error(`chainSelector not defined for ${destinationchain}`);
 
-        if (parsedLog && parsedLog.name === "CCIPMessageSent") {
-          messageId = parsedLog.args[2].messageId;
-          if (!messageId) {
-            logger.error("Message ID not found in the transaction logs");
-          } else {
-            logger.info(`Message dispatched. Message id: ${messageId}`);
-            logger.info(
-              `✅ Transferred ${amount} of ${tokenAddress} to ${receiverAddress} on chain ${destinationChain}. Transaction hash: ${tx.hash} - CCIP message id: ${messageId}`
-            );
-            logger.info(
-              `Check status of message on https://ccip.chain.link/msg/${messageId}`
-            );
-          }
-        }
-      } catch (e) {}
+    const [wallet] = await hre.viem.getWalletClients();
+    const publicClient = await hre.viem.getPublicClient();
+
+    // ✅ Connect to router
+    const routerContract = await hre.viem.getContractAt({
+      address: router,
+      abi: RouterABI,
     });
 
-    if (!messageId) {
-      logger.warn(
-        `Unable to parse the event logs corresponding to the transaction ${tx.hash}`
-      );
-      logger.info(
-        `Check status of message on https://ccip.chain.link/tx/${tx.hash}`
-      );
+    const supported = await routerContract.read.isChainSupported([destChainSelector]);
+    if (!supported)
+      throw new Error(`Destination chain ${destinationchain} not supported by router`);
+
+    // ✅ Build CCIP message
+    const abi = hre.viem.abi;
+    const extraArgs = abi.encode(["uint256", "bool"], [0n, true]); // gasLimit=0, allowOutOfOrderExecution=true
+    const selector = hre.viem.keccak256(hre.viem.toBytes("CCIP EVMExtraArgsV2")).slice(0, 10);
+    const encodedExtraArgs = selector + extraArgs.slice(2);
+
+    const tokenAmounts = [
+      { token: tokenaddress, amount: BigInt(amount) },
+    ];
+
+    const message = {
+      receiver: abi.encode(["address"], [receiveraddress]),
+      data: "0x",
+      tokenAmounts,
+      feeToken: feeTokenAddress,
+      extraArgs: encodedExtraArgs,
+    };
+
+    // ✅ Estimate fees
+    const fees = await routerContract.read.getFee([destChainSelector, message]);
+    logger.info(`Estimated fees: ${fees.toString()}`);
+
+    // ✅ Approve tokens for router
+    const token = await hre.viem.getContractAt({
+      address: tokenaddress,
+      abi: ERC20ABI,
+    });
+    logger.info(`Approving ${amount} tokens for router ${router}`);
+    let txHash = await token.write.approve([router, BigInt(amount)], {
+      account: wallet.account,
+    });
+    await publicClient.waitForTransactionReceipt({ hash: txHash });
+
+    // Approve LINK if fee in LINK
+    if (feeTokenAddress !== hre.viem.zeroAddress) {
+      const linkToken = await hre.viem.getContractAt({
+        address: feeTokenAddress,
+        abi: ERC20ABI,
+      });
+      logger.info(`Approving ${fees} ${fee} to router`);
+      txHash = await linkToken.write.approve([router, fees], {
+        account: wallet.account,
+      });
+      await publicClient.waitForTransactionReceipt({ hash: txHash });
     }
-  });
+
+    // ✅ Simulate (optional)
+    try {
+      await routerContract.simulate.staticCall
+        ? await routerContract.simulate.staticCall(destChainSelector, message, {
+            value: feeTokenAddress === hre.viem.zeroAddress ? fees : 0n,
+          })
+        : logger.info("Skipping simulation (staticCall not supported)");
+    } catch (e: any) {
+      logger.error("Simulation failed", e);
+      return;
+    }
+
+    // ✅ Send CCIP message
+    txHash = await routerContract.write.ccipSend(
+      [destChainSelector, message],
+      { account: wallet.account, value: feeTokenAddress === hre.viem.zeroAddress ? fees : 0n }
+    );
+
+    logger.info(`Tx sent: ${txHash}`);
+    const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+
+    // ✅ Parse messageId from logs
+    let messageId = "";
+    const iface = new hre.viem.Interface(OnRampABI);
+    for (const log of receipt.logs) {
+      try {
+        const parsed = iface.parseLog(log);
+        if (parsed?.name === "CCIPMessageSent") {
+          messageId = parsed.args[2].messageId;
+          logger.info(`✅ Message dispatched, id: ${messageId}`);
+          logger.info(`Check status: https://ccip.chain.link/msg/${messageId}`);
+          break;
+        }
+      } catch {
+        continue;
+      }
+    }
+
+    if (!messageId) {
+      logger.warn(`Could not parse message ID from tx ${txHash}`);
+      logger.info(`Check status manually: https://ccip.chain.link/tx/${txHash}`);
+    }
+  }));

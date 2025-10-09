@@ -1,205 +1,135 @@
-import { task } from "hardhat/config"; // Importing the task utility from Hardhat to define a new task
-import { Chains, networks, logger, getEVMNetworkConfig } from "../../config"; // Importing necessary configurations such as Chains, network settings, and logger
+import { task } from "hardhat/config";
+import { Chains, logger, getEVMNetworkConfig } from "../../config";
 import {
   MetaTransactionData,
   SafeTransaction,
   TransactionResult,
-} from "@safe-global/safe-core-sdk-types"; // Importing Safe transaction types from the Safe Core SDK
-import Safe, { SigningMethod } from "@safe-global/protocol-kit"; // Importing Safe SDK and SigningMethod for interacting with Safe accounts
-import { HttpNetworkConfig } from "hardhat/types"; // Importing Hardhat's HttpNetworkConfig for network configuration
+} from "@safe-global/safe-core-sdk-types";
+import Safe, { SigningMethod } from "@safe-global/protocol-kit";
+import BurnMintERC20ABI from "@chainlink/contracts/abi/v0.8/shared/BurnMintERC20.abi.json";
 
-// Define the interface for the task arguments
-interface GrantMintBurnTaskArgs {
-  tokenaddress: string; // The address of the deployed token contract
-  burnerminters: string; // Comma-separated list of addresses to grant mint and burn roles
-  safeaddress: string; // The Safe multisig account that will execute the transaction
-}
-
-// Define a Hardhat task called "grantMintBurnRoleFromSafe"
-task(
-  "grantMintBurnRoleFromSafe",
-  "Grants mint and burn roles to multiple addresses via Safe"
-)
-  // Add parameters for the task with descriptions
-  .addParam("tokenaddress", "The address of the deployed token contract")
-  .addParam(
-    "burnerminters",
-    "Comma-separated list of addresses to grant mint and burn roles"
-  )
-  .addParam("safeaddress", "The Safe address to execute the transaction")
-  .setAction(async (taskArgs: GrantMintBurnTaskArgs, hre) => {
-    // Destructure the task arguments for easy reference
-    const {
-      tokenaddress: tokenAddress,
-      burnerminters: burnerMinters,
-      safeaddress: safeAddress,
-    } = taskArgs;
-
-    // Get the current network's name from the Hardhat runtime environment
+/**
+ * Grants mint and burn roles to multiple addresses via a Safe multisig.
+ *
+ * Example:
+ * npx hardhat grantMintBurnRoleFromSafe \
+ *   --tokenaddress 0xYourToken \
+ *   --burnerminters 0xAddr1,0xAddr2 \
+ *   --safeaddress 0xYourSafe \
+ *   --network sepolia
+ */
+task("grantMintBurnRoleFromSafe", "Grants mint and burn roles to multiple addresses via Safe")
+  .setAction(<any>(async (taskArgs: {
+    tokenaddress: string;
+    burnerminters: string;
+    safeaddress: string;
+  }, hre: any) => {
+    const { tokenaddress, burnerminters, safeaddress } = taskArgs;
     const networkName = hre.network.name as Chains;
 
-    // Validate that the network is configured
-    if (!getEVMNetworkConfig(networkName)) {
+    // ✅ Validate network
+    const networkConfig = getEVMNetworkConfig(networkName);
+    if (!networkConfig)
       throw new Error(`Network ${networkName} not found in config`);
-    }
 
-    // Validate the token address to ensure it is a valid Ethereum address
-    if (!hre.ethers.isAddress(tokenAddress)) {
-      throw new Error(`Invalid token address: ${tokenAddress}`);
-    }
+    // ✅ Validate addresses
+    if (!hre.viem.isAddress(tokenaddress))
+      throw new Error(`Invalid token address: ${tokenaddress}`);
+    if (!hre.viem.isAddress(safeaddress))
+      throw new Error(`Invalid Safe address: ${safeaddress}`);
 
-    // Validate the Safe address to ensure it is a valid Ethereum address
-    if (!hre.ethers.isAddress(safeAddress)) {
-      throw new Error(`Invalid Safe address: ${safeAddress}`);
-    }
-
-    // Split the burnerMinters string into an array and trim any extra spaces
-    const burnerMinterAddresses = burnerMinters
+    const burnerMinterAddresses = burnerminters
       .split(",")
-      .map((address) => address.trim());
+      .map((a) => a.trim())
+      .filter(Boolean);
 
-    // Ensure at least one burner minter address is provided
-    if (burnerMinterAddresses.length === 0) {
-      throw new Error("No burner minter addresses provided");
+    if (burnerMinterAddresses.length === 0)
+      throw new Error("No burner/minter addresses provided");
+
+    for (const addr of burnerMinterAddresses) {
+      if (!hre.viem.isAddress(addr))
+        throw new Error(`Invalid burner/minter address: ${addr}`);
     }
 
-    // Validate each burner minter address to ensure it is a valid Ethereum address
-    for (const address of burnerMinterAddresses) {
-      if (!hre.ethers.isAddress(address)) {
-        throw new Error(`Invalid burner minter address: ${address}`);
-      }
-    }
+    // ✅ Environment & RPC checks
+    const pk1 = process.env.PRIVATE_KEY;
+    const pk2 = process.env.PRIVATE_KEY_2;
+    if (!pk1 || !pk2)
+      throw new Error("Both PRIVATE_KEY and PRIVATE_KEY_2 must be set");
 
-    // Ensure both PRIVATE_KEY and PRIVATE_KEY_2 environment variables are set
-    const privateKey = process.env.PRIVATE_KEY;
-    const privateKey2 = process.env.PRIVATE_KEY_2;
+    const netCfg = hre.config.networks[networkName] as any;
+    if (!netCfg?.url)
+      throw new Error(`RPC URL not found for network ${networkName}`);
+    const rpcUrl = netCfg.url;
 
-    if (!privateKey || !privateKey2) {
-      throw new Error(
-        "Both PRIVATE_KEY and PRIVATE_KEY_2 environment variables must be set"
-      );
-    }
+    const { confirmations } = networkConfig;
+    if (confirmations === undefined)
+      throw new Error(`confirmations not defined for ${networkName}`);
 
-    // Retrieve network configuration details and RPC URL
-    const networkConfig = hre.config.networks[networkName] as HttpNetworkConfig;
-    const rpcUrl = networkConfig.url;
+    logger.info(`Connecting to token contract at ${tokenaddress}...`);
 
-    if (!rpcUrl) {
-      throw new Error("RPC URL not found in network config");
-    }
+    // ✅ Create an Interface for encoding
+    const tokenIface = new hre.viem.Interface(BurnMintERC20ABI);
 
-    // Retrieve the number of confirmations required for the transaction
-    const numberOfConfirmations =
-      getEVMNetworkConfig(networkName)?.confirmations;
-    if (numberOfConfirmations === undefined) {
-      throw new Error(`Confirmations are not defined for ${networkName}`);
-    }
-
-    // Log the connection to the token contract
-    logger.info(`Connecting to token contract at ${tokenAddress}...`);
-    const signer = (await hre.ethers.getSigners())[0];
-    const { BurnMintERC20__factory } = await import("../../typechain-types");
-    const tokenContract = BurnMintERC20__factory.connect(tokenAddress, signer);
-
-    // Initialize Safe signers for two owners using Safe Protocol Kit
-    const safeSigner1 = await Safe.init({
+    // ✅ Initialize Safe signers
+    const safe1 = await Safe.init({
       provider: rpcUrl,
-      signer: privateKey,
-      safeAddress: safeAddress,
+      signer: pk1,
+      safeAddress: safeaddress,
+    });
+    const safe2 = await Safe.init({
+      provider: rpcUrl,
+      signer: pk2,
+      safeAddress: safeaddress,
     });
 
-    const safeSigner2 = await Safe.init({
-      provider: rpcUrl,
-      signer: privateKey2,
-      safeAddress: safeAddress,
-    });
-
-    // Log the process of setting up Safe transactions
     logger.info(
-      `Setting up Safe transactions to grant mint and burn roles to: ${burnerMinterAddresses.join(
-        ", "
-      )}`
+      `Setting up Safe transaction to grant roles to: ${burnerMinterAddresses.join(", ")}`
     );
 
-    // Create MetaTransactionData objects for each burner minter address
-    const metaTransactions: MetaTransactionData[] = burnerMinterAddresses.map(
-      (burnerMinter) => ({
-        to: tokenAddress, // The token contract address
-        data: tokenContract.interface.encodeFunctionData(
-          "grantMintAndBurnRoles", // The function to call
-          [burnerMinter] // The address to grant roles to
-        ),
-        value: "0", // No Ether is being transferred with this transaction
-      })
-    );
+    // ✅ Create meta-transactions for each address
+    const metaTxs: MetaTransactionData[] = burnerMinterAddresses.map((addr) => ({
+      to: tokenaddress,
+      data: tokenIface.encodeFunctionData("grantMintAndBurnRoles", [addr]),
+      value: "0",
+    }));
 
-    // Create a Safe transaction containing all meta-transactions
-    let safeTransaction: SafeTransaction;
+    // ✅ Build and sign Safe transaction
+    let safeTx: SafeTransaction;
     try {
-      safeTransaction = await safeSigner1.createTransaction({
-        transactions: metaTransactions, // The list of meta-transactions to execute
-      });
-      logger.info("Safe transaction created");
-    } catch (error) {
-      logger.error("Failed to create Safe transaction", error);
-      throw new Error("Failed to create Safe transaction");
+      safeTx = await safe1.createTransaction({ transactions: metaTxs });
+      logger.info("✅ Safe transaction created");
+    } catch (err) {
+      logger.error("❌ Failed to create Safe transaction", err);
+      throw err;
     }
 
-    // Sign the Safe transaction with the first Safe owner
-    let signedSafeTransaction: SafeTransaction;
     try {
-      signedSafeTransaction = await safeSigner1.signTransaction(
-        safeTransaction,
-        SigningMethod.ETH_SIGN // Use ETH_SIGN as the signing method
-      );
-      logger.info("Safe transaction signed by owner 1");
-    } catch (error) {
-      logger.error("Failed to sign Safe transaction by owner 1", error);
-      throw new Error("Failed to sign Safe transaction by owner 1");
+      safeTx = await safe1.signTransaction(safeTx, SigningMethod.ETH_SIGN);
+      logger.info("✅ Signed by owner 1");
+      safeTx = await safe2.signTransaction(safeTx, SigningMethod.ETH_SIGN);
+      logger.info("✅ Signed by owner 2");
+    } catch (err) {
+      logger.error("❌ Error signing Safe transaction", err);
+      throw err;
     }
 
-    // Sign the Safe transaction with the second Safe owner
-    try {
-      signedSafeTransaction = await safeSigner2.signTransaction(
-        signedSafeTransaction,
-        SigningMethod.ETH_SIGN // Use ETH_SIGN as the signing method for the second owner
-      );
-      logger.info("Safe transaction signed by owner 2");
-    } catch (error) {
-      logger.error("Failed to sign Safe transaction by owner 2", error);
-      throw new Error("Failed to sign Safe transaction by owner 2");
-    }
-
-    // Execute the signed Safe transaction
-    logger.info(`Executing Safe transaction to grant mint and burn roles...`);
-
+    // ✅ Execute Safe transaction
+    logger.info("🚀 Executing Safe transaction to grant roles...");
     let result: TransactionResult;
     try {
-      result = await safeSigner1.executeTransaction(signedSafeTransaction);
-    } catch (error) {
-      logger.error("Error executing Safe transaction", error);
-      throw new Error("Error executing Safe transaction");
+      result = await safe1.executeTransaction(safeTx);
+    } catch (err) {
+      logger.error("❌ Error executing Safe transaction", err);
+      throw err;
     }
 
-    logger.info("Executed Safe transaction");
+    if (!result?.transactionResponse)
+      throw new Error("No transaction response returned");
 
-    // Wait for the transaction to be confirmed
-    if (result && result.transactionResponse) {
-      logger.info(
-        `Waiting for ${numberOfConfirmations} blocks for transaction ${result.hash} to be confirmed...`
-      );
-
-      // Wait for the specified number of block confirmations
-      await (result.transactionResponse as any).wait(numberOfConfirmations);
-      logger.info(
-        `Transaction confirmed after ${numberOfConfirmations} blocks.`
-      );
-    } else {
-      throw new Error("No transaction response available");
-    }
-
-    // Log that mint and burn roles have been successfully granted
     logger.info(
-      `Mint and burn roles granted to ${burnerMinterAddresses.join(", ")}`
+      `⏳ Waiting ${confirmations} blocks for tx ${result.hash} confirmation...`
     );
-  });
+    await (result.transactionResponse as any).wait(confirmations);
+    logger.info("✅ Mint and burn roles granted successfully");
+  }));

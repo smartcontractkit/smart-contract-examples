@@ -1,66 +1,65 @@
 import { task } from "hardhat/config";
-import { Chains, networks, logger, getEVMNetworkConfig } from "../config";
+import { Chains, logger, getEVMNetworkConfig } from "../config";
+import TokenAdminRegistryABI from "@chainlink/contracts-ccip/abi/TokenAdminRegistry.abi.json";
 
-// Define the interface for the task arguments
-interface TransferTokenAdminRoleArgs {
-  tokenaddress: string; // The address of the token to transfer admin role for
-  newadmin: string; // The address of the new administrator
-}
+/**
+ * Transfers the admin role for a token to a new address.
+ * The new admin must later call `acceptAdminRole` to complete the process.
+ *
+ * Example:
+ * npx hardhat transferTokenAdminRole \
+ *   --tokenaddress 0xYourTokenAddress \
+ *   --newadmin 0xNewAdminAddress \
+ *   --network sepolia
+ */
+task(
+  "transferTokenAdminRole",
+  "Transfers the token admin role to a new address (pending accept step required)"
+).setAction(<any>(async (taskArgs: { tokenaddress: string; newadmin: string }, hre: any) => {
+  const { tokenaddress, newadmin } = taskArgs;
+  const networkName = hre.network.name as Chains;
 
-// Task to transfer the administrator role for a token to a new address
-// This is a two-step process where the new admin must accept the role
-task("transferTokenAdminRole", "Transfer token admin role to a new address")
-  .addParam("tokenaddress", "The address of the token") // The token to transfer admin for
-  .addParam("newadmin", "The address of the new admin") // The new administrator address
-  .setAction(async (taskArgs: TransferTokenAdminRoleArgs, hre) => {
-    const { tokenaddress: tokenAddress, newadmin: newAdmin } = taskArgs;
+  // ✅ Get network configuration
+  const networkConfig = getEVMNetworkConfig(networkName);
+  if (!networkConfig)
+    throw new Error(`Network ${networkName} not found in config`);
 
-    const networkName = hre.network.name as Chains;
+  const { tokenAdminRegistry, confirmations } = networkConfig;
+  if (!tokenAdminRegistry)
+    throw new Error(`tokenAdminRegistry not defined for ${networkName}`);
+  if (confirmations === undefined)
+    throw new Error(`confirmations not defined for ${networkName}`);
 
-    // Ensure the network is configured in the network settings
-    const networkConfig = getEVMNetworkConfig(networkName);
-    if (!networkConfig) {
-      throw new Error(`Network ${networkName} not found in config`);
-    }
+  // ✅ Validate addresses
+  if (!hre.viem.isAddress(tokenaddress))
+    throw new Error(`Invalid token address: ${tokenaddress}`);
+  if (!hre.viem.isAddress(newadmin))
+    throw new Error(`Invalid new admin address: ${newadmin}`);
 
-    // Retrieve the TokenAdminRegistry contract address and confirmations
-    const { tokenAdminRegistry, confirmations } = networkConfig;
-    if (!tokenAdminRegistry) {
-      throw new Error(`tokenAdminRegistry is not defined for ${networkName}`);
-    }
+  // ✅ Wallet + public client
+  const [wallet] = await hre.viem.getWalletClients();
+  const publicClient = await hre.viem.getPublicClient();
 
-    if (confirmations === undefined) {
-      throw new Error(`confirmations is not defined for ${networkName}`);
-    }
+  logger.info(`Transferring admin role for token ${tokenaddress} to ${newadmin}`);
+  logger.info(`Using registry: ${tokenAdminRegistry}`);
 
-    // Validate addresses
-    if (!hre.ethers.isAddress(tokenAddress)) {
-      throw new Error(`Invalid token address: ${tokenAddress}`);
-    }
-    if (!hre.ethers.isAddress(newAdmin)) {
-      throw new Error(`Invalid new admin address: ${newAdmin}`);
-    }
-
-    // Get the signer to interact with the contract
-    const signer = (await hre.ethers.getSigners())[0];
-    const { TokenAdminRegistry__factory } = await import("../typechain-types");
-    const registryContract = TokenAdminRegistry__factory.connect(
-      tokenAdminRegistry,
-      signer
-    );
-
-    // Log the operation being performed
-    logger.info(
-      `Transferring admin role for token ${tokenAddress} to ${newAdmin}`
-    );
-
-    // Execute the transaction to transfer the admin role
-    const tx = await registryContract.transferAdminRole(tokenAddress, newAdmin);
-
-    // Wait for the transaction to be confirmed
-    await tx.wait(confirmations);
-    logger.info("Admin role transfer initiated successfully");
-    logger.info(
-      `New admin ${newAdmin} must call acceptAdminRole to complete the transfer`
-    );
+  // ✅ Connect to TokenAdminRegistry
+  const registry = await hre.viem.getContractAt({
+    address: tokenAdminRegistry,
+    abi: TokenAdminRegistryABI,
   });
+
+  // ✅ Execute transaction
+  const txHash = await registry.write.transferAdminRole(
+    [tokenaddress, newadmin],
+    { account: wallet.account }
+  );
+
+  logger.info(`⏳ Transaction sent: ${txHash}`);
+  logger.info(`Waiting for ${confirmations} confirmations...`);
+
+  await publicClient.waitForTransactionReceipt({ hash: txHash });
+
+  logger.info("✅ Admin role transfer initiated successfully.");
+  logger.info(`ℹ️  New admin (${newadmin}) must call acceptAdminRole to complete the transfer.`);
+}));

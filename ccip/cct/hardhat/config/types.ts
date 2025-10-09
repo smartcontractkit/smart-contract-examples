@@ -33,7 +33,8 @@ export interface EVMChainConfig {
   link: string;
   confirmations: number;
   nativeCurrencySymbol: string;
-  chainType: "evm";
+  chainType: string;
+  type: string;
 }
 
 export enum Chains {

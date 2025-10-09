@@ -1,7 +1,6 @@
 import { task } from "hardhat/config";
 import {
   Chains,
-  networks,
   logger,
   configData,
   getEVMNetworkConfig,
@@ -13,127 +12,116 @@ import {
   InvalidAddressError,
   UnsupportedChainTypeError,
 } from "../utils/chainHandlers";
+import TokenPoolABI from "@chainlink/contracts-ccip/abi/TokenPool.abi.json";
 
-// Define the interface for the task arguments
-interface RemoveRemotePoolArgs {
-  pooladdress: string; // The address of the token pool to configure
-  remotechain: string; // The remote chain identifier
-  remotepooladdress: string; // The address of the pool to remove on the remote chain
-}
-
-// Task to remove a remote pool for a specific chain selector
-// WARNING: All inflight transactions from the removed pool will be rejected
-// Ensure there are no inflight transactions before removing a pool
-task("removeRemotePool", "Remove a remote pool for a specific chain")
-  .addParam("pooladdress", "The address of the pool") // The token pool to configure
-  .addParam("remotechain", "The remote chain") // The remote blockchain containing the pool to remove
-  .addParam("remotepooladdress", "The address of the remote pool") // The pool address to remove
-  .setAction(async (taskArgs: RemoveRemotePoolArgs, hre) => {
-    const {
-      pooladdress: poolAddress,
-      remotechain: remoteChain,
-      remotepooladdress: remotePoolAddress,
-    } = taskArgs;
+/**
+ * Removes a remote pool from a TokenPool contract.
+ * ⚠️  WARNING: This rejects all inflight transactions from that remote pool.
+ *
+ * Example:
+ * npx hardhat removeRemotePool \
+ *   --pooladdress 0xYourLocalPool \
+ *   --remotechain baseSepolia \
+ *   --remotepooladdress 0xYourRemotePool \
+ *   --network sepolia
+ */
+task("removeRemotePool", "Removes a remote pool for a specific chain")
+  .setAction(<any>(async (taskArgs: {
+    pooladdress: string;
+    remotechain: string;
+    remotepooladdress: string;
+  }, hre: any) => {
+    const { pooladdress, remotechain, remotepooladdress } = taskArgs;
 
     logger.info("=== Removing Remote Pool ===");
     logger.info(`🔹 Local network: ${hre.network.name}`);
-    logger.info(`🔹 Pool address: ${poolAddress}`);
-    logger.info(`🔹 Remote chain: ${remoteChain}`);
-    logger.info(`🔹 Remote pool address: ${remotePoolAddress}`);
+    logger.info(`🔹 Pool address: ${pooladdress}`);
+    logger.info(`🔹 Remote chain: ${remotechain}`);
+    logger.info(`🔹 Remote pool address: ${remotepooladdress}`);
 
     const networkName = hre.network.name as Chains;
 
-    // Ensure the network is configured in the network settings
+    // ✅ Validate network config
     const networkConfig = getEVMNetworkConfig(networkName);
-    if (!networkConfig) {
+    if (!networkConfig)
       throw new Error(`Network ${networkName} not found in config`);
-    }
 
-    // Get the remote chain configuration from configData (not networks)
-    const remoteNetworkConfig =
-      configData[remoteChain as keyof typeof configData];
-    if (!remoteNetworkConfig) {
-      throw new Error(`Remote chain ${remoteChain} not found in config`);
-    }
+    // ✅ Remote chain config
+    const remoteConfig = configData[remotechain as keyof typeof configData];
+    if (!remoteConfig)
+      throw new Error(`Remote chain ${remotechain} not found in config`);
 
-    // Determine the remote chain type
-    const remoteChainType = remoteNetworkConfig.chainType as CHAIN_TYPE;
-    logger.info(`🔹 Remote chain type detected: ${remoteChainType}`);
+    const remoteChainType = remoteConfig.chainType as CHAIN_TYPE;
+    const remoteChainSelector = remoteConfig.chainSelector;
+    if (!remoteChainSelector)
+      throw new Error(`chainSelector not defined for ${remotechain}`);
 
-    // Get the remote chain's selector
-    const remoteChainSelector = remoteNetworkConfig.chainSelector;
-    if (!remoteChainSelector) {
-      throw new Error(`Chain selector not found for ${remoteChain}`);
-    }
+    logger.info(`🔹 Remote chain type: ${remoteChainType}`);
     logger.info(`🔹 Remote chain selector: ${remoteChainSelector}`);
 
-    // Validate the local pool address (always EVM)
-    if (!hre.ethers.isAddress(poolAddress)) {
-      throw new Error(`Invalid pool address: ${poolAddress}`);
-    }
+    // ✅ Validate addresses
+    if (!hre.viem.isAddress(pooladdress))
+      throw new Error(`Invalid pool address: ${pooladdress}`);
 
-    // Validate the remote pool address according to chain type
     try {
-      validateChainAddressOrThrow(remotePoolAddress, remoteChainType, hre);
-      logger.info("✅ All addresses validated successfully");
-    } catch (error) {
-      if (
-        error instanceof InvalidAddressError ||
-        error instanceof UnsupportedChainTypeError
-      ) {
+      validateChainAddressOrThrow(remotepooladdress, remoteChainType, hre);
+      logger.info("✅ Address validation successful");
+    } catch (err) {
+      if (err instanceof InvalidAddressError || err instanceof UnsupportedChainTypeError) {
         throw new Error(
-          `Invalid remote pool address for ${remoteChainType} chain: ${remotePoolAddress} - ${error.message}`
+          `Invalid remote pool address for ${remoteChainType}: ${remotepooladdress} — ${err.message}`
         );
       }
-      throw error;
+      throw err;
     }
 
-    // Get the signer to interact with the contract
-    const signer = (await hre.ethers.getSigners())[0];
-    logger.info(`🔹 Using signer: ${await signer.getAddress()}`);
+    // ✅ Wallet + client
+    const [wallet] = await hre.viem.getWalletClients();
+    const publicClient = await hre.viem.getPublicClient();
+    logger.info(`🔹 Using signer: ${wallet.account.address}`);
 
-    const { TokenPool__factory } = await import("../typechain-types");
-    const poolContract = TokenPool__factory.connect(poolAddress, signer);
-    logger.info("✅ Connected to pool contract");
+    // ✅ Connect to TokenPool contract
+    const pool = await hre.viem.getContractAt({
+      address: pooladdress,
+      abi: TokenPoolABI,
+    });
+    logger.info("✅ Connected to TokenPool contract");
 
-    // Prepare the remote pool address based on chain type
-    const preparedRemotePoolAddress = prepareChainAddressData(
-      remotePoolAddress,
+    // ✅ Prepare encoded remote pool address
+    const preparedAddress = prepareChainAddressData(
+      remotepooladdress,
       remoteChainType,
       hre
     );
     logger.info(
-      `🔹 Prepared remote pool address: ${remotePoolAddress} → ${preparedRemotePoolAddress}`
+      `🔹 Prepared remote pool address: ${remotepooladdress} → ${preparedAddress}`
     );
 
-    // Log the operation being performed with a warning
+    // ⚠️ Warn before execution
     logger.warn(
-      "⚠️  WARNING: Removing a remote pool will reject all inflight transactions from that pool"
+      "⚠️  Removing a remote pool will reject all inflight transactions from that pool!"
     );
-    logger.info("=== Executing Transaction ===");
-    logger.info("🔹 Sending removeRemotePool transaction...");
 
-    // Execute the transaction to remove the remote pool
+    // ✅ Execute transaction
+    logger.info("=== Executing removeRemotePool transaction ===");
     try {
-      const tx = await poolContract.removeRemotePool(
-        remoteChainSelector,
-        preparedRemotePoolAddress
+      const txHash = await pool.write.removeRemotePool(
+        [BigInt(remoteChainSelector), preparedAddress],
+        { account: wallet.account }
       );
-      logger.info(`🔹 Transaction sent: ${tx.hash}`);
+      logger.info(`🔹 Tx sent: ${txHash}`);
 
-      // Get the required confirmations from network config
       const { confirmations } = networkConfig;
-      if (confirmations === undefined) {
-        throw new Error(`confirmations is not defined for ${networkName}`);
-      }
+      if (confirmations === undefined)
+        throw new Error(`confirmations not defined for ${networkName}`);
 
       logger.info(`🔹 Waiting for ${confirmations} confirmations...`);
-      // Wait for the transaction to be confirmed
-      await tx.wait(confirmations);
-      logger.info("✅ Remote pool removed successfully");
+      await publicClient.waitForTransactionReceipt({ hash: txHash });
+
+      logger.info("✅ Remote pool removed successfully.");
     } catch (error) {
       logger.error("❌ Transaction failed:");
       logger.error(error);
       throw error;
     }
-  });
+  }));
