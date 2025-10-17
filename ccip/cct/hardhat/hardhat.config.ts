@@ -1,7 +1,9 @@
-import "@nomicfoundation/hardhat-toolbox-viem";
+
 import { HardhatUserConfig } from "hardhat/config";
-import { etherscan, networks } from "./config";
-import "./tasks";
+import hardhatToolboxViemPlugin from "@nomicfoundation/hardhat-toolbox-viem";
+import hardhatVerifyPlugin from "@nomicfoundation/hardhat-verify";
+import { networks } from "./config";
+import { tasks, npmFilesToBuild } from "./tasks";
 
 const SOLC_SETTINGS = {
   optimizer: {
@@ -11,16 +13,31 @@ const SOLC_SETTINGS = {
 };
 
 const config: HardhatUserConfig = {
+  plugins: [hardhatToolboxViemPlugin, hardhatVerifyPlugin],
+  tasks,
   solidity: {
-    compilers: [
-      {
+    npmFilesToBuild,
+    profiles: {
+      default: {
         version: "0.8.24",
-        settings: SOLC_SETTINGS,
+        settings: SOLC_SETTINGS
       },
-    ],
+      production: {
+        version: "0.8.24",
+        settings: SOLC_SETTINGS
+      },
+    },
   },
-  verify: { etherscan: etherscan as any },
-  networks: { ...(networks as any) },
+  verify: {
+    etherscan: {
+      apiKey: process.env.ETHERSCAN_API_KEY || "UNSET",
+      enabled: true,
+    },
+    blockscout: {
+      enabled: false,
+    },
+  },
+  networks: networks as any
 };
 
 export default config;

@@ -1,19 +1,20 @@
 import { task } from "hardhat/config";
+import { HardhatRuntimeEnvironment } from "hardhat/types/hre";
+import { isAddress } from "viem";
 import {
   Chains,
+  CCIPContractName,
   logger,
   configData,
   getEVMNetworkConfig,
 } from "../config";
-import { CHAIN_TYPE } from "../config/types";
+import { CHAIN_FAMILY } from "../config/types";
 import {
   validateChainAddressOrThrow,
   prepareChainAddressData,
   InvalidAddressError,
-  UnsupportedChainTypeError,
+  UnsupportedChainFamilyError,
 } from "../utils/chainHandlers";
-
-import TokenPoolABI from "@chainlink/contracts-ccip/abi/TokenPool.abi.json";
 
 /**
  * Adds a remote pool address for a given chain selector.
@@ -25,92 +26,174 @@ import TokenPoolABI from "@chainlink/contracts-ccip/abi/TokenPool.abi.json";
  *   --remotepooladdress 0xYourRemotePool \
  *   --network sepolia
  */
-task("addRemotePool", "Add a remote pool for a specific chain selector")
-  .setAction(<any>(async (taskArgs: {
-    pooladdress: string;
-    remotechain: string;
-    remotepooladdress: string;
-  }, hre: any) => {
-    const { pooladdress, remotechain, remotepooladdress } = taskArgs;
-
-    logger.info("=== Adding Remote Pool ===");
-    logger.info(`🔹 Local network: ${hre.network.name}`);
-    logger.info(`🔹 Pool address: ${pooladdress}`);
-    logger.info(`🔹 Remote chain: ${remotechain}`);
-    logger.info(`🔹 Remote pool address: ${remotepooladdress}`);
-
-    const networkName = hre.network.name as Chains;
-    const networkConfig = getEVMNetworkConfig(networkName);
-    if (!networkConfig)
-      throw new Error(`Network ${networkName} not found in config`);
-
-    const remoteConfig = configData[remotechain as keyof typeof configData];
-    if (!remoteConfig)
-      throw new Error(`Remote chain ${remotechain} not found in config`);
-
-    const remoteChainType = remoteConfig.chainType as CHAIN_TYPE;
-    const remoteChainSelector = remoteConfig.chainSelector;
-    if (!remoteChainSelector)
-      throw new Error(`chainSelector missing for ${remotechain}`);
-
-    logger.info(`🔹 Remote chain type: ${remoteChainType}`);
-    logger.info(`🔹 Remote chain selector: ${remoteChainSelector}`);
-
-    if (!hre.viem.isAddress(pooladdress))
-      throw new Error(`Invalid pool address: ${pooladdress}`);
-
-    try {
-      validateChainAddressOrThrow(remotepooladdress, remoteChainType, hre);
-      logger.info("✅ Address validation successful");
-    } catch (error) {
-      if (
-        error instanceof InvalidAddressError ||
-        error instanceof UnsupportedChainTypeError
-      ) {
-        throw new Error(
-          `Invalid remote pool address for ${remoteChainType} chain: ${remotepooladdress} — ${error.message}`
-        );
+export const addRemotePool = task("addRemotePool", "Add a remote pool for a specific chain selector")
+  .addOption({
+    name: "pooladdress",
+    description: "The local token pool address",
+    defaultValue: "",
+  })
+  .addOption({
+    name: "remotechain",
+    description: "The remote chain name",
+    defaultValue: "",
+  })
+  .addOption({
+    name: "remotepooladdress",
+    description: "The remote pool address",
+    defaultValue: "",
+  })
+  .setAction(async () => ({
+    default: async (
+      {
+        pooladdress,
+        remotechain,
+        remotepooladdress,
+      }: {
+        pooladdress: string;
+        remotechain: string;
+        remotepooladdress: string;
+      },
+      hre: HardhatRuntimeEnvironment
+    ) => {
+      // Validate required parameters
+      if (!pooladdress) {
+        throw new Error("Pool address is required (--pooladdress)");
       }
-      throw error;
-    }
 
-    const [wallet] = await hre.viem.getWalletClients();
-    const publicClient = await hre.viem.getPublicClient();
-    logger.info(`🔹 Using signer: ${wallet.account.address}`);
+      if (!remotechain) {
+        throw new Error("Remote chain is required (--remotechain)");
+      }
 
-    const pool = await hre.viem.getContractAt({
-      address: pooladdress,
-      abi: TokenPoolABI,
-    });
-    logger.info("✅ Connected to TokenPool contract");
+      if (!remotepooladdress) {
+        throw new Error("Remote pool address is required (--remotepooladdress)");
+      }
 
-    const preparedRemoteAddress = prepareChainAddressData(
-      remotepooladdress,
-      remoteChainType,
-      hre
-    );
-
-    logger.info(
-      `🔹 Prepared remote pool address: ${remotepooladdress} → ${preparedRemoteAddress}`
-    );
-
-    try {
-      const txHash = await pool.write.addRemotePool(
-        [BigInt(remoteChainSelector), preparedRemoteAddress],
-        { account: wallet.account }
-      );
-      logger.info(`🔹 Tx sent: ${txHash}`);
-
+      // Connect to network first
+      const networkConnection = await hre.network.connect();
+      const { viem } = networkConnection;
+      const networkName = networkConnection.networkName as Chains;
+      const networkConfig = getEVMNetworkConfig(networkName);
+      if (!networkConfig) throw new Error(`Network ${networkName} not found`);
       const { confirmations } = networkConfig;
       if (confirmations === undefined)
-        throw new Error(`confirmations not defined for ${networkName}`);
+        throw new Error(`confirmations missing for ${networkName}`);
 
-      logger.info(`🔹 Waiting for ${confirmations} confirmations...`);
-      await publicClient.waitForTransactionReceipt({ hash: txHash });
-      logger.info("✅ Remote pool added successfully");
-    } catch (error) {
-      logger.error("❌ Transaction failed:");
-      logger.error(error);
-      throw error;
-    }
-  }));
+      // ✅ Validate pool address
+      if (!isAddress(pooladdress))
+        throw new Error(`Invalid pool address: ${pooladdress}`);
+
+      // ✅ Load remote chain config
+      const remoteConfig = configData[remotechain as keyof typeof configData];
+      if (!remoteConfig)
+        throw new Error(`Remote chain ${remotechain} not found in config`);
+
+      const remoteChainFamily = remoteConfig.chainFamily as CHAIN_FAMILY;
+      const remoteChainSelector = remoteConfig.chainSelector;
+      if (!remoteChainSelector)
+        throw new Error(`chainSelector missing for ${remotechain}`);
+
+      const [wallet] = await viem.getWalletClients();
+      const publicClient = await viem.getPublicClient();
+
+      try {
+        logger.info(`⚙️  Adding remote pool for ${pooladdress} on ${networkName}...`);
+        logger.info(`   Remote chain: ${remotechain}`);
+        logger.info(`   Remote chain family: ${remoteChainFamily}`);
+        logger.info(`   Remote chain selector: ${remoteChainSelector}`);
+        logger.info(`   Remote pool address: ${remotepooladdress}`);
+
+        // ✅ Validate remote pool address format
+        try {
+          validateChainAddressOrThrow(remotepooladdress, remoteChainFamily);
+          logger.info(`   ✅ Address validation successful`);
+        } catch (error) {
+          if (
+            error instanceof InvalidAddressError ||
+            error instanceof UnsupportedChainFamilyError
+          ) {
+            throw new Error(
+              `Invalid remote pool address for ${remoteChainFamily} chain: ${remotepooladdress} — ${error.message}`
+            );
+          }
+          throw error;
+        }
+
+        // ✅ Connect to TokenPool contract
+        const pool = await viem.getContractAt(
+          CCIPContractName.TokenPool,
+          pooladdress as `0x${string}`
+        );
+
+        // ✅ Check if the caller is the pool owner
+        const owner = await (pool as any).read.owner();
+        const callerAddress = wallet.account.address;
+        
+        if (callerAddress.toLowerCase() !== owner.toLowerCase()) {
+          throw new Error(
+            `Unauthorized: Only the pool owner can add remote pools.\n` +
+            `Caller: ${callerAddress}\n` +
+            `Owner: ${owner}`
+          );
+        }
+        
+        logger.info(`   ✅ Caller is the pool owner`);
+
+        // ✅ Check if the remote chain is supported by this pool
+        const remoteChainSelectorBigInt = BigInt(remoteChainSelector);
+        const isSupported = await (pool as any).read.isSupportedChain([remoteChainSelectorBigInt]);
+        if (!isSupported) {
+          throw new Error(
+            `Remote chain ${remotechain} (selector: ${remoteChainSelector}) is not supported by this pool.\n` +
+            `Please add the chain first using the applyChainUpdates task.`
+          );
+        }
+        logger.info(`   ✅ Remote chain is supported by the pool`);
+
+        // ✅ Prepare remote pool address data
+        const preparedRemoteAddress = prepareChainAddressData(
+          remotepooladdress,
+          remoteChainFamily
+        );
+
+        logger.info(`   Prepared remote pool address: ${remotepooladdress} → ${preparedRemoteAddress}`);
+
+        // ✅ Check if the remote pool is already added
+        const existingRemotePools = await (pool as any).read.getRemotePools([remoteChainSelectorBigInt]);
+        const isAlreadyAdded = existingRemotePools.some((existingPool: string) => 
+          existingPool.toLowerCase() === preparedRemoteAddress.toLowerCase()
+        );
+
+        if (isAlreadyAdded) {
+          throw new Error(
+            `Remote pool already added for chain ${remotechain} (selector: ${remoteChainSelector}).\n` +
+            `Remote pool address: ${remotepooladdress}\n` +
+            `This pool is already configured for this chain.`
+          );
+        }
+        
+        logger.info(`   ✅ Remote pool not yet added, proceeding with addition`);
+
+        // ✅ Execute transaction
+        const txHash = await (pool as any).write.addRemotePool(
+          [remoteChainSelectorBigInt, preparedRemoteAddress],
+          { account: wallet.account }
+        );
+
+        logger.info(`⏳ Add remote pool tx: ${txHash}`);
+        logger.info(`   Waiting for ${confirmations} confirmation(s)...`);
+
+        await publicClient.waitForTransactionReceipt({ 
+          hash: txHash,
+          confirmations,
+        });
+
+        logger.info(`✅ Remote pool added successfully`);
+        logger.info(`   Transaction: ${txHash}`);
+
+      } catch (error) {
+        logger.error("❌ Add remote pool failed:", error);
+        throw error;
+      }
+    },
+  }))
+  .build();

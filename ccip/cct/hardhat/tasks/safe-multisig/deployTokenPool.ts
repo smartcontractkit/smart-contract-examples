@@ -1,6 +1,8 @@
 import { task } from "hardhat/config";
-import { Chains, logger, getEVMNetworkConfig } from "../../config";
-import BurnMintTokenPoolABI from "@chainlink/contracts-ccip/abi/BurnMintTokenPool.abi.json";
+import { HardhatRuntimeEnvironment } from "hardhat/types/hre";
+import { Chains, TokenPoolContractName, logger, getEVMNetworkConfig } from "../../config";
+import { isAddress } from "viem";
+import { verifyContract } from "@nomicfoundation/hardhat-verify/verify";
 
 /**
  * Deploys a BurnMintTokenPool contract and transfers ownership to a Safe multisig.
@@ -10,103 +12,162 @@ import BurnMintTokenPoolABI from "@chainlink/contracts-ccip/abi/BurnMintTokenPoo
  *   --tokenaddress 0xYourToken \
  *   --safeaddress 0xYourSafe \
  *   --localtokendecimals 18 \
- *   --verifycontract true \
+ *   --verifycontract \
  *   --network sepolia
  */
-task(
+export const deployTokenPoolWithSafe = task(
   "deployTokenPoolWithSafe",
   "Deploy a BurnMintTokenPool and transfer ownership to a Safe"
-).setAction(<any>(async (taskArgs: {
-  tokenaddress: string;
-  safeaddress: string;
-  verifycontract?: boolean;
-  localtokendecimals?: number;
-}, hre: any) => {
-  const {
-    tokenaddress,
-    safeaddress,
-    verifycontract = false,
-    localtokendecimals = 18,
-  } = taskArgs;
-
-  const networkName = hre.network.name as Chains;
-
-  // ✅ Validate network config
-  const networkConfig = getEVMNetworkConfig(networkName);
-  if (!networkConfig)
-    throw new Error(`Network ${networkName} not found in config`);
-
-  // ✅ Validate addresses
-  if (!hre.viem.isAddress(tokenaddress))
-    throw new Error(`Invalid token address: ${tokenaddress}`);
-  if (!hre.viem.isAddress(safeaddress))
-    throw new Error(`Invalid Safe address: ${safeaddress}`);
-
-  const { router, rmnProxy, confirmations } = networkConfig;
-  if (!router || !rmnProxy)
-    throw new Error(`Router or RMN Proxy not defined for ${networkName}`);
-  if (confirmations === undefined)
-    throw new Error(`confirmations not defined for ${networkName}`);
-
-  const [wallet] = await hre.viem.getWalletClients();
-  const publicClient = await hre.viem.getPublicClient();
-
-  logger.info(`🚀 Deploying BurnMintTokenPool on ${networkName}`);
-  logger.info(`Token: ${tokenaddress}`);
-  logger.info(`Safe:  ${safeaddress}`);
-  logger.info(`Decimals: ${localtokendecimals}`);
-
-  try {
-    // ✅ Deploy contract
-    const { contractAddress, txHash } = await hre.viem.deployContract(
-      "BurnMintTokenPool",
-      [tokenaddress, localtokendecimals, [], rmnProxy, router]
-    );
-
-    logger.info(`⏳ Deployment tx: ${txHash}`);
-    await publicClient.waitForTransactionReceipt({ hash: txHash });
-    logger.info(`✅ TokenPool deployed at: ${contractAddress}`);
-
-    // ✅ Optional verification
-    if (verifycontract) {
-      logger.info("Verifying contract on Etherscan...");
-      try {
-        await hre.run("verify:verify", {
-          address: contractAddress,
-          constructorArguments: [
-            tokenaddress,
-            localtokendecimals,
-            [],
-            rmnProxy,
-            router,
-          ],
-        });
-        logger.info("✅ TokenPool contract verified successfully");
-      } catch (err: any) {
-        if (err.message?.includes("Already Verified")) {
-          logger.warn("Already verified on Etherscan");
-        } else {
-          logger.error(`Verification failed: ${err.message}`);
-        }
+)
+  .addOption({
+    name: "tokenaddress",
+    description: "Address of the token contract",
+    defaultValue: "",
+  })
+  .addOption({
+    name: "safeaddress",
+    description: "Address of the Safe multisig wallet",
+    defaultValue: "",
+  })
+  .addOption({
+    name: "localtokendecimals",
+    description: "Decimals for the local token",
+    defaultValue: "18",
+  })
+  .addFlag({
+    name: "verifycontract",
+    description: "Verify the contract on Etherscan",
+  })
+  .setAction(async () => ({
+    default: async (
+      {
+        tokenaddress = "",
+        safeaddress = "",
+        localtokendecimals = "18",
+        verifycontract = false,
+      }: {
+        tokenaddress?: string;
+        safeaddress?: string;
+        localtokendecimals?: string;
+        verifycontract?: boolean;
+      },
+      hre: HardhatRuntimeEnvironment
+    ) => {
+      // ⚙️ Validate required parameters
+      if (!tokenaddress) {
+        throw new Error("❌ --tokenaddress is required");
       }
-    }
 
-    // ✅ Transfer ownership to Safe
-    logger.info(`Transferring ownership to Safe: ${safeaddress}`);
-    const pool = await hre.viem.getContractAt({
-      address: contractAddress,
-      abi: BurnMintTokenPoolABI,
-    });
+      if (!safeaddress) {
+        throw new Error("❌ --safeaddress is required");
+      }
 
-    const transferTx = await pool.write.transferOwnership(
-      [safeaddress],
-      { account: wallet.account }
-    );
-    await publicClient.waitForTransactionReceipt({ hash: transferTx });
+      // ⚙️ Connect to network and get viem client
+      const networkConnection = await hre.network.connect();
+      const { viem } = networkConnection;
+      const networkName = networkConnection.networkName as Chains;
+      const publicClient = await viem.getPublicClient();
 
-    logger.info(`✅ Ownership transferred to Safe at ${safeaddress}`);
-  } catch (error) {
-    logger.error("❌ TokenPool deployment failed:", error);
-    throw error;
-  }
-}));
+      // ⚙️ Validate network config
+      const networkConfig = getEVMNetworkConfig(networkName);
+      if (!networkConfig)
+        throw new Error(`❌ Network ${networkName} not found in config`);
+
+      const { confirmations } = networkConfig;
+      if (confirmations === undefined)
+        throw new Error(`❌ confirmations not defined for ${networkName}`);
+
+      // ⚙️ Validate addresses
+      if (!isAddress(tokenaddress))
+        throw new Error(`❌ Invalid token address: ${tokenaddress}`);
+      if (!isAddress(safeaddress))
+        throw new Error(`❌ Invalid Safe address: ${safeaddress}`);
+
+      // ⚙️ Parse decimals
+      const decimals = parseInt(localtokendecimals);
+      if (isNaN(decimals) || decimals < 0) {
+        throw new Error(`❌ Invalid decimals: ${localtokendecimals}`);
+      }
+
+      // ⚙️ Get router and RMN proxy addresses
+      const { router, rmnProxy } = networkConfig;
+      if (!router || !rmnProxy)
+        throw new Error(`❌ Router or RMN Proxy not defined for ${networkName}`);
+
+      const [wallet] = await viem.getWalletClients();
+
+      logger.info(`⚙️ Deploying BurnMintTokenPool on ${networkName}`);
+      logger.info(`Token: ${tokenaddress}`);
+      logger.info(`Safe:  ${safeaddress}`);
+      logger.info(`Decimals: ${decimals}`);
+
+      try {
+        // ⚙️ Deploy contract
+        const constructorArgs = Array<any>([
+          tokenaddress,
+          decimals,
+          [],
+          rmnProxy,
+          router
+        ]);
+
+        const { contract, deploymentTransaction } = await viem.sendDeploymentTransaction(
+          TokenPoolContractName.BurnMintTokenPool,
+          ...constructorArgs
+        );
+
+        logger.info(`⏳ Deployment tx: ${deploymentTransaction.hash}`);
+        logger.info(`   Waiting for ${confirmations} confirmation(s)...`);
+        await publicClient.waitForTransactionReceipt({
+          hash: deploymentTransaction.hash,
+          confirmations,
+        });
+        logger.info(`✅ TokenPool deployed at: ${contract.address}`);
+
+        // ⚙️ Optional verification
+        if (verifycontract) {
+          logger.info("⚙️ Verifying contract...");
+          try {
+            const isVerified = await verifyContract(
+              {
+                address: contract.address,
+                constructorArgs: constructorArgs.flat(),
+              },
+              hre
+            );
+
+            if (isVerified) {
+              logger.info("✅ TokenPool contract verified successfully");
+            } else {
+              logger.warn("⚠️ TokenPool contract verification failed");
+            }
+          } catch (err: any) {
+            if (err.message?.includes("Already Verified")) {
+              logger.warn("⚠️ Already verified on Etherscan");
+            } else {
+              logger.error(`❌ Verification failed: ${err.message}`);
+            }
+          }
+        }
+
+        // ⚙️ Transfer ownership to Safe
+        logger.info(`⚙️ Transferring ownership to Safe: ${safeaddress}`);
+        const pool = await viem.getContractAt(
+          TokenPoolContractName.BurnMintTokenPool,
+          contract.address
+        );
+
+        const transferTx = await (pool as any).write.transferOwnership(
+          [safeaddress as `0x${string}`],
+          { account: wallet.account }
+        );
+        await publicClient.waitForTransactionReceipt({ hash: transferTx });
+
+        logger.info(`✅ Ownership transferred to Safe at ${safeaddress}`);
+      } catch (error) {
+        logger.error("❌ TokenPool deployment failed:", error);
+        throw error;
+      }
+    },
+  }))
+  .build();

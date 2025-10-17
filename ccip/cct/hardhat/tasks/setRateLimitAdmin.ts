@@ -1,6 +1,12 @@
 import { task } from "hardhat/config";
-import { Chains, logger, getEVMNetworkConfig } from "../config";
-import TokenPoolABI from "@chainlink/contracts-ccip/abi/TokenPool.abi.json";
+import { HardhatRuntimeEnvironment } from "hardhat/types/hre";
+import { isAddress } from "viem";
+import {
+  Chains,
+  CCIPContractName,
+  logger,
+  getEVMNetworkConfig,
+} from "../config";
 
 /**
  * Sets the rate-limit administrator for a TokenPool contract.
@@ -11,48 +17,101 @@ import TokenPoolABI from "@chainlink/contracts-ccip/abi/TokenPool.abi.json";
  *   --adminaddress 0xNewAdmin \
  *   --network sepolia
  */
-task("setRateLimitAdmin", "Sets the rate-limit administrator for a token pool")
-  .setAction(<any>(async (taskArgs: { pooladdress: string; adminaddress: string }, hre: any) => {
-    const { pooladdress, adminaddress } = taskArgs;
-    const networkName = hre.network.name as Chains;
+export const setRateLimitAdmin = task("setRateLimitAdmin", "Sets the rate-limit administrator for a token pool")
+  .addOption({
+    name: "pooladdress",
+    description: "The token pool address",
+    defaultValue: "",
+  })
+  .addOption({
+    name: "adminaddress",
+    description: "The new rate limit admin address",
+    defaultValue: "",
+  })
+  .setAction(async () => ({
+    default: async (
+      {
+        pooladdress,
+        adminaddress,
+      }: {
+        pooladdress: string;
+        adminaddress: string;
+      },
+      hre: HardhatRuntimeEnvironment
+    ) => {
+      // Validate required parameters
+      if (!pooladdress) {
+        throw new Error("Pool address is required (--pooladdress)");
+      }
 
-    // ✅ Ensure network configuration exists
-    const networkConfig = getEVMNetworkConfig(networkName);
-    if (!networkConfig)
-      throw new Error(`Network ${networkName} not found in config`);
+      if (!adminaddress) {
+        throw new Error("Admin address is required (--adminaddress)");
+      }
 
-    // ✅ Validate addresses
-    if (!hre.viem.isAddress(pooladdress))
-      throw new Error(`Invalid pool address: ${pooladdress}`);
-    if (!hre.viem.isAddress(adminaddress))
-      throw new Error(`Invalid admin address: ${adminaddress}`);
+      // Connect to network first
+      const networkConnection = await hre.network.connect();
+      const { viem } = networkConnection;
+      const networkName = networkConnection.networkName as Chains;
+      const networkConfig = getEVMNetworkConfig(networkName);
+      if (!networkConfig) throw new Error(`Network ${networkName} not found`);
+      const { confirmations } = networkConfig;
+      if (confirmations === undefined)
+        throw new Error(`confirmations missing for ${networkName}`);
 
-    const { confirmations } = networkConfig;
-    if (confirmations === undefined)
-      throw new Error(`confirmations not defined for ${networkName}`);
+      // ✅ Validate addresses
+      if (!isAddress(pooladdress))
+        throw new Error(`Invalid pool address: ${pooladdress}`);
+      if (!isAddress(adminaddress))
+        throw new Error(`Invalid admin address: ${adminaddress}`);
 
-    // ✅ Wallet + public client
-    const [wallet] = await hre.viem.getWalletClients();
-    const publicClient = await hre.viem.getPublicClient();
+      const [wallet] = await viem.getWalletClients();
+      const publicClient = await viem.getPublicClient();
 
-    logger.info(
-      `Setting rate-limit admin to ${adminaddress} for pool ${pooladdress} on ${networkName}`
-    );
+      try {
+        logger.info(`⚙️  Setting rate-limit admin for pool ${pooladdress} on ${networkName}...`);
+        logger.info(`   New admin address: ${adminaddress}`);
 
-    // ✅ Connect to TokenPool contract
-    const pool = await hre.viem.getContractAt({
-      address: pooladdress,
-      abi: TokenPoolABI,
-    });
+        // ✅ Connect to TokenPool contract
+        const pool = await viem.getContractAt(
+          CCIPContractName.TokenPool,
+          pooladdress as `0x${string}`
+        );
 
-    // ✅ Send transaction
-    const txHash = await pool.write.setRateLimitAdmin([adminaddress], {
-      account: wallet.account,
-    });
+        // ✅ Check if the caller is the pool owner
+        const owner = await (pool as any).read.owner();
+        const callerAddress = wallet.account.address;
+        
+        if (callerAddress.toLowerCase() !== owner.toLowerCase()) {
+          throw new Error(
+            `Unauthorized: Only the pool owner can set the rate limit admin.\n` +
+            `Caller: ${callerAddress}\n` +
+            `Owner: ${owner}`
+          );
+        }
+        
+        logger.info(`   ✅ Caller is the pool owner`);
 
-    logger.info(`⏳ Tx sent: ${txHash}`);
-    logger.info(`Waiting for ${confirmations} confirmations...`);
+        // ✅ Send transaction
+        const txHash = await (pool as any).write.setRateLimitAdmin(
+          [adminaddress as `0x${string}`],
+          { account: wallet.account }
+        );
 
-    await publicClient.waitForTransactionReceipt({ hash: txHash });
-    logger.info(`✅ Rate-limit admin updated successfully (tx: ${txHash})`);
-  }));
+        logger.info(`⏳ Rate limit admin update tx: ${txHash}`);
+        logger.info(`   Waiting for ${confirmations} confirmation(s)...`);
+
+        await publicClient.waitForTransactionReceipt({ 
+          hash: txHash,
+          confirmations,
+        });
+
+        logger.info(`✅ Rate-limit admin updated successfully`);
+        logger.info(`   Transaction: ${txHash}`);
+
+      } catch (error) {
+        logger.error("❌ Rate limit admin update failed:", error);
+        throw error;
+      }
+    },
+  }))
+  .build();

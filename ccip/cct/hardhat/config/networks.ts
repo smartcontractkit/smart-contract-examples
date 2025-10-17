@@ -52,25 +52,4 @@ const networks: Networks = {
   },
 };
 
-const etherscan: EtherscanConfig = {
-  apiKey: {
-    [EVMChains.avalancheFuji]: "avalancheFuji",
-    [EVMChains.sepolia]: process.env.ETHERSCAN_API_KEY || "UNSET",
-    [EVMChains.arbitrumSepolia]: process.env.ARBISCAN_API_KEY || "UNSET",
-    [EVMChains.baseSepolia]: process.env.BASESCAN_API_KEY || "UNSET",
-    [EVMChains.polygonAmoy]: process.env.POLYGONSCAN_API_KEY || "UNSET",
-  },
-  customChains: [
-    {
-      network: EVMChains.avalancheFuji,
-      chainId: configData.avalancheFuji.chainId,
-      urls: {
-        apiURL:
-          "https://api.routescan.io/v2/network/testnet/evm/43113/etherscan",
-        browserURL: "https://testnet.snowtrace.io",
-      },
-    },
-  ],
-};
-
-export { networks, etherscan, configData };
+export { networks, configData };

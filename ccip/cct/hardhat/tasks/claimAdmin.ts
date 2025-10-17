@@ -1,7 +1,13 @@
 import { task } from "hardhat/config";
-import { Chains, logger, getEVMNetworkConfig } from "../config";
-import RegistryModuleOwnerCustomABI from "@chainlink/contracts-ccip/abi/RegistryModuleOwnerCustom.abi.json";
-import BurnMintERC20ABI from "@chainlink/contracts/abi/v0.8/shared/BurnMintERC20.abi.json";
+import { HardhatRuntimeEnvironment } from "hardhat/types/hre";
+import { isAddress } from "viem";
+import {
+  Chains,
+  TokenContractName,
+  CCIPContractName,
+  logger,
+  getEVMNetworkConfig,
+} from "../config";
 
 /**
  * Enum defining registration modes
@@ -13,119 +19,211 @@ enum RegistrationMode {
 }
 
 /**
- * Validate that a token address points to a deployed contract
+ * Claims the admin of a token via various registration methods
+ *
+ * Example:
+ * npx hardhat claimAdmin \
+ *   --tokenaddress 0xYourToken \
+ *   --mode getCCIPAdmin \
+ *   --network sepolia
  */
-async function validateContractExists(tokenAddress: string, hre: any) {
-  try {
-    const code = await hre.viem.getPublicClient().getBytecode({ address: tokenAddress });
-    if (!code) {
-      throw new Error(`❌ No contract found at ${tokenAddress} on ${hre.network.name}`);
-    }
-  } catch (error: any) {
-    throw new Error(`❌ Failed to validate contract at ${tokenAddress}: ${error.message}`);
-  }
-}
-
-/**
- * Hardhat 3 + Viem version of claimAdmin
- */
-task("claimAdmin", "Claims the admin of a token via various registration methods")
-  .setAction(<any>(async (taskArgs: { tokenaddress: string; mode?: string }, hre: any) => {
-    const { tokenaddress, mode = RegistrationMode.GET_CCIP_ADMIN } = taskArgs;
-    const networkName = hre.network.name as Chains;
-
-    // ✅ Validate mode
-    if (!Object.values(RegistrationMode).includes(mode as RegistrationMode)) {
-      throw new Error(
-        `Invalid mode: ${mode}. Must be one of: ${Object.values(RegistrationMode).join(", ")}`
-      );
-    }
-    const registrationMode = mode as RegistrationMode;
-
-    logger.info(`🎯 Claiming admin for ${tokenaddress} using ${registrationMode} mode`);
-
-    // ✅ Network + contract checks
-    const networkConfig = getEVMNetworkConfig(networkName);
-    if (!networkConfig) throw new Error(`Network ${networkName} not found in config`);
-    if (!hre.viem.isAddress(tokenaddress)) throw new Error(`Invalid token address: ${tokenaddress}`);
-
-    await validateContractExists(tokenaddress, hre);
-
-    const { registryModuleOwnerCustom, confirmations } = networkConfig;
-    if (!registryModuleOwnerCustom)
-      throw new Error(`registryModuleOwnerCustom missing for ${networkName}`);
-    if (confirmations === undefined)
-      throw new Error(`confirmations not defined for ${networkName}`);
-
-    // ✅ Wallet + public client
-    const [wallet] = await hre.viem.getWalletClients();
-    const publicClient = await hre.viem.getPublicClient();
-
-    // ✅ Connect to contracts
-    const registry = await hre.viem.getContractAt({
-      address: registryModuleOwnerCustom,
-      abi: RegistryModuleOwnerCustomABI,
-    });
-    const token = await hre.viem.getContractAt({
-      address: tokenaddress,
-      abi: BurnMintERC20ABI,
-    });
-
-    // ✅ Mode-specific logic
-    let txHash: string | undefined;
-
-    switch (registrationMode) {
-      case RegistrationMode.GET_CCIP_ADMIN: {
-        const admin = await token.read.getCCIPAdmin();
-        logger.info(`Current CCIP admin: ${admin}`);
-        if (admin.toLowerCase() !== wallet.account.address.toLowerCase())
-          throw new Error(`Signer ${wallet.account.address} is not CCIP admin of ${tokenaddress}`);
-
-        logger.info(`Claiming admin via getCCIPAdmin()...`);
-        txHash = await registry.write.registerAdminViaGetCCIPAdmin([tokenaddress], {
-          account: wallet.account,
-        });
-        break;
+export const claimAdmin = task("claimAdmin", "Claims the admin of a token via various registration methods")
+  .addOption({
+    name: "tokenaddress",
+    description: "The token address",
+    defaultValue: "",
+  })
+  .addOption({
+    name: "mode",
+    description: `Registration mode: ${Object.values(RegistrationMode).join(", ")}`,
+    defaultValue: RegistrationMode.GET_CCIP_ADMIN,
+  })
+  .setAction(async () => ({
+    default: async (
+      {
+        tokenaddress,
+        mode = RegistrationMode.GET_CCIP_ADMIN,
+      }: {
+        tokenaddress: string;
+        mode?: string;
+      },
+      hre: HardhatRuntimeEnvironment
+    ) => {
+      // Validate token address is provided
+      if (!tokenaddress) {
+        throw new Error("Token address is required (--tokenaddress)");
       }
 
-      case RegistrationMode.OWNER: {
-        const owner = await token.read.owner();
-        logger.info(`Current token owner: ${owner}`);
-        if (owner.toLowerCase() !== wallet.account.address.toLowerCase())
-          throw new Error(`Signer ${wallet.account.address} is not owner of ${tokenaddress}`);
+      // Validate mode
+      if (!Object.values(RegistrationMode).includes(mode as RegistrationMode)) {
+        throw new Error(
+          `Invalid mode: ${mode}. Must be one of: ${Object.values(RegistrationMode).join(", ")}`
+        );
+      }
+      const registrationMode = mode as RegistrationMode;
 
-        logger.info(`Claiming admin via owner()...`);
-        txHash = await registry.write.registerAdminViaOwner([tokenaddress], {
-          account: wallet.account,
-        });
-        break;
+      // Connect to network first
+      const networkConnection = await hre.network.connect();
+      const { viem } = networkConnection;
+      const networkName = networkConnection.networkName as Chains;
+
+      logger.info(`🎯 Claiming admin for ${tokenaddress} using ${registrationMode} mode`);
+
+      const networkConfig = getEVMNetworkConfig(networkName);
+      if (!networkConfig)
+        throw new Error(`Network ${networkName} not found in config`);
+
+      // Validate token address format
+      if (!isAddress(tokenaddress))
+        throw new Error(`Invalid token address: ${tokenaddress}`);
+
+      const { registryModuleOwnerCustom, confirmations } = networkConfig;
+      if (!registryModuleOwnerCustom)
+        throw new Error(`registryModuleOwnerCustom missing for ${networkName}`);
+      if (confirmations === undefined)
+        throw new Error(`confirmations not defined for ${networkName}`);
+
+      // Validate contract exists
+      try {
+        const code = await viem.getPublicClient().then(client =>
+          client.getBytecode({ address: tokenaddress as `0x${string}` })
+        );
+        if (!code) {
+          throw new Error(`No contract found at ${tokenaddress} on ${networkName}`);
+        }
+      } catch (error: any) {
+        throw new Error(`Failed to validate contract at ${tokenaddress}: ${error.message}`);
       }
 
-      case RegistrationMode.ACCESS_CONTROL: {
-        const defaultAdminRole = await token.read.DEFAULT_ADMIN_ROLE();
-        const hasRole = await token.read.hasRole([
-          defaultAdminRole,
-          wallet.account.address,
-        ]);
-        logger.info(`Default admin role: ${defaultAdminRole}`);
-        logger.info(`Signer has admin role: ${hasRole}`);
+      const [wallet] = await viem.getWalletClients();
+      const publicClient = await viem.getPublicClient();
 
-        if (!hasRole)
-          throw new Error(
-            `Signer ${wallet.account.address} does not have DEFAULT_ADMIN_ROLE for ${tokenaddress}`
-          );
+      try {
+        // Connect to contracts
+        const registry = await viem.getContractAt(
+          CCIPContractName.RegistryModuleOwnerCustom,
+          registryModuleOwnerCustom as `0x${string}`
+        );
+        const token = await viem.getContractAt(
+          TokenContractName.BurnMintERC20,
+          tokenaddress as `0x${string}`
+        );
 
-        logger.info(`Claiming admin via AccessControl DEFAULT_ADMIN_ROLE...`);
-        txHash = await registry.write.registerAccessControlDefaultAdmin([tokenaddress], {
-          account: wallet.account,
-        });
-        break;
+        // Call the appropriate method based on mode
+        let txHash: `0x${string}`;
+
+        if (registrationMode === RegistrationMode.OWNER) {
+          // For Owner mode, check if token implements Ownable
+          try {
+            const owner = await (token as any).read.owner();
+            if (owner.toLowerCase() !== wallet.account.address.toLowerCase()) {
+              throw new Error(
+                `Current wallet ${wallet.account.address} is NOT the token owner (${owner}).` +
+                  `\nSwitch wallet or use a different mode.`
+              );
+            }
+            logger.info(`✅ Current wallet ${wallet.account.address} is owner`);
+
+            const hash = await registry.write.registerAdminViaOwner([tokenaddress], {
+              account: wallet.account.address,
+            });
+            txHash = hash;
+            logger.info(`📤 TX sent: ${hash}. Waiting for ${confirmations} confirmations...`);
+          } catch (error: any) {
+            // Check if it's an ABI error (function doesn't exist)
+            if (error?.message?.includes("does not exist") || 
+                error?.message?.includes("ABI") ||
+                error?.message?.includes("owner")) {
+              throw new Error(
+                `Token ${tokenaddress} does not support owner() function.\nUse a different mode (e.g., getCCIPAdmin or accessControl).`
+              );
+            }
+            throw new Error(
+              `Failed to register via owner: ${error?.message || String(error)}`
+            );
+          }
+        } else if (registrationMode === RegistrationMode.GET_CCIP_ADMIN) {
+          let ccipAdmin: `0x${string}`;
+          try {
+            const adminResult = await (token as any).read.getCCIPAdmin();
+            if (!isAddress(adminResult)) {
+              throw new Error(`Invalid address returned from getCCIPAdmin: ${adminResult}`);
+            }
+            ccipAdmin = adminResult as `0x${string}`;
+          } catch (error: any) {
+            // Check if it's an ABI error (function doesn't exist)
+            if (error?.message?.includes("does not exist") || 
+                error?.message?.includes("ABI") ||
+                error?.message?.includes("getCCIPAdmin")) {
+              throw new Error(
+                `Token ${tokenaddress} does not support getCCIPAdmin() function.\nCheck it implements IGetCCIPAdmin or use a different mode (e.g., owner or accessControl).`
+              );
+            }
+            throw new Error(
+              `Failed to call getCCIPAdmin: ${error?.message || String(error)}`
+            );
+          }
+
+          if (ccipAdmin.toLowerCase() !== wallet.account.address.toLowerCase()) {
+            throw new Error(
+              `Current wallet ${wallet.account.address} is NOT the token's CCIP admin (${ccipAdmin}).\nSwitch wallet or use a different mode.`
+            );
+          }
+          logger.info(`✅ Current wallet ${wallet.account.address} is CCIP admin`);
+
+          const hash = await registry.write.registerAdminViaGetCCIPAdmin([tokenaddress], {
+            account: wallet.account.address,
+          });
+          txHash = hash;
+          logger.info(`📤 TX sent: ${hash}. Waiting for ${confirmations} confirmations...`);
+        } else if (registrationMode === RegistrationMode.ACCESS_CONTROL) {
+          try {
+            const ADMIN_ROLE = await (token as any).read.CCIP_ADMIN_ROLE();
+            const hasRole = await (token as any).read.hasRole([
+              ADMIN_ROLE,
+              wallet.account.address,
+            ]);
+            if (!hasRole) {
+              throw new Error(
+                `Current wallet ${wallet.account.address} does NOT have the CCIP_ADMIN_ROLE.\nGrant the role first or use a different mode.`
+              );
+            }
+            logger.info(
+              `✅ Current wallet ${wallet.account.address} has the CCIP_ADMIN_ROLE (${ADMIN_ROLE})`
+            );
+
+            const hash = await registry.write.registerAccessControlDefaultAdmin([tokenaddress], {
+              account: wallet.account.address,
+            });
+            txHash = hash;
+            logger.info(`📤 TX sent: ${hash}. Waiting for ${confirmations} confirmations...`);
+          } catch (error: any) {
+            // Check if it's an ABI error (function doesn't exist)
+            if (error?.message?.includes("does not exist") || 
+                error?.message?.includes("ABI") ||
+                error?.message?.includes("CCIP_ADMIN_ROLE") ||
+                error?.message?.includes("hasRole")) {
+              throw new Error(
+                `Token ${tokenaddress} does not support AccessControl (CCIP_ADMIN_ROLE or hasRole functions missing).\nUse a different mode (e.g., owner or getCCIPAdmin).`
+              );
+            }
+            throw new Error(
+              `Failed to register via access control: ${error?.message || String(error)}`
+            );
+          }
+        } else {
+          throw new Error(`Mode ${registrationMode} not yet implemented`);
+        }
+
+        // Confirm transaction
+        await publicClient.waitForTransactionReceipt({ hash: txHash, confirmations });
+        logger.info(
+          `✅ Admin claimed for ${tokenaddress} on ${networkName} (${confirmations} confirmations)`
+        );
+      } catch (error: any) {
+        logger.error(`❌ Failed to claim admin: ${error?.message || String(error)}`);
+        throw error;
       }
-    }
-
-    // ✅ Wait for confirmations
-    if (!txHash) throw new Error("No transaction hash returned.");
-    logger.info(`⏳ Tx sent: ${txHash}`);
-    await publicClient.waitForTransactionReceipt({ hash: txHash });
-    logger.info(`✅ Successfully claimed admin for ${tokenaddress} via ${registrationMode}.`);
-  }));
+    },
+  }))
+  .build();

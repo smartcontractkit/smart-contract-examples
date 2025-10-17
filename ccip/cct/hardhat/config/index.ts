@@ -7,10 +7,11 @@ export {
   PoolType,
   TokenContractName,
   TokenPoolContractName,
+  CCIPContractName,
 } from "./types";
 
 export type { Networks } from "./types"; 
-export { networks, etherscan, configData } from "./networks";
+export { networks, configData } from "./networks";
 export { logger } from "./logger";
 
 /**

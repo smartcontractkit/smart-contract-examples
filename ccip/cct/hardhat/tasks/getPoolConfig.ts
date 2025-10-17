@@ -1,4 +1,6 @@
 import { task } from "hardhat/config";
+import { HardhatRuntimeEnvironment } from "hardhat/types/hre";
+import { isAddress } from "viem";
 import {
   Chains,
   logger,
@@ -8,7 +10,6 @@ import {
   getChainInfoBySelector,
   decodeChainAddress,
 } from "../utils/chainHandlers";
-import TokenPoolABI from "@chainlink/contracts-ccip/abi/TokenPool.abi.json";
 
 /**
  * Get the configuration details of a deployed Token Pool.
@@ -16,125 +17,165 @@ import TokenPoolABI from "@chainlink/contracts-ccip/abi/TokenPool.abi.json";
  * Example:
  * npx hardhat getPoolConfig --pooladdress 0xYourPool --network sepolia
  */
-task(
+export const getPoolConfig = task(
   "getPoolConfig",
   "Fetches and displays a token pool's configuration, including chain-specific rate limits"
-).setAction(<any>(async (taskArgs: { pooladdress: string }, hre: any) => {
-  const { pooladdress } = taskArgs;
-  const networkName = hre.network.name as Chains;
-
-  // ✅ Ensure network configuration exists
-  const networkConfig = getEVMNetworkConfig(networkName);
-  if (!networkConfig)
-    throw new Error(`Network ${networkName} not found in config`);
-
-  // ✅ Validate address
-  if (!hre.viem.isAddress(pooladdress))
-    throw new Error(`Invalid pool address: ${pooladdress}`);
-
-  const [wallet] = await hre.viem.getWalletClients();
-  const poolContract = await hre.viem.getContractAt({
-    address: pooladdress,
-    abi: TokenPoolABI,
-  });
-
-  logger.info(`\nFetching pool configuration for: ${pooladdress}`);
-
-  // ✅ Fetch core info in parallel
-  const [rateLimitAdmin, allowListEnabled, router, token, remoteChains] =
-    await Promise.all([
-      poolContract.read.getRateLimitAdmin(),
-      poolContract.read.getAllowListEnabled(),
-      poolContract.read.getRouter(),
-      poolContract.read.getToken(),
-      poolContract.read.getSupportedChains(),
-    ]);
-
-  logger.info(`\n--- Pool Basic Information ---`);
-  logger.info(`Rate Limit Admin: ${rateLimitAdmin}`);
-  logger.info(`Router Address:   ${router}`);
-  logger.info(`Token Address:    ${token}`);
-  logger.info(`Allow List Enabled: ${allowListEnabled}`);
-
-  if (allowListEnabled) {
-    const allowList = await poolContract.read.getAllowList();
-    logger.info(`Allow List (${allowList.length} addresses):`);
-    allowList.forEach((address: string, i: number) => {
-      logger.info(`  ${i + 1}. ${address}`);
-    });
-  }
-
-  logger.info(`\nSupported Remote Chains: ${remoteChains.length}`);
-
-  // ✅ Sequentially process each remote chain
-  for (const chainSelector of remoteChains) {
-    try {
-      const [
-        remotePools,
-        remoteTokenAddressEncoded,
-        outboundState,
-        inboundState,
-      ] = await Promise.all([
-        poolContract.read.getRemotePools([chainSelector]),
-        poolContract.read.getRemoteToken([chainSelector]),
-        poolContract.read.getCurrentOutboundRateLimiterState([chainSelector]),
-        poolContract.read.getCurrentInboundRateLimiterState([chainSelector]),
-      ]);
-
-      const chainInfo = getChainInfoBySelector(chainSelector);
-      const chainDisplayName = chainInfo?.name || chainSelector.toString();
-
-      const remotePoolAddresses = remotePools.map((encoded: string) => {
-        if (!chainInfo) return "UNKNOWN_CHAIN";
-        try {
-          return decodeChainAddress(encoded, chainInfo.chainType, hre);
-        } catch {
-          return "DECODE_ERROR";
-        }
-      });
-
-      let remoteTokenAddress;
-      if (!chainInfo) {
-        remoteTokenAddress = "UNKNOWN_CHAIN";
-      } else {
-        try {
-          remoteTokenAddress = decodeChainAddress(
-            remoteTokenAddressEncoded,
-            chainInfo.chainType,
-            hre
-          );
-        } catch {
-          remoteTokenAddress = "DECODE_ERROR";
-        }
+)
+  .addOption({
+    name: "pooladdress",
+    description: "The token pool address",
+    defaultValue: "",
+  })
+  .setAction(async () => ({
+    default: async (
+      {
+        pooladdress,
+      }: {
+        pooladdress: string;
+      },
+      hre: HardhatRuntimeEnvironment
+    ) => {
+      // Validate pool address is provided
+      if (!pooladdress) {
+        throw new Error("Pool address is required (--pooladdress)");
       }
 
-      logger.info(`\n--- Remote Chain: ${chainDisplayName} ---`);
-      logger.info(`Remote Pool Addresses:`);
-      remotePoolAddresses.forEach((addr: string, i: number) => {
-        logger.info(`  ${i + 1}. ${addr}`);
-      });
-      logger.info(`Remote Token Address: ${remoteTokenAddress}`);
+      // Connect to network first
+      const networkConnection = await hre.network.connect();
+      const { viem } = networkConnection;
+      const networkName = networkConnection.networkName as Chains;
 
-      logger.info(`Outbound Rate Limiter:`);
-      logger.info(`  Enabled:  ${outboundState.isEnabled}`);
-      logger.info(`  Capacity: ${outboundState.capacity.toString()}`);
-      logger.info(`  Rate:     ${outboundState.rate.toString()}`);
+      logger.info(`📊 Fetching pool configuration for ${pooladdress} on ${networkName}...`);
 
-      logger.info(`Inbound Rate Limiter:`);
-      logger.info(`  Enabled:  ${inboundState.isEnabled}`);
-      logger.info(`  Capacity: ${inboundState.capacity.toString()}`);
-      logger.info(`  Rate:     ${inboundState.rate.toString()}`);
+      const networkConfig = getEVMNetworkConfig(networkName);
+      if (!networkConfig)
+        throw new Error(`Network ${networkName} not found in config`);
 
-      // Add small delay between chains to avoid RPC throttling
-      if (remoteChains.length > 1) {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Validate pool address format
+      if (!isAddress(pooladdress))
+        throw new Error(`Invalid pool address: ${pooladdress}`);
+
+      // Validate contract exists
+      try {
+        const publicClient = await viem.getPublicClient();
+        const code = await publicClient.getCode({ address: pooladdress as `0x${string}` });
+        if (!code) {
+          throw new Error(`No contract found at ${pooladdress} on ${networkName}`);
+        }
+      } catch (error: any) {
+        throw new Error(`Failed to validate contract at ${pooladdress}: ${error.message}`);
       }
-    } catch (error) {
-      logger.error(
-        `Error fetching configuration for chain ${chainSelector}: ${error}`
-      );
-    }
-  }
 
-  logger.info(`\n✅ Pool configuration fetched successfully.`);
-}));
+      try {
+        // Note: We can't use CCIPContractName.TokenPool directly as getContractAt needs the specific pool type
+        // So we'll use 'as any' for the read operations since TokenPool is an abstract contract
+        const poolContract = await viem.getContractAt(
+          "TokenPool" as any,
+          pooladdress as `0x${string}`
+        );
+
+        logger.info(`\nFetching pool configuration for: ${pooladdress}`);
+
+        // Fetch core info in parallel
+        const [rateLimitAdmin, allowListEnabled, router, token, remoteChains] =
+          await Promise.all([
+            (poolContract as any).read.getRateLimitAdmin(),
+            (poolContract as any).read.getAllowListEnabled(),
+            (poolContract as any).read.getRouter(),
+            (poolContract as any).read.getToken(),
+            (poolContract as any).read.getSupportedChains(),
+          ]);
+
+        logger.info(`\n--- Pool Basic Information ---`);
+        logger.info(`Rate Limit Admin: ${rateLimitAdmin}`);
+        logger.info(`Router Address:   ${router}`);
+        logger.info(`Token Address:    ${token}`);
+        logger.info(`Allow List Enabled: ${allowListEnabled}`);
+
+        if (allowListEnabled) {
+          const allowList = await (poolContract as any).read.getAllowList();
+          logger.info(`Allow List (${allowList.length} addresses):`);
+          (allowList as string[]).forEach((address: string, i: number) => {
+            logger.info(`  ${i + 1}. ${address}`);
+          });
+        }
+
+        logger.info(`\nSupported Remote Chains: ${(remoteChains as any[]).length}`);
+
+        // Sequentially process each remote chain
+        for (const chainSelector of remoteChains as any[]) {
+          try {
+            const [
+              remotePools,
+              remoteTokenAddressEncoded,
+              outboundState,
+              inboundState,
+            ] = await Promise.all([
+              (poolContract as any).read.getRemotePools([chainSelector]),
+              (poolContract as any).read.getRemoteToken([chainSelector]),
+              (poolContract as any).read.getCurrentOutboundRateLimiterState([chainSelector]),
+              (poolContract as any).read.getCurrentInboundRateLimiterState([chainSelector]),
+            ]);
+
+            const chainInfo = getChainInfoBySelector(chainSelector);
+            const chainDisplayName = chainInfo?.name || chainSelector.toString();
+
+            const remotePoolAddresses = (remotePools as string[]).map((encoded: string) => {
+              if (!chainInfo) return "UNKNOWN_CHAIN";
+              try {
+                return decodeChainAddress(encoded, chainInfo.chainFamily);
+              } catch {
+                return "DECODE_ERROR";
+              }
+            });
+
+            let remoteTokenAddress;
+            if (!chainInfo) {
+              remoteTokenAddress = "UNKNOWN_CHAIN";
+            } else {
+              try {
+                remoteTokenAddress = decodeChainAddress(
+                  remoteTokenAddressEncoded as string,
+                  chainInfo.chainFamily
+                );
+              } catch {
+                remoteTokenAddress = "DECODE_ERROR";
+              }
+            }
+
+            logger.info(`\n--- Remote Chain: ${chainDisplayName} ---`);
+            logger.info(`Remote Pool Addresses:`);
+            remotePoolAddresses.forEach((addr: string, i: number) => {
+              logger.info(`  ${i + 1}. ${addr}`);
+            });
+            logger.info(`Remote Token Address: ${remoteTokenAddress}`);
+
+            logger.info(`Outbound Rate Limiter:`);
+            logger.info(`  Enabled:  ${(outboundState as any).isEnabled}`);
+            logger.info(`  Capacity: ${(outboundState as any).capacity.toString()}`);
+            logger.info(`  Rate:     ${(outboundState as any).rate.toString()}`);
+
+            logger.info(`Inbound Rate Limiter:`);
+            logger.info(`  Enabled:  ${(inboundState as any).isEnabled}`);
+            logger.info(`  Capacity: ${(inboundState as any).capacity.toString()}`);
+            logger.info(`  Rate:     ${(inboundState as any).rate.toString()}`);
+
+            // Add small delay between chains to avoid RPC throttling
+            if ((remoteChains as any[]).length > 1) {
+              await new Promise((resolve) => setTimeout(resolve, 1000));
+            }
+          } catch (error) {
+            logger.error(
+              `Error fetching configuration for chain ${chainSelector}: ${error}`
+            );
+          }
+        }
+
+        logger.info(`\n✅ Pool configuration fetched successfully.`);
+      } catch (error: any) {
+        logger.error(`❌ Failed to fetch pool configuration: ${error?.message || String(error)}`);
+        throw error;
+      }
+    },
+  }))
+  .build();

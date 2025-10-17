@@ -1,22 +1,22 @@
 import { task } from "hardhat/config";
+import { HardhatRuntimeEnvironment } from "hardhat/types/hre";
+import { isAddress } from "viem";
 import {
   Chains,
   logger,
   configData,
   getEVMNetworkConfig,
 } from "../config";
-import { CHAIN_TYPE } from "../config/types";
+import { CHAIN_FAMILY } from "../config/types";
 import {
   validateChainAddressOrThrow,
   prepareChainAddressData,
   InvalidAddressError,
-  UnsupportedChainTypeError,
+  UnsupportedChainFamilyError,
 } from "../utils/chainHandlers";
 
-import TokenPoolABI from "@chainlink/contracts-ccip/abi/TokenPool.abi.json";
-
 /**
- * Initializes or updates a TokenPool’s cross-chain configuration.
+ * Initializes or updates a TokenPool's cross-chain configuration.
  *
  * Example:
  * npx hardhat applyChainUpdates \
@@ -32,42 +32,120 @@ import TokenPoolABI from "@chainlink/contracts-ccip/abi/TokenPool.abi.json";
  *   --inboundratelimitrate 5 \
  *   --network sepolia
  */
-task(
+export const applyChainUpdates = task(
   "applyChainUpdates",
   "Initializes or updates pool configuration with cross-chain and rate-limit settings"
-).setAction(<any>(async (taskArgs: {
-  pooladdress: string;
-  remotechain: string;
-  remotepooladdresses: string;
-  remotetokenaddress: string;
-  outboundratelimitenabled?: boolean;
-  outboundratelimitcapacity?: number;
-  outboundratelimitrate?: number;
-  inboundratelimitenabled?: boolean;
-  inboundratelimitcapacity?: number;
-  inboundratelimitrate?: number;
-}, hre: any) => {
-  const {
-    pooladdress,
-    remotechain,
-    remotepooladdresses,
-    remotetokenaddress,
-    outboundratelimitenabled = false,
-    outboundratelimitcapacity = 0,
-    outboundratelimitrate = 0,
-    inboundratelimitenabled = false,
-    inboundratelimitcapacity = 0,
-    inboundratelimitrate = 0,
-  } = taskArgs;
+)
+  .addOption({
+    name: "pooladdress",
+    description: "The local pool address",
+    defaultValue: "",
+  })
+  .addOption({
+    name: "remotechain",
+    description: "The remote chain name",
+    defaultValue: "",
+  })
+  .addOption({
+    name: "remotepooladdresses",
+    description: "Comma-separated list of remote pool addresses",
+    defaultValue: "",
+  })
+  .addOption({
+    name: "remotetokenaddress",
+    description: "The remote token address",
+    defaultValue: "",
+  })
+  .addOption({
+    name: "outboundratelimitenabled",
+    description: "Enable outbound rate limiter (true/false)",
+    defaultValue: "false",
+  })
+  .addOption({
+    name: "outboundratelimitcapacity",
+    description: "Outbound rate limiter capacity",
+    defaultValue: "0",
+  })
+  .addOption({
+    name: "outboundratelimitrate",
+    description: "Outbound rate limiter rate",
+    defaultValue: "0",
+  })
+  .addOption({
+    name: "inboundratelimitenabled",
+    description: "Enable inbound rate limiter (true/false)",
+    defaultValue: "false",
+  })
+  .addOption({
+    name: "inboundratelimitcapacity",
+    description: "Inbound rate limiter capacity",
+    defaultValue: "0",
+  })
+  .addOption({
+    name: "inboundratelimitrate",
+    description: "Inbound rate limiter rate",
+    defaultValue: "0",
+  })
+  .setAction(async () => ({
+    default: async (
+      {
+        pooladdress,
+        remotechain,
+        remotepooladdresses,
+        remotetokenaddress,
+        outboundratelimitenabled = "false",
+        outboundratelimitcapacity = "0",
+        outboundratelimitrate = "0",
+        inboundratelimitenabled = "false",
+        inboundratelimitcapacity = "0",
+        inboundratelimitrate = "0",
+      }: {
+        pooladdress: string;
+        remotechain: string;
+        remotepooladdresses: string;
+        remotetokenaddress: string;
+        outboundratelimitenabled?: string;
+        outboundratelimitcapacity?: string;
+        outboundratelimitrate?: string;
+        inboundratelimitenabled?: string;
+        inboundratelimitcapacity?: string;
+        inboundratelimitrate?: string;
+      },
+      hre: HardhatRuntimeEnvironment
+    ) => {
+      // Parse boolean and number values from strings
+      const outboundEnabled = outboundratelimitenabled === "true";
+      const outboundCapacity = Number(outboundratelimitcapacity);
+      const outboundRate = Number(outboundratelimitrate);
+      const inboundEnabled = inboundratelimitenabled === "true";
+      const inboundCapacity = Number(inboundratelimitcapacity);
+      const inboundRate = Number(inboundratelimitrate);
+      // Validate required parameters
+      if (!pooladdress) {
+        throw new Error("Pool address is required (--pooladdress)");
+      }
+      if (!remotechain) {
+        throw new Error("Remote chain is required (--remotechain)");
+      }
+      if (!remotepooladdresses) {
+        throw new Error("Remote pool addresses are required (--remotepooladdresses)");
+      }
+      if (!remotetokenaddress) {
+        throw new Error("Remote token address is required (--remotetokenaddress)");
+      }
 
-  logger.info("=== Starting Chain Update Configuration ===");
-  const networkName = hre.network.name as Chains;
-  logger.info(`🔹 Local network: ${networkName}`);
-  logger.info(`🔹 Pool address: ${pooladdress}`);
-  logger.info(`🔹 Remote chain: ${remotechain}`);
+      // Connect to network first
+      const networkConnection = await hre.network.connect();
+      const { viem } = networkConnection;
+      const networkName = networkConnection.networkName as Chains;
 
-  // ✅ Load configs
-  const networkConfig = getEVMNetworkConfig(networkName);
+      logger.info("=== Starting Chain Update Configuration ===");
+      logger.info(`🔹 Local network: ${networkName}`);
+      logger.info(`🔹 Pool address: ${pooladdress}`);
+      logger.info(`🔹 Remote chain: ${remotechain}`);
+
+      // Load configs
+      const networkConfig = getEVMNetworkConfig(networkName);
   if (!networkConfig)
     throw new Error(`Network ${networkName} not found in config`);
 
@@ -75,108 +153,127 @@ task(
   if (!remoteNetworkConfig)
     throw new Error(`Remote chain ${remotechain} not found in config`);
 
-  const remoteChainType = remoteNetworkConfig.chainType as CHAIN_TYPE;
-  const remoteChainSelector = remoteNetworkConfig.chainSelector;
-  if (!remoteChainSelector)
-    throw new Error(`chainSelector is not defined for ${remotechain}`);
+      const remoteChainFamily = remoteNetworkConfig.chainFamily as CHAIN_FAMILY;
+      const remoteChainSelector = remoteNetworkConfig.chainSelector;
+      if (!remoteChainSelector)
+        throw new Error(`chainSelector is not defined for ${remotechain}`);
 
-  logger.info(`🔹 Remote chain type: ${remoteChainType}`);
-  logger.info(`🔹 Remote chain selector: ${remoteChainSelector}`);
+      logger.info(`🔹 Remote chain family: ${remoteChainFamily}`);
+      logger.info(`🔹 Remote chain selector: ${remoteChainSelector}`);
 
-  // ✅ Parse & validate addresses
-  const remotePoolAddresses = remotepooladdresses
-    .split(",")
-    .map((addr) => addr.trim());
+      // Validate pool address format (EVM)
+      if (!isAddress(pooladdress))
+        throw new Error(`Invalid pool address: ${pooladdress}`);
 
-  try {
-    for (const addr of remotePoolAddresses)
-      validateChainAddressOrThrow(addr, remoteChainType, hre);
+      // Validate pool contract exists
+      try {
+        const publicClient = await viem.getPublicClient();
+        const code = await publicClient.getCode({ address: pooladdress as `0x${string}` });
+        if (!code) {
+          throw new Error(`No contract found at ${pooladdress} on ${networkName}`);
+        }
+      } catch (error: any) {
+        throw new Error(`Failed to validate pool contract at ${pooladdress}: ${error.message}`);
+      }
 
-    if (!hre.viem.isAddress(pooladdress))
-      throw new Error(`Invalid pool address: ${pooladdress}`);
+      // Parse & validate addresses
+      const remotePoolAddresses = remotepooladdresses
+        .split(",")
+        .map((addr) => addr.trim());
 
-    validateChainAddressOrThrow(remotetokenaddress, remoteChainType, hre);
-    logger.info("✅ All addresses validated successfully");
-  } catch (err) {
-    if (err instanceof InvalidAddressError || err instanceof UnsupportedChainTypeError)
-      throw new Error(`Address validation failed: ${err.message}`);
-    throw err;
-  }
+        console.log(remotePoolAddresses)
 
-  // ✅ Wallet + public client
-  const [wallet] = await hre.viem.getWalletClients();
-  const publicClient = await hre.viem.getPublicClient();
-  logger.info(`✅ Using signer: ${wallet.account.address}`);
+      try {
+        for (const addr of remotePoolAddresses) {
+          console.log(addr, remoteChainFamily);
+          validateChainAddressOrThrow(addr, remoteChainFamily);
+        }
 
-  // ✅ Connect to TokenPool contract
-  const poolContract = await hre.viem.getContractAt({
-    address: pooladdress,
-    abi: TokenPoolABI,
-  });
-  logger.info("✅ Connected to TokenPool contract");
+        validateChainAddressOrThrow(remotetokenaddress, remoteChainFamily);
+        logger.info("✅ All addresses validated successfully");
+      } catch (err) {
+        if (err instanceof InvalidAddressError || err instanceof UnsupportedChainFamilyError) {
+          throw new Error(`Address validation failed: ${err.message}`);
+        }
+        throw err;
+      }
 
-  // ✅ Prepare encoded addresses
-  const preparedRemotePools = remotePoolAddresses.map((addr, i) => {
-    const prepared = prepareChainAddressData(addr, remoteChainType, hre);
-    logger.info(`  Remote pool ${i + 1}: ${addr} → ${prepared}`);
-    return prepared;
-  });
+      const [wallet] = await viem.getWalletClients();
+      const publicClient = await viem.getPublicClient();
 
-  const preparedRemoteToken = prepareChainAddressData(
-    remotetokenaddress,
-    remoteChainType,
-    hre
-  );
+      try {
+        logger.info(`✅ Using signer: ${wallet.account.address}`);
 
-  // ✅ Log rate limiter setup
-  logger.info("=== Rate Limiter Configuration ===");
-  logger.info(`Outbound enabled: ${outboundratelimitenabled}`);
-  if (outboundratelimitenabled) {
-    logger.info(`  capacity: ${outboundratelimitcapacity}`);
-    logger.info(`  rate: ${outboundratelimitrate}`);
-  }
-  logger.info(`Inbound enabled: ${inboundratelimitenabled}`);
-  if (inboundratelimitenabled) {
-    logger.info(`  capacity: ${inboundratelimitcapacity}`);
-    logger.info(`  rate: ${inboundratelimitrate}`);
-  }
+        // Connect to TokenPool contract
+        const poolContract = await viem.getContractAt(
+          "TokenPool" as any,
+          pooladdress as `0x${string}`
+        );
+        logger.info("✅ Connected to TokenPool contract");
 
-  // ✅ Build chainUpdate struct
-  const chainUpdate = {
-    remoteChainSelector: BigInt(remoteChainSelector),
-    remotePoolAddresses: preparedRemotePools,
-    remoteTokenAddress: preparedRemoteToken,
-    outboundRateLimiterConfig: {
-      isEnabled: outboundratelimitenabled,
-      capacity: BigInt(outboundratelimitcapacity),
-      rate: BigInt(outboundratelimitrate),
+        // Prepare encoded addresses
+        const preparedRemotePools = remotePoolAddresses.map((addr, i) => {
+          const prepared = prepareChainAddressData(addr, remoteChainFamily);
+          logger.info(`  Remote pool ${i + 1}: ${addr} → ${prepared}`);
+          return prepared;
+        });
+
+        const preparedRemoteToken = prepareChainAddressData(
+          remotetokenaddress,
+          remoteChainFamily
+        );
+
+        // Log rate limiter setup
+        logger.info("=== Rate Limiter Configuration ===");
+        logger.info(`Outbound enabled: ${outboundEnabled}`);
+        if (outboundEnabled) {
+          logger.info(`  capacity: ${outboundCapacity}`);
+          logger.info(`  rate: ${outboundRate}`);
+        }
+        logger.info(`Inbound enabled: ${inboundEnabled}`);
+        if (inboundEnabled) {
+          logger.info(`  capacity: ${inboundCapacity}`);
+          logger.info(`  rate: ${inboundRate}`);
+        }
+
+        // Build chainUpdate struct
+        const chainUpdate = {
+          remoteChainSelector: BigInt(remoteChainSelector),
+          remotePoolAddresses: preparedRemotePools,
+          remoteTokenAddress: preparedRemoteToken,
+          outboundRateLimiterConfig: {
+            isEnabled: outboundEnabled,
+            capacity: BigInt(outboundCapacity),
+            rate: BigInt(outboundRate),
+          },
+          inboundRateLimiterConfig: {
+            isEnabled: inboundEnabled,
+            capacity: BigInt(inboundCapacity),
+            rate: BigInt(inboundRate),
+          },
+        };
+
+        // Execute transaction
+        logger.info("=== Executing applyChainUpdates() ===");
+        const txHash = await (poolContract as any).write.applyChainUpdates(
+          [[], [chainUpdate]],
+          { account: wallet.account.address }
+        );
+        logger.info(`� TX sent: ${txHash}`);
+
+        const { confirmations } = networkConfig;
+        if (confirmations === undefined)
+          throw new Error(`confirmations is not defined for ${networkName}`);
+
+        logger.info(`Waiting for ${confirmations} confirmations...`);
+        await publicClient.waitForTransactionReceipt({ hash: txHash, confirmations });
+        logger.info(
+          `✅ Chain update applied successfully on ${networkName} (${confirmations} confirmations)!`
+        );
+      } catch (error: any) {
+        logger.error(`❌ Failed to apply chain updates: ${error?.message || String(error)}`);
+        throw error;
+      }
     },
-    inboundRateLimiterConfig: {
-      isEnabled: inboundratelimitenabled,
-      capacity: BigInt(inboundratelimitcapacity),
-      rate: BigInt(inboundratelimitrate),
-    },
-  };
-
-  // ✅ Execute transaction
-  logger.info("=== Executing applyChainUpdates() ===");
-  try {
-    const txHash = await poolContract.write.applyChainUpdates(
-      [[], [chainUpdate]],
-      { account: wallet.account }
-    );
-    logger.info(`🔹 Tx sent: ${txHash}`);
-
-    const { confirmations } = networkConfig;
-    if (confirmations === undefined)
-      throw new Error(`confirmations is not defined for ${networkName}`);
-
-    logger.info(`🔹 Waiting for ${confirmations} confirmations...`);
-    await publicClient.waitForTransactionReceipt({ hash: txHash });
-    logger.info("✅ Chain update applied successfully!");
-  } catch (error) {
-    logger.error("❌ Transaction failed:");
-    logger.error(error);
-    throw error;
-  }
-}));
+  }))
+  .build();

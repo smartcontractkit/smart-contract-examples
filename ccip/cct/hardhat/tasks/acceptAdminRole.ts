@@ -1,6 +1,12 @@
 import { task } from "hardhat/config";
-import { Chains, logger, getEVMNetworkConfig } from "../config";
-import TokenAdminRegistryABI from "@chainlink/contracts-ccip/abi/TokenAdminRegistry.abi.json";
+import { HardhatRuntimeEnvironment } from "hardhat/types/hre";
+import { isAddress } from "viem";
+import {
+  Chains,
+  CCIPContractName,
+  logger,
+  getEVMNetworkConfig,
+} from "../config";
 
 /**
  * Accepts the admin role for a token with a pending administrator.
@@ -8,49 +14,101 @@ import TokenAdminRegistryABI from "@chainlink/contracts-ccip/abi/TokenAdminRegis
  * Example:
  * npx hardhat acceptAdminRole --tokenaddress 0x1234... --network sepolia
  */
-task("acceptAdminRole", "Accepts the admin role for a token with a pending admin")
-  .setAction(<any>(async (taskArgs: { tokenaddress: string }, hre: any) => {
-    const { tokenaddress } = taskArgs;
-    const networkName = hre.network.name as Chains;
+export const acceptAdminRole = task("acceptAdminRole", "Accepts the admin role for a token with a pending admin")
+  .addOption({
+    name: "tokenaddress",
+    description: "The token address",
+    defaultValue: "",
+  })
+  .setAction(async () => ({
+    default: async (
+      {
+        tokenaddress,
+      }: {
+        tokenaddress: string;
+      },
+      hre: HardhatRuntimeEnvironment
+    ) => {
+      // Validate token address is provided
+      if (!tokenaddress) {
+        throw new Error("Token address is required (--tokenaddress)");
+      }
 
-    // ✅ Retrieve network configuration
-    const networkConfig = getEVMNetworkConfig(networkName);
-    if (!networkConfig) throw new Error(`Network ${networkName} not found in config`);
-    if (!hre.viem.isAddress(tokenaddress))
-      throw new Error(`Invalid token address: ${tokenaddress}`);
+      // Connect to network first
+      const networkConnection = await hre.network.connect();
+      const { viem } = networkConnection;
+      const networkName = networkConnection.networkName as Chains;
 
-    const { tokenAdminRegistry, confirmations } = networkConfig;
-    if (!tokenAdminRegistry || confirmations === undefined)
-      throw new Error(`Missing registry or confirmations for ${networkName}`);
+      logger.info(`🔄 Accepting admin role for ${tokenaddress} on ${networkName}...`);
 
-    // ✅ Wallet + public client
-    const [wallet] = await hre.viem.getWalletClients();
-    const publicClient = await hre.viem.getPublicClient();
+      const networkConfig = getEVMNetworkConfig(networkName);
+      if (!networkConfig)
+        throw new Error(`Network ${networkName} not found in config`);
 
-    // ✅ Connect to TokenAdminRegistry contract using imported ABI
-    const registry = await hre.viem.getContractAt({
-      address: tokenAdminRegistry,
-      abi: TokenAdminRegistryABI,
-    });
+      // Validate token address format
+      if (!isAddress(tokenaddress))
+        throw new Error(`Invalid token address: ${tokenaddress}`);
 
-    logger.info(`Checking pending admin for ${tokenaddress} on ${networkName}...`);
+      const { tokenAdminRegistry, confirmations } = networkConfig;
+      if (!tokenAdminRegistry)
+        throw new Error(`tokenAdminRegistry missing for ${networkName}`);
+      if (confirmations === undefined)
+        throw new Error(`confirmations not defined for ${networkName}`);
 
-    // ✅ Retrieve pending admin
-    const cfg = await registry.read.getTokenConfig([tokenaddress]);
-    const pendingAdmin = cfg.pendingAdministrator;
+      // Validate contract exists
+      try {
+        const code = await viem.getPublicClient().then(client =>
+          client.getBytecode({ address: tokenaddress as `0x${string}` })
+        );
+        if (!code) {
+          throw new Error(`No contract found at ${tokenaddress} on ${networkName}`);
+        }
+      } catch (error: any) {
+        throw new Error(`Failed to validate contract at ${tokenaddress}: ${error.message}`);
+      }
 
-    if (pendingAdmin.toLowerCase() !== wallet.account.address.toLowerCase())
-      throw new Error(`Only pending admin can accept (pending ${pendingAdmin})`);
+      const [wallet] = await viem.getWalletClients();
+      const publicClient = await viem.getPublicClient();
 
-    logger.info(`Accepting admin role as ${wallet.account.address}...`);
+      try {
+        // Connect to TokenAdminRegistry contract
+        const registry = await viem.getContractAt(
+          CCIPContractName.TokenAdminRegistry,
+          tokenAdminRegistry as `0x${string}`
+        );
 
-    // ✅ Send transaction to accept admin role
-    const txHash = await registry.write.acceptAdminRole(
-      [tokenaddress],
-      { account: wallet.account }
-    );
+        logger.info(`Checking pending admin for ${tokenaddress}...`);
 
-    await publicClient.waitForTransactionReceipt({ hash: txHash });
+        // Retrieve pending admin
+        const cfg = await (registry as any).read.getTokenConfig([tokenaddress]);
+        const pendingAdmin = cfg.pendingAdministrator;
 
-    logger.info(`✅ Admin role accepted. Tx: ${txHash}`);
-  }));
+        if (pendingAdmin.toLowerCase() !== wallet.account.address.toLowerCase()) {
+          throw new Error(
+            `Only pending admin can accept.\nPending admin: ${pendingAdmin}\nCurrent wallet: ${wallet.account.address}`
+          );
+        }
+
+        logger.info(`✅ Current wallet ${wallet.account.address} is the pending admin`);
+        logger.info(`Accepting admin role...`);
+
+        // Send transaction to accept admin role
+        const txHash = await (registry as any).write.acceptAdminRole(
+          [tokenaddress],
+          { account: wallet.account.address }
+        );
+
+        logger.info(`📤 TX sent: ${txHash}. Waiting for ${confirmations} confirmations...`);
+
+        await publicClient.waitForTransactionReceipt({ hash: txHash, confirmations });
+
+        logger.info(
+          `✅ Admin role accepted for ${tokenaddress} on ${networkName} (${confirmations} confirmations)`
+        );
+      } catch (error: any) {
+        logger.error(`❌ Failed to accept admin role: ${error?.message || String(error)}`);
+        throw error;
+      }
+    },
+  }))
+  .build();

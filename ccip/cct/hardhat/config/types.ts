@@ -1,11 +1,11 @@
-export type CHAIN_TYPE = "evm" | "svm";
+export type CHAIN_FAMILY = "evm" | "svm";
 
 /**
- * Type guard to check if a string is a valid CHAIN_TYPE
+ * Type guard to check if a string is a valid CHAIN_FAMILY
  * @param value - The string to check
- * @returns true if the string is a valid CHAIN_TYPE
+ * @returns true if the string is a valid CHAIN_FAMILY
  */
-export function isChainType(value: string): value is CHAIN_TYPE {
+export function isChainType(value: string): value is CHAIN_FAMILY {
   return value === "evm" || value === "svm";
 }
 
@@ -19,7 +19,7 @@ export interface ChainConfig {
   link?: string; // Optional for non-EVM chains
   confirmations: number;
   nativeCurrencySymbol: string;
-  chainType: CHAIN_TYPE;
+  chainType: CHAIN_FAMILY;
 }
 
 // Specific type for EVM chains used by Hardhat
@@ -98,6 +98,14 @@ export enum TokenContractName {
 export enum TokenPoolContractName {
   BurnMintTokenPool = "BurnMintTokenPool",
   LockReleaseTokenPool = "LockReleaseTokenPool",
+}
+
+export enum CCIPContractName {
+  RegistryModuleOwnerCustom = "RegistryModuleOwnerCustom",
+  TokenAdminRegistry = "TokenAdminRegistry",
+  TokenPool = "TokenPool",
+  Router = "IRouterClient",
+  OnRamp = "OnRamp",
 }
 
 export enum PoolType {

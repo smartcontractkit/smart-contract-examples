@@ -1,6 +1,12 @@
 import { task } from "hardhat/config";
-import { Chains, logger, getEVMNetworkConfig } from "../config";
-import BurnMintERC20ABI from "@chainlink/contracts/abi/v0.8/shared/BurnMintERC20.abi.json";
+import { HardhatRuntimeEnvironment } from "hardhat/types/hre";
+import {isAddress} from "viem";
+import {
+  Chains,
+  TokenContractName,
+  logger,
+  getEVMNetworkConfig,
+} from "../config";
 
 /**
  * Mints tokens for a receiver.
@@ -13,51 +19,100 @@ import BurnMintERC20ABI from "@chainlink/contracts/abi/v0.8/shared/BurnMintERC20
  *   --receiveraddress 0xReceiverAddress \
  *   --network sepolia
  */
-task("mintTokens", "Mints tokens for a specified receiver (defaults to signer)")
-  .setAction(<any>(async (taskArgs: {
-    tokenaddress: string;
-    amount: string;
-    receiveraddress?: string;
-  }, hre: any) => {
-    const { tokenaddress, amount, receiveraddress } = taskArgs;
-    const networkName = hre.network.name as Chains;
+export const mintTokens = task("mintTokens", "Mints tokens for a specified receiver (defaults to signer)")
+  .addOption({
+    name: "tokenaddress",
+    description: "The token address",
+    defaultValue: "",
+  })
+  .addOption({
+    name: "amount",
+    description: "The amount to mint",
+    defaultValue: "0",
+  })
+  .addOption({
+    name: "receiveraddress",
+    description: "The receiver address (defaults to signer)",
+    defaultValue: "",
+  })
+  .setAction(async () => ({
+    default: async (
+      {
+        tokenaddress,
+        amount = "0",
+        receiveraddress = "",
+      }: {
+        tokenaddress: string;
+        amount?: string;
+        receiveraddress?: string;
+      },
+      hre: HardhatRuntimeEnvironment
+    ) => {
+      // Validate token address is provided
+      if (!tokenaddress) {
+        throw new Error("Token address is required (--tokenaddress)");
+      }
 
-    // ✅ Load network configuration
-    const networkConfig = getEVMNetworkConfig(networkName);
-    if (!networkConfig)
-      throw new Error(`Network ${networkName} not found in config`);
+      // Validate amount
+      if (!amount || amount === "0") {
+        throw new Error("Amount is required and must be greater than 0 (--amount)");
+      }
 
-    // ✅ Wallet and client
-    const [wallet] = await hre.viem.getWalletClients();
-    const publicClient = await hre.viem.getPublicClient();
+      // Connect to network first
+      const networkConnection = await hre.network.connect();
+      const { viem } = networkConnection;
+      const networkName = networkConnection.networkName as Chains;
 
-    const to = receiveraddress || wallet.account.address;
-    if (!hre.viem.isAddress(to))
-      throw new Error(`Invalid receiver address: ${to}`);
+      const networkConfig = getEVMNetworkConfig(networkName);
+      if (!networkConfig)
+        throw new Error(`Network ${networkName} not found in config`);
 
-    // ✅ Connect to token contract
-    const token = await hre.viem.getContractAt({
-      address: tokenaddress,
-      abi: BurnMintERC20ABI,
-    });
+      // Validate token address format
+      if (!isAddress(tokenaddress))
+        throw new Error(`Invalid token address: ${tokenaddress}`);
 
-    const symbol = await token.read.symbol();
-    logger.info(`Minting ${amount} ${symbol} to ${to}...`);
+      const { confirmations } = networkConfig;
+      if (confirmations === undefined)
+        throw new Error(`confirmations is not defined for ${networkName}`);
 
-    // ✅ Execute mint transaction
-    const txHash = await token.write.mint([to, BigInt(amount)], {
-      account: wallet.account,
-    });
+      const [wallet] = await viem.getWalletClients();
+      const publicClient = await viem.getPublicClient();
 
-    const { confirmations } = networkConfig;
-    if (confirmations === undefined)
-      throw new Error(`confirmations is not defined for ${networkName}`);
+      // Determine receiver address
+      const to = receiveraddress || wallet.account.address;
+      if (!isAddress(to))
+        throw new Error(`Invalid receiver address: ${to}`);
 
-    logger.info(`⏳ Waiting for ${confirmations} confirmations...`);
-    await publicClient.waitForTransactionReceipt({ hash: txHash });
+      try {
+        // Connect to token contract
+        const token = await viem.getContractAt(
+          TokenContractName.BurnMintERC20,
+          tokenaddress as `0x${string}`
+        );
 
-    // ✅ Log transaction and new balance
-    const newBalance = await token.read.balanceOf([to]);
-    logger.info(`✅ Minted ${amount} ${symbol} to ${to}. Tx hash: ${txHash}`);
-    logger.info(`Current balance of ${to}: ${newBalance.toString()} ${symbol}`);
-  }));
+        const symbol = await token.read.symbol();
+        logger.info(`🪙 Minting ${amount} ${symbol} to ${to}...`);
+
+        // Execute mint transaction
+        const txHash = await token.write.mint([to, BigInt(amount)], {
+          account: wallet.account,
+        });
+
+        logger.info(`⏳ Mint tx: ${txHash}`);
+        logger.info(`   Waiting for ${confirmations} confirmation(s)...`);
+        await publicClient.waitForTransactionReceipt({
+          hash: txHash,
+          confirmations,
+        });
+
+        // Log transaction and new balance
+        const newBalance = await token.read.balanceOf([to]) as any;
+        logger.info(`✅ Minted ${amount} ${symbol} to ${to}`);
+        logger.info(`   Current balance of ${to}: ${newBalance.toString()} ${symbol}`);
+      } catch (error) {
+        logger.error("❌ Token minting failed:", error);
+        throw error;
+      }
+    },
+  }))
+  .build();

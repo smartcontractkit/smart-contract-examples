@@ -1,6 +1,12 @@
 import { task } from "hardhat/config";
-import { Chains, logger, getEVMNetworkConfig } from "../config";
-import TokenPoolABI from "@chainlink/contracts-ccip/abi/TokenPool.abi.json";
+import { HardhatRuntimeEnvironment } from "hardhat/types/hre";
+import { isAddress } from "viem";
+import {
+  Chains,
+  CCIPContractName,
+  logger,
+  getEVMNetworkConfig,
+} from "../config";
 
 /**
  * Updates the allow list for a TokenPool contract.
@@ -12,72 +18,126 @@ import TokenPoolABI from "@chainlink/contracts-ccip/abi/TokenPool.abi.json";
  *   --removeaddresses 0x3333...,0x4444... \
  *   --network sepolia
  */
-task("updateAllowList", "Updates the allow list for a token pool (add or remove addresses)")
-  .setAction(<any>(async (taskArgs: {
-    pooladdress: string;
-    addaddresses?: string;
-    removeaddresses?: string;
-  }, hre: any) => {
-    const { pooladdress, addaddresses = "", removeaddresses = "" } = taskArgs;
-    const networkName = hre.network.name as Chains;
+export const updateAllowList = task("updateAllowList", "Updates the allow list for a token pool (add or remove addresses)")
+  .addOption({
+    name: "pooladdress",
+    description: "The token pool address",
+    defaultValue: "",
+  })
+  .addOption({
+    name: "addaddresses",
+    description: "Comma-separated list of addresses to add to allowlist",
+    defaultValue: "",
+  })
+  .addOption({
+    name: "removeaddresses",
+    description: "Comma-separated list of addresses to remove from allowlist",
+    defaultValue: "",
+  })
+  .setAction(async () => ({
+    default: async (
+      {
+        pooladdress,
+        addaddresses = "",
+        removeaddresses = "",
+      }: {
+        pooladdress: string;
+        addaddresses?: string;
+        removeaddresses?: string;
+      },
+      hre: HardhatRuntimeEnvironment
+    ) => {
+      // Validate pool address is provided
+      if (!pooladdress) {
+        throw new Error("Pool address is required (--pooladdress)");
+      }
 
-    // ✅ Retrieve network configuration
-    const networkConfig = getEVMNetworkConfig(networkName);
-    if (!networkConfig)
-      throw new Error(`Network ${networkName} not found in config`);
+      // Check if at least one operation is requested
+      if (!addaddresses && !removeaddresses) {
+        throw new Error("At least one of --addaddresses or --removeaddresses must be provided");
+      }
 
-    // ✅ Validate pool address
-    if (!hre.viem.isAddress(pooladdress))
-      throw new Error(`Invalid pool address: ${pooladdress}`);
+      // Connect to network first
+      const networkConnection = await hre.network.connect();
+      const { viem } = networkConnection;
+      const networkName = networkConnection.networkName as Chains;
 
-    // ✅ Parse & validate address lists
-    const addressesToAdd = addaddresses
-      ? addaddresses.split(",").map((a) => a.trim()).filter(Boolean)
-      : [];
-    const addressesToRemove = removeaddresses
-      ? removeaddresses.split(",").map((a) => a.trim()).filter(Boolean)
-      : [];
+      // ✅ Retrieve network configuration
+      const networkConfig = getEVMNetworkConfig(networkName);
+      if (!networkConfig)
+        throw new Error(`Network ${networkName} not found in config`);
 
-    for (const addr of [...addressesToAdd, ...addressesToRemove]) {
-      if (!hre.viem.isAddress(addr))
-        throw new Error(`Invalid address in list: ${addr}`);
-    }
+      // ✅ Validate pool address
+      if (!isAddress(pooladdress))
+        throw new Error(`Invalid pool address: ${pooladdress}`);
 
-    // ✅ Wallet & client
-    const [wallet] = await hre.viem.getWalletClients();
-    const publicClient = await hre.viem.getPublicClient();
+      // ✅ Parse & validate address lists
+      const addressesToAdd = addaddresses
+        ? addaddresses.split(",").map((a) => a.trim()).filter(Boolean)
+        : [];
+      const addressesToRemove = removeaddresses
+        ? removeaddresses.split(",").map((a) => a.trim()).filter(Boolean)
+        : [];
 
-    // ✅ Connect to TokenPool contract
-    const pool = await hre.viem.getContractAt({
-      address: pooladdress,
-      abi: TokenPoolABI,
-    });
+      for (const addr of [...addressesToAdd, ...addressesToRemove]) {
+        if (!isAddress(addr))
+          throw new Error(`Invalid address in list: ${addr}`);
+      }
 
-    // ✅ Ensure allow-list feature is enabled
-    const allowListEnabled = await pool.read.getAllowListEnabled();
-    if (!allowListEnabled)
-      throw new Error("Allow list is not enabled for this pool");
+      const { confirmations } = networkConfig;
+      if (confirmations === undefined)
+        throw new Error(`confirmations not defined for ${networkName}`);
 
-    // ✅ Log intended operations
-    logger.info(`Updating allow list for pool ${pooladdress}`);
-    if (addressesToAdd.length)
-      logger.info(`Adding: ${addressesToAdd.join(", ")}`);
-    if (addressesToRemove.length)
-      logger.info(`Removing: ${addressesToRemove.join(", ")}`);
+      const [wallet] = await viem.getWalletClients();
+      const publicClient = await viem.getPublicClient();
 
-    // ✅ Execute transaction
-    const txHash = await pool.write.applyAllowListUpdates(
-      [addressesToRemove, addressesToAdd],
-      { account: wallet.account }
-    );
+      try {
+        logger.info(`🔐 Updating allow list for pool ${pooladdress} on ${networkName}...`);
+        if (addressesToAdd.length)
+          logger.info(`   Adding: ${addressesToAdd.join(", ")}`);
+        if (addressesToRemove.length)
+          logger.info(`   Removing: ${addressesToRemove.join(", ")}`);
 
-    const { confirmations } = networkConfig;
-    if (confirmations === undefined)
-      throw new Error(`confirmations not defined for ${networkName}`);
+        // ✅ Connect to TokenPool contract
+        const pool = await viem.getContractAt(
+          CCIPContractName.TokenPool,
+          pooladdress as `0x${string}`
+        );
 
-    logger.info(`⏳ Tx sent: ${txHash}`);
-    logger.info(`Waiting for ${confirmations} confirmations...`);
-    await publicClient.waitForTransactionReceipt({ hash: txHash });
+        // ✅ Ensure allow-list feature is enabled
+        const allowListEnabled = await (pool as any).read.getAllowListEnabled();
+        if (!allowListEnabled)
+          throw new Error("Allow list is not enabled for this pool");
 
-    logger.info(`✅ Allow list updated successfully (tx: ${txHash})`);
-  }));
+        logger.info(`   Allow list is enabled`);
+
+        // ✅ Execute transaction - cast addresses to proper type
+        const addressesToAddTyped = addressesToAdd as `0x${string}`[];
+        const addressesToRemoveTyped = addressesToRemove as `0x${string}`[];
+
+        const txHash = await (pool as any).write.applyAllowListUpdates(
+          [addressesToRemoveTyped, addressesToAddTyped],
+          { account: wallet.account }
+        );
+
+        logger.info(`⏳ Allow list update tx: ${txHash}`);
+        logger.info(`   Waiting for ${confirmations} confirmation(s)...`);
+        await publicClient.waitForTransactionReceipt({ 
+          hash: txHash,
+          confirmations,
+        });
+
+        logger.info(`✅ Allow list updated successfully`);
+        logger.info(`   Transaction: ${txHash}`);
+        if (addressesToAdd.length)
+          logger.info(`   Added ${addressesToAdd.length} address(es)`);
+        if (addressesToRemove.length)
+          logger.info(`   Removed ${addressesToRemove.length} address(es)`);
+
+      } catch (error) {
+        logger.error("❌ Allow list update failed:", error);
+        throw error;
+      }
+    },
+  }))
+  .build();
