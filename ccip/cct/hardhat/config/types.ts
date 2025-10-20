@@ -19,7 +19,7 @@ export interface ChainConfig {
   link?: string; // Optional for non-EVM chains
   confirmations: number;
   nativeCurrencySymbol: string;
-  chainType: CHAIN_FAMILY;
+  chainFamily: CHAIN_FAMILY;
 }
 
 // Specific type for EVM chains used by Hardhat
