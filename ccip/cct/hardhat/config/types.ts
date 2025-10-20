@@ -106,6 +106,7 @@ export enum CCIPContractName {
   TokenPool = "TokenPool",
   Router = "IRouterClient",
   OnRamp = "OnRamp",
+  OwnerIsCreator = "OwnerIsCreator",
 }
 
 export enum PoolType {

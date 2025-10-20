@@ -127,7 +127,7 @@ export const removeRemotePool = task("removeRemotePool", "Removes a remote pool 
         );
 
         // ✅ Check if the caller is the pool owner
-        const owner = await (pool as any).read.owner();
+        const owner = await pool.read.owner();
         const callerAddress = wallet.account.address;
         
         if (callerAddress.toLowerCase() !== owner.toLowerCase()) {
@@ -142,7 +142,7 @@ export const removeRemotePool = task("removeRemotePool", "Removes a remote pool 
 
         // ✅ Check if the remote chain is supported by this pool
         const remoteChainSelectorBigInt = BigInt(remoteChainSelector);
-        const isSupported = await (pool as any).read.isSupportedChain([remoteChainSelectorBigInt]);
+        const isSupported = await pool.read.isSupportedChain([remoteChainSelectorBigInt]);
         if (!isSupported) {
           throw new Error(
             `Remote chain ${remotechain} (selector: ${remoteChainSelector}) is not supported by this pool.\n` +
@@ -160,7 +160,7 @@ export const removeRemotePool = task("removeRemotePool", "Removes a remote pool 
         logger.info(`   Prepared remote pool address: ${remotepooladdress} → ${preparedRemoteAddress}`);
 
         // ✅ Check if the remote pool exists before trying to remove it
-        const existingRemotePools = await (pool as any).read.getRemotePools([remoteChainSelectorBigInt]);
+        const existingRemotePools = await pool.read.getRemotePools([remoteChainSelectorBigInt]);
         const poolExists = existingRemotePools.some((existingPool: string) => 
           existingPool.toLowerCase() === preparedRemoteAddress.toLowerCase()
         );
@@ -176,8 +176,8 @@ export const removeRemotePool = task("removeRemotePool", "Removes a remote pool 
         logger.info(`   ✅ Remote pool exists, proceeding with removal`);
 
         // ✅ Execute transaction
-        const txHash = await (pool as any).write.removeRemotePool(
-          [remoteChainSelectorBigInt, preparedRemoteAddress],
+        const txHash = await pool.write.removeRemotePool(
+          [remoteChainSelectorBigInt, preparedRemoteAddress as `0x${string}`],
           { account: wallet.account }
         );
 

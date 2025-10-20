@@ -8,8 +8,6 @@ import {
 import SafeDefault from "@safe-global/protocol-kit";
 import { isAddress, encodeFunctionData, encodeAbiParameters, parseAbiParameters } from "viem";
 
-const Safe = SafeDefault as any;
-
 /**
  * Applies pool configuration updates through a Gnosis Safe.
  *
@@ -200,7 +198,7 @@ export const applyChainUpdatesFromSafe = task(
       );
 
       // ⚙️ Check if Safe is the owner of the pool
-      const poolOwner = await (pool as any).read.owner();
+      const poolOwner = await pool.read.owner();
       if (poolOwner.toLowerCase() !== safeaddress.toLowerCase()) {
         throw new Error(
           `❌ Safe ${safeaddress} is not the owner of pool ${pooladdress}.\n` +
@@ -238,7 +236,7 @@ export const applyChainUpdatesFromSafe = task(
 
       // ⚙️ Encode applyChainUpdates() call
       const encodedData = encodeFunctionData({
-        abi: (pool as any).abi,
+        abi: pool.abi,
         functionName: "applyChainUpdates",
         args: [[], [chainUpdate]],
       });
@@ -246,12 +244,12 @@ export const applyChainUpdatesFromSafe = task(
       logger.info(`⚙️ Initializing Safe Protocol Kit for multisig transaction...`);
 
       // ⚙️ Initialize Safe instances for both signers
-      const safe1 = await Safe.init({
+      const safe1 = await SafeDefault.init({
         provider: rpcUrl,
         signer: pk1,
         safeAddress: safeaddress,
       });
-      const safe2 = await Safe.init({
+      const safe2 = await SafeDefault.init({
         provider: rpcUrl,
         signer: pk2,
         safeAddress: safeaddress,
@@ -301,7 +299,7 @@ export const applyChainUpdatesFromSafe = task(
       logger.info(
         `⏳ Waiting ${confirmations} blocks for tx ${result.hash} confirmation...`
       );
-      await (result.transactionResponse as any).wait(confirmations);
+      await result.transactionResponse.wait(confirmations);
 
       logger.info(`✅ Pool configured successfully for ${remotechain}`);
     },

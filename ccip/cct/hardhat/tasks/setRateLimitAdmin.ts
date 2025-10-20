@@ -78,7 +78,7 @@ export const setRateLimitAdmin = task("setRateLimitAdmin", "Sets the rate-limit 
         );
 
         // ✅ Check if the caller is the pool owner
-        const owner = await (pool as any).read.owner();
+        const owner = await pool.read.owner();
         const callerAddress = wallet.account.address;
         
         if (callerAddress.toLowerCase() !== owner.toLowerCase()) {
@@ -92,7 +92,7 @@ export const setRateLimitAdmin = task("setRateLimitAdmin", "Sets the rate-limit 
         logger.info(`   ✅ Caller is the pool owner`);
 
         // ✅ Send transaction
-        const txHash = await (pool as any).write.setRateLimitAdmin(
+        const txHash = await pool.write.setRateLimitAdmin(
           [adminaddress as `0x${string}`],
           { account: wallet.account }
         );

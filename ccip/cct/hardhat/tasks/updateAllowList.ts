@@ -105,7 +105,7 @@ export const updateAllowList = task("updateAllowList", "Updates the allow list f
         );
 
         // ✅ Ensure allow-list feature is enabled
-        const allowListEnabled = await (pool as any).read.getAllowListEnabled();
+        const allowListEnabled = await pool.read.getAllowListEnabled();
         if (!allowListEnabled)
           throw new Error("Allow list is not enabled for this pool");
 
@@ -115,7 +115,7 @@ export const updateAllowList = task("updateAllowList", "Updates the allow list f
         const addressesToAddTyped = addressesToAdd as `0x${string}`[];
         const addressesToRemoveTyped = addressesToRemove as `0x${string}`[];
 
-        const txHash = await (pool as any).write.applyAllowListUpdates(
+        const txHash = await pool.write.applyAllowListUpdates(
           [addressesToRemoveTyped, addressesToAddTyped],
           { account: wallet.account }
         );

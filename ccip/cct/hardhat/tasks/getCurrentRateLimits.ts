@@ -87,8 +87,8 @@ export const getCurrentRateLimits = task("getCurrentRateLimits", "Display curren
         );
 
         const [outbound, inbound] = await Promise.all([
-          (pool as any).read.getCurrentOutboundRateLimiterState([remoteChainSelectorBigInt]),
-          (pool as any).read.getCurrentInboundRateLimiterState([remoteChainSelectorBigInt]),
+          pool.read.getCurrentOutboundRateLimiterState([remoteChainSelectorBigInt]),
+          pool.read.getCurrentInboundRateLimiterState([remoteChainSelectorBigInt]),
         ]);
 
         // ✅ Log results
@@ -97,18 +97,18 @@ export const getCurrentRateLimits = task("getCurrentRateLimits", "Display curren
         logger.info(`Chain Selector: ${remoteChainSelector}`);
 
         logger.info(`\n📤 Outbound Rate Limiter:`);
-        logger.info(`  Enabled:       ${(outbound as any).isEnabled}`);
-        logger.info(`  Capacity:      ${(outbound as any).capacity.toString()}`);
-        logger.info(`  Rate:          ${(outbound as any).rate.toString()}`);
-        logger.info(`  Tokens:        ${(outbound as any).tokens.toString()}`);
-        logger.info(`  Last Updated:  ${(outbound as any).lastUpdated.toString()}`);
+        logger.info(`  Enabled:       ${outbound.isEnabled}`);
+        logger.info(`  Capacity:      ${outbound.capacity.toString()}`);
+        logger.info(`  Rate:          ${outbound.rate.toString()}`);
+        logger.info(`  Tokens:        ${outbound.tokens.toString()}`);
+        logger.info(`  Last Updated:  ${outbound.lastUpdated.toString()}`);
 
         logger.info(`\n📥 Inbound Rate Limiter:`);
-        logger.info(`  Enabled:       ${(inbound as any).isEnabled}`);
-        logger.info(`  Capacity:      ${(inbound as any).capacity.toString()}`);
-        logger.info(`  Rate:          ${(inbound as any).rate.toString()}`);
-        logger.info(`  Tokens:        ${(inbound as any).tokens.toString()}`);
-        logger.info(`  Last Updated:  ${(inbound as any).lastUpdated.toString()}`);
+        logger.info(`  Enabled:       ${inbound.isEnabled}`);
+        logger.info(`  Capacity:      ${inbound.capacity.toString()}`);
+        logger.info(`  Rate:          ${inbound.rate.toString()}`);
+        logger.info(`  Tokens:        ${inbound.tokens.toString()}`);
+        logger.info(`  Last Updated:  ${inbound.lastUpdated.toString()}`);
 
         logger.info("\n✅ Rate limiters fetched successfully");
 

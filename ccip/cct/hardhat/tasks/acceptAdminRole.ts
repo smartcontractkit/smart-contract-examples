@@ -80,7 +80,7 @@ export const acceptAdminRole = task("acceptAdminRole", "Accepts the admin role f
         logger.info(`Checking pending admin for ${tokenaddress}...`);
 
         // Retrieve pending admin
-        const cfg = await (registry as any).read.getTokenConfig([tokenaddress]);
+        const cfg = await registry.read.getTokenConfig([tokenaddress]);
         const pendingAdmin = cfg.pendingAdministrator;
 
         if (pendingAdmin.toLowerCase() !== wallet.account.address.toLowerCase()) {
@@ -93,7 +93,7 @@ export const acceptAdminRole = task("acceptAdminRole", "Accepts the admin role f
         logger.info(`Accepting admin role...`);
 
         // Send transaction to accept admin role
-        const txHash = await (registry as any).write.acceptAdminRole(
+        const txHash = await registry.write.acceptAdminRole(
           [tokenaddress],
           { account: wallet.account.address }
         );

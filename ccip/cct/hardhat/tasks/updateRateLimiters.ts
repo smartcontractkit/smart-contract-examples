@@ -158,7 +158,7 @@ export const updateRateLimiters = task("updateRateLimiters", "Update rate limite
         );
 
         // ✅ Check if the remote chain is supported by this pool
-        const isSupported = await (pool as any).read.isSupportedChain([remoteChainSelectorBigInt]);
+        const isSupported = await pool.read.isSupportedChain([remoteChainSelectorBigInt]);
         if (!isSupported) {
           throw new Error(
             `Remote chain ${remotechain} (selector: ${remoteChainSelector}) is not supported by this pool.\n` +
@@ -169,8 +169,8 @@ export const updateRateLimiters = task("updateRateLimiters", "Update rate limite
 
         // ✅ Check if the caller is authorized (owner or rate limit admin)
         const [owner, rateLimitAdmin] = await Promise.all([
-          (pool as any).read.owner(),
-          (pool as any).read.getRateLimitAdmin(),
+          pool.read.owner(),
+          pool.read.getRateLimitAdmin(),
         ]);
         
         const callerAddress = wallet.account.address;
@@ -194,24 +194,24 @@ export const updateRateLimiters = task("updateRateLimiters", "Update rate limite
 
         // ✅ Read current limiter states
         const [currentOutbound, currentInbound] = await Promise.all([
-          (pool as any).read.getCurrentOutboundRateLimiterState([remoteChainSelectorBigInt]),
-          (pool as any).read.getCurrentInboundRateLimiterState([remoteChainSelectorBigInt]),
+          pool.read.getCurrentOutboundRateLimiterState([remoteChainSelectorBigInt]),
+          pool.read.getCurrentInboundRateLimiterState([remoteChainSelectorBigInt]),
         ]);
 
         logger.info(`\n📊 Current Rate Limiters for pool ${pooladdress}`);
         logger.info(
-          `   Outbound → enabled=${(currentOutbound as any).isEnabled}, cap=${(currentOutbound as any).capacity.toString()}, rate=${(currentOutbound as any).rate.toString()}`
+          `   Outbound → enabled=${currentOutbound.isEnabled}, cap=${currentOutbound.capacity.toString()}, rate=${currentOutbound.rate.toString()}`
         );
         logger.info(
-          `   Inbound  → enabled=${(currentInbound as any).isEnabled}, cap=${(currentInbound as any).capacity.toString()}, rate=${(currentInbound as any).rate.toString()}`
+          `   Inbound  → enabled=${currentInbound.isEnabled}, cap=${currentInbound.capacity.toString()}, rate=${currentInbound.rate.toString()}`
         );
         logger.info("\n========== Preparing Update ==========");
 
         // ✅ Build updated configs
         let outboundCfg = {
-          isEnabled: (currentOutbound as any).isEnabled,
-          capacity: (currentOutbound as any).capacity,
-          rate: (currentOutbound as any).rate,
+          isEnabled: currentOutbound.isEnabled,
+          capacity: currentOutbound.capacity,
+          rate: currentOutbound.rate,
         };
         if (ratelimiter === "outbound" || ratelimiter === "both") {
           outboundCfg = {
@@ -225,9 +225,9 @@ export const updateRateLimiters = task("updateRateLimiters", "Update rate limite
         }
 
         let inboundCfg = {
-          isEnabled: (currentInbound as any).isEnabled,
-          capacity: (currentInbound as any).capacity,
-          rate: (currentInbound as any).rate,
+          isEnabled: currentInbound.isEnabled,
+          capacity: currentInbound.capacity,
+          rate: currentInbound.rate,
         };
         if (ratelimiter === "inbound" || ratelimiter === "both") {
           inboundCfg = {
@@ -245,7 +245,7 @@ export const updateRateLimiters = task("updateRateLimiters", "Update rate limite
           `\n⚡ Updating ${ratelimiter === "both" ? "both limiters" : `${ratelimiter} limiter(s)`}...`
         );
 
-        const txHash = await (pool as any).write.setChainRateLimiterConfig(
+        const txHash = await pool.write.setChainRateLimiterConfig(
           [remoteChainSelectorBigInt, outboundCfg, inboundCfg],
           { account: wallet.account }
         );

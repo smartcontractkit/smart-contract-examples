@@ -100,7 +100,7 @@ export const transferTokenAdminRole = task(
 
         // Check if current wallet is the admin
         logger.info(`Checking if ${wallet.account.address} is the current admin...`);
-        const cfg = await (registry as any).read.getTokenConfig([tokenaddress]);
+        const cfg = await registry.read.getTokenConfig([tokenaddress]);
         const currentAdmin = cfg.administrator;
         const pendingAdmin = cfg.pendingAdministrator;
 
@@ -126,7 +126,7 @@ export const transferTokenAdminRole = task(
         logger.info(`✅ Current wallet ${wallet.account.address} is the admin`);
 
         // Execute transaction
-        const txHash = await (registry as any).write.transferAdminRole(
+        const txHash = await registry.write.transferAdminRole(
           [tokenaddress, newadmin],
           { account: wallet.account.address }
         );

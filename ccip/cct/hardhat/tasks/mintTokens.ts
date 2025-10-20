@@ -106,7 +106,7 @@ export const mintTokens = task("mintTokens", "Mints tokens for a specified recei
         });
 
         // Log transaction and new balance
-        const newBalance = await token.read.balanceOf([to]) as any;
+        const newBalance = await token.read.balanceOf([to]);
         logger.info(`✅ Minted ${amount} ${symbol} to ${to}`);
         logger.info(`   Current balance of ${to}: ${newBalance.toString()} ${symbol}`);
       } catch (error) {

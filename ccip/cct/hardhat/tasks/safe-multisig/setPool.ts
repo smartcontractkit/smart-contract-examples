@@ -8,8 +8,6 @@ import {
 import SafeDefault from "@safe-global/protocol-kit";
 import { isAddress, encodeFunctionData } from "viem";
 
-const Safe = SafeDefault as any;
-
 /**
  * Sets the pool for a token through a Safe multisig transaction.
  *
@@ -115,7 +113,7 @@ export const setPoolFromSafe = task(
       );
 
       // ⚙️ Get current token config and admin
-      const config = await (registry as any).read.getTokenConfig([
+      const config = await registry.read.getTokenConfig([
         tokenaddress as `0x${string}`,
       ]);
       const currentAdmin = config.administrator;
@@ -144,7 +142,7 @@ export const setPoolFromSafe = task(
 
       // ⚙️ Encode function call data
       const callData = encodeFunctionData({
-        abi: (registry as any).abi,
+        abi: registry.abi,
         functionName: "setPool",
         args: [tokenaddress as `0x${string}`, pooladdress as `0x${string}`],
       });
@@ -152,12 +150,12 @@ export const setPoolFromSafe = task(
       logger.info(`⚙️ Initializing Safe Protocol Kit for multisig transaction...`);
 
       // ⚙️ Initialize Safe instances for both signers
-      const safe1 = await Safe.init({
+      const safe1 = await SafeDefault.init({
         provider: rpcUrl,
         signer: pk1,
         safeAddress: safeaddress,
       });
-      const safe2 = await Safe.init({
+      const safe2 = await SafeDefault.init({
         provider: rpcUrl,
         signer: pk2,
         safeAddress: safeaddress,
@@ -207,7 +205,7 @@ export const setPoolFromSafe = task(
       logger.info(
         `⏳ Waiting ${confirmations} blocks for tx ${result.hash} confirmation...`
       );
-      await (result.transactionResponse as any).wait(confirmations);
+      await result.transactionResponse.wait(confirmations);
 
       logger.info(`✅ Pool set for token ${tokenaddress} → ${pooladdress}`);
     },

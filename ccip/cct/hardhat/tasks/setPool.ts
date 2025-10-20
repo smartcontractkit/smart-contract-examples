@@ -107,7 +107,7 @@ export const setPool = task("setPool", "Links a token with its pool in the Token
 
         // Fetch token configuration
         logger.info(`Checking token configuration for ${tokenaddress}...`);
-        const config = await (registry as any).read.getTokenConfig([tokenaddress]);
+        const config = await registry.read.getTokenConfig([tokenaddress]);
         const tokenAdministratorAddress = config.administrator;
         const pendingAdmin = config.pendingAdministrator;
 
@@ -137,7 +137,7 @@ export const setPool = task("setPool", "Links a token with its pool in the Token
         logger.info(`Setting pool ${pooladdress} for token ${tokenaddress}...`);
 
         // Execute transaction
-        const txHash = await (registry as any).write.setPool(
+        const txHash = await registry.write.setPool(
           [tokenaddress, pooladdress],
           { account: wallet.account.address }
         );

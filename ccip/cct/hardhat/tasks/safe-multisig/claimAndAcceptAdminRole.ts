@@ -6,7 +6,6 @@ import {
   SafeTransaction,
 } from "@safe-global/safe-core-sdk-types";
 import SafeDefault from "@safe-global/protocol-kit";
-const Safe = SafeDefault as any;
 import { isAddress, encodeFunctionData } from "viem";
 
 /**
@@ -99,7 +98,7 @@ export const claimAndAcceptAdminRoleFromSafe = task(
       );
 
       // ⚙️ Read token CCIP admin
-      const ccipAdmin = await (token as any).read.getCCIPAdmin();
+      const ccipAdmin = await token.read.getCCIPAdmin();
       logger.info(`⚙️ Current CCIP admin: ${ccipAdmin}`);
 
       // ⚙️ Verify CCIP admin matches Safe address
@@ -120,7 +119,7 @@ export const claimAndAcceptAdminRoleFromSafe = task(
       );
 
       // ⚙️ Check if Safe has already accepted the admin role
-      const currentAdmin = await (registry as any).read.getTokenConfig([
+      const currentAdmin = await registry.read.getTokenConfig([
         tokenaddress as `0x${string}`,
       ]);
       
@@ -139,13 +138,13 @@ export const claimAndAcceptAdminRoleFromSafe = task(
 
       // ⚙️ Encode both function calls
       const claimAdminData = encodeFunctionData({
-        abi: (registryModule as any).abi,
+        abi: registryModule.abi,
         functionName: "registerAdminViaGetCCIPAdmin",
         args: [tokenaddress as `0x${string}`],
       });
 
       const acceptAdminData = encodeFunctionData({
-        abi: (registry as any).abi,
+        abi: registry.abi,
         functionName: "acceptAdminRole",
         args: [tokenaddress as `0x${string}`],
       });
@@ -168,12 +167,12 @@ export const claimAndAcceptAdminRoleFromSafe = task(
       // ⚙️ Initialize Safe instances for both signers
       logger.info(`⚙️ Initializing Safe Protocol Kit for multisig transaction...`);
 
-      const safe1 = await Safe.init({
+      const safe1 = await SafeDefault.init({
         provider: rpcUrl,
         signer: pk1,
         safeAddress: safeaddress,
       });
-      const safe2 = await Safe.init({
+      const safe2 = await SafeDefault.init({
         provider: rpcUrl,
         signer: pk2,
         safeAddress: safeaddress,
@@ -217,7 +216,7 @@ export const claimAndAcceptAdminRoleFromSafe = task(
       logger.info(
         `⏳ Waiting ${confirmations} blocks for tx ${result.hash} confirmation...`
       );
-      await (result.transactionResponse as any).wait(confirmations);
+      await result.transactionResponse.wait(confirmations);
 
       logger.info(`✅ Admin role claimed and accepted for ${tokenaddress}`);
     },

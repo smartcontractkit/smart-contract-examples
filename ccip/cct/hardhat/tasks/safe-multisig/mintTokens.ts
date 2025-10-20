@@ -10,9 +10,6 @@ import SafeDefault from "@safe-global/protocol-kit";
 import { isAddress, encodeFunctionData } from "viem";
 import { TokenContractName } from "../../config/types";
 
-// Type assertion for Safe.init() which exists at runtime but not in types
-const Safe = SafeDefault as any;
-
 /**
  * Mint tokens to multiple receivers through a Gnosis Safe.
  *
@@ -123,9 +120,9 @@ export const mintTokensFromSafe = task("mintTokensFromSafe", "Mint tokens to mul
 
       // ⚙️ Verify Safe has MINTER_ROLE (required for minting)
       try {
-        const minterRole = await (token as any).read.MINTER_ROLE();
-        const hasMinterRole = await (token as any).read.hasRole([minterRole, safeaddress as `0x${string}`]);
-        
+        const minterRole = await token.read.MINTER_ROLE();
+        const hasMinterRole = await token.read.hasRole([minterRole, safeaddress as `0x${string}`]);
+
         logger.info(`⚙️ Checking if Safe has MINTER_ROLE...`);
         
         if (!hasMinterRole) {
@@ -155,12 +152,12 @@ export const mintTokensFromSafe = task("mintTokensFromSafe", "Mint tokens to mul
       // ⚙️ Initialize Safe instances for both signers
       logger.info(`⚙️ Initializing Safe Protocol Kit for multisig transaction...`);
       
-      const safe1 = await Safe.init({
+      const safe1 = await SafeDefault.init({
         provider: rpcUrl,
         signer: pk1,
         safeAddress: safeaddress,
       });
-      const safe2 = await Safe.init({
+      const safe2 = await SafeDefault.init({
         provider: rpcUrl,
         signer: pk2,
         safeAddress: safeaddress,
@@ -174,7 +171,7 @@ export const mintTokensFromSafe = task("mintTokensFromSafe", "Mint tokens to mul
       const metaTxs: MetaTransactionData[] = receivers.map((to: string) => ({
         to: tokenaddress,
         data: encodeFunctionData({
-          abi: (token as any).abi,
+          abi: token.abi,
           functionName: "mint",
           args: [to as `0x${string}`, BigInt(amount)],
         }),
@@ -208,7 +205,7 @@ export const mintTokensFromSafe = task("mintTokensFromSafe", "Mint tokens to mul
 
       // ⚙️ Execute via Safe
       logger.info("🚀 Executing Safe transaction to mint tokens...");
-      let result: TransactionResult;
+      let result: any;
       try {
         result = await safe1.executeTransaction(safeTx);
       } catch (e) {
@@ -222,15 +219,15 @@ export const mintTokensFromSafe = task("mintTokensFromSafe", "Mint tokens to mul
       logger.info(
         `⏳ Waiting ${confirmations} blocks for tx ${result.hash} confirmation...`
       );
-      await (result.transactionResponse as any).wait(confirmations);
+      await result.transactionResponse.wait(confirmations);
 
       logger.info("✅ Tokens minted successfully via Safe multisig");
 
       // ℹ️ Display receiver balances
       try {
-        const symbol = await (token as any).read.symbol();
+        const symbol = await token.read.symbol();
         for (const r of receivers) {
-          const balance = await (token as any).read.balanceOf([r as `0x${string}`]);
+          const balance = await token.read.balanceOf([r as `0x${string}`]);
           logger.info(`ℹ️ ${r} → balance: ${balance.toString()} ${symbol}`);
         }
       } catch {

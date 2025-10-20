@@ -173,10 +173,10 @@ export const deployTokenWithSafe = task(
 
         // Transfer ownership of the token to the Safe account
         logger.info(`   Transferring ownership of token to Safe at ${safeaddress}`);
-        const adminRole = await (token as any).read.DEFAULT_ADMIN_ROLE();
+        const adminRole = await token.read.DEFAULT_ADMIN_ROLE();
         logger.info(`   Granting DEFAULT_ADMIN_ROLE to Safe: ${safeaddress}`);
         // ✅ Grant admin role to Safe
-        const grantTx = await (token as any).write.grantRole(
+        const grantTx = await token.write.grantRole(
           [adminRole, safeaddress as `0x${string}`],
           { account: wallet.account }
         );
@@ -190,7 +190,7 @@ export const deployTokenWithSafe = task(
 
         // ✅ Set Safe as CCIP admin
         logger.info(`   Setting CCIP admin to Safe...`);
-        const ccipTx = await (token as any).write.setCCIPAdmin(
+        const ccipTx = await token.write.setCCIPAdmin(
           [safeaddress as `0x${string}`],
           { account: wallet.account }
         );

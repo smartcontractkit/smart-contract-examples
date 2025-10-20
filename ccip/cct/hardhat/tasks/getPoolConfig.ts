@@ -5,6 +5,7 @@ import {
   Chains,
   logger,
   getEVMNetworkConfig,
+  CCIPContractName
 } from "../config";
 import {
   getChainInfoBySelector,
@@ -67,10 +68,8 @@ export const getPoolConfig = task(
       }
 
       try {
-        // Note: We can't use CCIPContractName.TokenPool directly as getContractAt needs the specific pool type
-        // So we'll use 'as any' for the read operations since TokenPool is an abstract contract
         const poolContract = await viem.getContractAt(
-          "TokenPool" as any,
+          CCIPContractName.TokenPool,
           pooladdress as `0x${string}`
         );
 
@@ -79,11 +78,11 @@ export const getPoolConfig = task(
         // Fetch core info in parallel
         const [rateLimitAdmin, allowListEnabled, router, token, remoteChains] =
           await Promise.all([
-            (poolContract as any).read.getRateLimitAdmin(),
-            (poolContract as any).read.getAllowListEnabled(),
-            (poolContract as any).read.getRouter(),
-            (poolContract as any).read.getToken(),
-            (poolContract as any).read.getSupportedChains(),
+            poolContract.read.getRateLimitAdmin(),
+            poolContract.read.getAllowListEnabled(),
+            poolContract.read.getRouter(),
+            poolContract.read.getToken(),
+            poolContract.read.getSupportedChains(),
           ]);
 
         logger.info(`\n--- Pool Basic Information ---`);
@@ -93,17 +92,17 @@ export const getPoolConfig = task(
         logger.info(`Allow List Enabled: ${allowListEnabled}`);
 
         if (allowListEnabled) {
-          const allowList = await (poolContract as any).read.getAllowList();
+          const allowList = await poolContract.read.getAllowList();
           logger.info(`Allow List (${allowList.length} addresses):`);
           (allowList as string[]).forEach((address: string, i: number) => {
             logger.info(`  ${i + 1}. ${address}`);
           });
         }
 
-        logger.info(`\nSupported Remote Chains: ${(remoteChains as any[]).length}`);
+        logger.info(`\nSupported Remote Chains: ${remoteChains.length}`);
 
         // Sequentially process each remote chain
-        for (const chainSelector of remoteChains as any[]) {
+        for (const chainSelector of remoteChains) {
           try {
             const [
               remotePools,
@@ -111,10 +110,10 @@ export const getPoolConfig = task(
               outboundState,
               inboundState,
             ] = await Promise.all([
-              (poolContract as any).read.getRemotePools([chainSelector]),
-              (poolContract as any).read.getRemoteToken([chainSelector]),
-              (poolContract as any).read.getCurrentOutboundRateLimiterState([chainSelector]),
-              (poolContract as any).read.getCurrentInboundRateLimiterState([chainSelector]),
+              poolContract.read.getRemotePools([chainSelector]),
+              poolContract.read.getRemoteToken([chainSelector]),
+              poolContract.read.getCurrentOutboundRateLimiterState([chainSelector]),
+              poolContract.read.getCurrentInboundRateLimiterState([chainSelector]),
             ]);
 
             const chainInfo = getChainInfoBySelector(chainSelector);
@@ -151,17 +150,17 @@ export const getPoolConfig = task(
             logger.info(`Remote Token Address: ${remoteTokenAddress}`);
 
             logger.info(`Outbound Rate Limiter:`);
-            logger.info(`  Enabled:  ${(outboundState as any).isEnabled}`);
-            logger.info(`  Capacity: ${(outboundState as any).capacity.toString()}`);
-            logger.info(`  Rate:     ${(outboundState as any).rate.toString()}`);
+            logger.info(`  Enabled:  ${outboundState.isEnabled}`);
+            logger.info(`  Capacity: ${outboundState.capacity.toString()}`);
+            logger.info(`  Rate:     ${outboundState.rate.toString()}`);
 
             logger.info(`Inbound Rate Limiter:`);
-            logger.info(`  Enabled:  ${(inboundState as any).isEnabled}`);
-            logger.info(`  Capacity: ${(inboundState as any).capacity.toString()}`);
-            logger.info(`  Rate:     ${(inboundState as any).rate.toString()}`);
+            logger.info(`  Enabled:  ${inboundState.isEnabled}`);
+            logger.info(`  Capacity: ${inboundState.capacity.toString()}`);
+            logger.info(`  Rate:     ${inboundState.rate.toString()}`);
 
             // Add small delay between chains to avoid RPC throttling
-            if ((remoteChains as any[]).length > 1) {
+            if (remoteChains.length > 1) {
               await new Promise((resolve) => setTimeout(resolve, 1000));
             }
           } catch (error) {

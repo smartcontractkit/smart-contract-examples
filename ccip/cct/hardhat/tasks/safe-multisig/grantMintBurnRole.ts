@@ -6,7 +6,6 @@ import {
   SafeTransaction,
 } from "@safe-global/safe-core-sdk-types";
 import SafeDefault from "@safe-global/protocol-kit";
-const Safe = SafeDefault as any;
 import { isAddress, encodeFunctionData } from "viem";
 
 /**
@@ -121,12 +120,12 @@ export const grantMintBurnRoleFromSafe = task(
       // ⚙️ Initialize Safe instances for both signers
       logger.info(`⚙️ Initializing Safe Protocol Kit for multisig transaction...`);
 
-      const safe1 = await Safe.init({
+      const safe1 = await SafeDefault.init({
         provider: rpcUrl,
         signer: pk1,
         safeAddress: safeaddress,
       });
-      const safe2 = await Safe.init({
+      const safe2 = await SafeDefault.init({
         provider: rpcUrl,
         signer: pk2,
         safeAddress: safeaddress,
@@ -140,7 +139,7 @@ export const grantMintBurnRoleFromSafe = task(
       const metaTxs: MetaTransactionData[] = burnerMinterAddresses.map((addr) => ({
         to: tokenaddress,
         data: encodeFunctionData({
-          abi: (tokenContract as any).abi,
+          abi: tokenContract.abi,
           functionName: "grantMintAndBurnRoles",
           args: [addr as `0x${string}`],
         }),
@@ -185,7 +184,7 @@ export const grantMintBurnRoleFromSafe = task(
       logger.info(
         `⏳ Waiting ${confirmations} blocks for tx ${result.hash} confirmation...`
       );
-      await (result.transactionResponse as any).wait(confirmations);
+      await result.transactionResponse.wait(confirmations);
 
       logger.info("✅ Mint and burn roles granted successfully");
     },

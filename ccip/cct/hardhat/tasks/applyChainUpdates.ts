@@ -6,6 +6,7 @@ import {
   logger,
   configData,
   getEVMNetworkConfig,
+  CCIPContractName
 } from "../config";
 import { CHAIN_FAMILY } from "../config/types";
 import {
@@ -206,7 +207,7 @@ export const applyChainUpdates = task(
 
         // Connect to TokenPool contract
         const poolContract = await viem.getContractAt(
-          "TokenPool" as any,
+          CCIPContractName.TokenPool,
           pooladdress as `0x${string}`
         );
         logger.info("✅ Connected to TokenPool contract");
@@ -215,7 +216,7 @@ export const applyChainUpdates = task(
         const preparedRemotePools = remotePoolAddresses.map((addr, i) => {
           const prepared = prepareChainAddressData(addr, remoteChainFamily);
           logger.info(`  Remote pool ${i + 1}: ${addr} → ${prepared}`);
-          return prepared;
+          return prepared as `0x${string}`;
         });
 
         const preparedRemoteToken = prepareChainAddressData(
@@ -240,7 +241,7 @@ export const applyChainUpdates = task(
         const chainUpdate = {
           remoteChainSelector: BigInt(remoteChainSelector),
           remotePoolAddresses: preparedRemotePools,
-          remoteTokenAddress: preparedRemoteToken,
+          remoteTokenAddress: preparedRemoteToken as `0x${string}`,
           outboundRateLimiterConfig: {
             isEnabled: outboundEnabled,
             capacity: BigInt(outboundCapacity),
@@ -255,7 +256,7 @@ export const applyChainUpdates = task(
 
         // Execute transaction
         logger.info("=== Executing applyChainUpdates() ===");
-        const txHash = await (poolContract as any).write.applyChainUpdates(
+        const txHash = await poolContract.write.applyChainUpdates(
           [[], [chainUpdate]],
           { account: wallet.account.address }
         );

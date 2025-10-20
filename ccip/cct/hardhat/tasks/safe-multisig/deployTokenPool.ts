@@ -157,7 +157,7 @@ export const deployTokenPoolWithSafe = task(
           contract.address
         );
 
-        const transferTx = await (pool as any).write.transferOwnership(
+        const transferTx = await pool.write.transferOwnership(
           [safeaddress as `0x${string}`],
           { account: wallet.account }
         );

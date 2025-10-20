@@ -125,7 +125,7 @@ export const addRemotePool = task("addRemotePool", "Add a remote pool for a spec
         );
 
         // ✅ Check if the caller is the pool owner
-        const owner = await (pool as any).read.owner();
+        const owner = await pool.read.owner();
         const callerAddress = wallet.account.address;
         
         if (callerAddress.toLowerCase() !== owner.toLowerCase()) {
@@ -140,7 +140,7 @@ export const addRemotePool = task("addRemotePool", "Add a remote pool for a spec
 
         // ✅ Check if the remote chain is supported by this pool
         const remoteChainSelectorBigInt = BigInt(remoteChainSelector);
-        const isSupported = await (pool as any).read.isSupportedChain([remoteChainSelectorBigInt]);
+        const isSupported = await pool.read.isSupportedChain([remoteChainSelectorBigInt]);
         if (!isSupported) {
           throw new Error(
             `Remote chain ${remotechain} (selector: ${remoteChainSelector}) is not supported by this pool.\n` +
@@ -158,7 +158,7 @@ export const addRemotePool = task("addRemotePool", "Add a remote pool for a spec
         logger.info(`   Prepared remote pool address: ${remotepooladdress} → ${preparedRemoteAddress}`);
 
         // ✅ Check if the remote pool is already added
-        const existingRemotePools = await (pool as any).read.getRemotePools([remoteChainSelectorBigInt]);
+        const existingRemotePools = await pool.read.getRemotePools([remoteChainSelectorBigInt]);
         const isAlreadyAdded = existingRemotePools.some((existingPool: string) => 
           existingPool.toLowerCase() === preparedRemoteAddress.toLowerCase()
         );
@@ -174,8 +174,8 @@ export const addRemotePool = task("addRemotePool", "Add a remote pool for a spec
         logger.info(`   ✅ Remote pool not yet added, proceeding with addition`);
 
         // ✅ Execute transaction
-        const txHash = await (pool as any).write.addRemotePool(
-          [remoteChainSelectorBigInt, preparedRemoteAddress],
+        const txHash = await pool.write.addRemotePool(
+          [remoteChainSelectorBigInt, preparedRemoteAddress as `0x${string}`],
           { account: wallet.account }
         );
 

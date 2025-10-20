@@ -44,6 +44,7 @@ export const npmFilesToBuild = [
       "@chainlink/contracts-ccip/contracts/tokenAdminRegistry/RegistryModuleOwnerCustom.sol",
       "@chainlink/contracts-ccip/contracts/tokenAdminRegistry/TokenAdminRegistry.sol",
       "@chainlink/contracts-ccip/contracts/interfaces/IRouterClient.sol",
+      "@chainlink/contracts/src/v0.8/shared/access/OwnerIsCreator.sol"
 ];
 
 console.log("✅ Tasks loaded from /tasks/index.ts");

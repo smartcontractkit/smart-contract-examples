@@ -5,9 +5,6 @@ import { randomBytes } from "crypto";
 import SafeDefault from "@safe-global/protocol-kit";
 import { logger } from "../../config";
 
-// Type assertion for Safe.init() which exists at runtime but not in types
-const Safe = SafeDefault as any;
-
 /**
  * Deploys a new Safe (Gnosis Safe) account.
  *
@@ -106,7 +103,7 @@ export const deploySafe = task("deploySafe", "Deploys a new Safe multisig contra
         logger.info(`   Deploying Safe contract...`);
 
         // ✅ Deploy the Safe using Safe.init() with predictedSafe configuration
-        const protocolKit = await Safe.init({
+        const protocolKit = await SafeDefault.init({
           provider: rpcUrl,
           signer: privateKey,
           predictedSafe: {

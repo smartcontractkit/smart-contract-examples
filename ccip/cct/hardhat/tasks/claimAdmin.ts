@@ -108,6 +108,10 @@ export const claimAdmin = task("claimAdmin", "Claims the admin of a token via va
           TokenContractName.BurnMintERC20,
           tokenaddress as `0x${string}`
         );
+        const ownerIsCreator = await viem.getContractAt(
+          CCIPContractName.OwnerIsCreator,
+          tokenaddress as `0x${string}`
+        );
 
         // Call the appropriate method based on mode
         let txHash: `0x${string}`;
@@ -115,7 +119,7 @@ export const claimAdmin = task("claimAdmin", "Claims the admin of a token via va
         if (registrationMode === RegistrationMode.OWNER) {
           // For Owner mode, check if token implements Ownable
           try {
-            const owner = await (token as any).read.owner();
+            const owner = await ownerIsCreator.read.owner();
             if (owner.toLowerCase() !== wallet.account.address.toLowerCase()) {
               throw new Error(
                 `Current wallet ${wallet.account.address} is NOT the token owner (${owner}).` +
@@ -145,7 +149,7 @@ export const claimAdmin = task("claimAdmin", "Claims the admin of a token via va
         } else if (registrationMode === RegistrationMode.GET_CCIP_ADMIN) {
           let ccipAdmin: `0x${string}`;
           try {
-            const adminResult = await (token as any).read.getCCIPAdmin();
+            const adminResult = await token.read.getCCIPAdmin();
             if (!isAddress(adminResult)) {
               throw new Error(`Invalid address returned from getCCIPAdmin: ${adminResult}`);
             }
@@ -178,8 +182,8 @@ export const claimAdmin = task("claimAdmin", "Claims the admin of a token via va
           logger.info(`📤 TX sent: ${hash}. Waiting for ${confirmations} confirmations...`);
         } else if (registrationMode === RegistrationMode.ACCESS_CONTROL) {
           try {
-            const ADMIN_ROLE = await (token as any).read.CCIP_ADMIN_ROLE();
-            const hasRole = await (token as any).read.hasRole([
+            const ADMIN_ROLE = await token.read.DEFAULT_ADMIN_ROLE();
+            const hasRole = await token.read.hasRole([
               ADMIN_ROLE,
               wallet.account.address,
             ]);

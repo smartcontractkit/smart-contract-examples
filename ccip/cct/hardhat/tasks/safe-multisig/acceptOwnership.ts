@@ -8,8 +8,6 @@ import {
 import SafeDefault from "@safe-global/protocol-kit";
 import { isAddress, encodeFunctionData, keccak256, toHex } from "viem";
 
-const Safe = SafeDefault as any;
-
 /**
  * Accept ownership of a contract through a Gnosis Safe.
  *
@@ -232,12 +230,12 @@ export const acceptOwnershipFromSafe = task(
       logger.info(`⚙️ Initializing Safe Protocol Kit for multisig transaction...`);
 
       // ⚙️ Initialize Safe instances for both signers
-      const safe1 = await Safe.init({
+      const safe1 = await SafeDefault.init({
         provider: rpcUrl,
         signer: pk1,
         safeAddress: safeaddress,
       });
-      const safe2 = await Safe.init({
+      const safe2 = await SafeDefault.init({
         provider: rpcUrl,
         signer: pk2,
         safeAddress: safeaddress,
@@ -287,7 +285,7 @@ export const acceptOwnershipFromSafe = task(
       logger.info(
         `⏳ Waiting ${confirmations} blocks for tx ${result.hash} to confirm...`
       );
-      await (result.transactionResponse as any).wait(confirmations);
+      await result.transactionResponse.wait(confirmations);
 
       logger.info(`✅ Ownership accepted successfully for ${contractaddress}`);
     },
