@@ -1,5 +1,5 @@
 import hre from "hardhat";
-import { parseEventLogs } from "viem";
+import { maxUint256, parseEventLogs } from "viem";
 import { SupportedNetworks, getCCIPConfig } from "../../ccip.config";
 import deployedContracts from "../generatedData.json";
 
@@ -31,7 +31,6 @@ async function sendCCIPMessages() {
     `Approving ${linkTokenAddress} for ${senderAddress}. Allowance is max uint256. Signer ${wallet.account.address}...`
   );
   
-  const maxUint256 = BigInt("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
   let txHash = await linkToken.write.approve(
     [senderAddress as `0x${string}`, maxUint256],
     { account: wallet.account }
