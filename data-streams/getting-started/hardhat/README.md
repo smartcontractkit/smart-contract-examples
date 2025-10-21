@@ -32,7 +32,7 @@ This guide uses the [Hardhat](https://hardhat.org/) development environment to d
 
    ```bash
    git clone https://github.com/smartcontractkit/smart-contract-examples.git
-   cd smart-contract-examples/data-streams/getting-started/hardhat3
+   cd smart-contract-examples/data-streams/getting-started/hardhat
    ```
 
 1. Install all the dependencies:
