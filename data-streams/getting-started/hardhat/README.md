@@ -94,11 +94,11 @@ Replace `<StreamsUpkeepRegistrarAddress>` with the address of the `StreamsUpkeep
 Expect output similar to the following in your terminal:
 
 ```bash
-ℹ Starting LINK transfer from 0xAd2A096396AaAb37F153d26DbF695f4F9AB59DA1 to 0x07E8dEe8Ce82Ba750E525EB9151b57a76f731806
+ℹ Starting LINK transfer from <YOUR ADDRESS> to 0x07E8dEe8Ce82Ba750E525EB9151b57a76f731806
 ℹ LINK token address: 0xb1D4538B4571d411F07960EF2838Ce337FE1E80E
-ℹ LINK balance of sender 0xAd2A096396AaAb37F153d26DbF695f4F9AB59DA1 is 38.84611618077145972 LINK
+ℹ LINK balance of sender <YOUR ADDRESS> is 38.84611618077145972 LINK
 ℹ Transaction submitted: 0xf170c98ec99b322747ec3b87306f37f384c978b84cee11006d9b80d9cee6e78d
-✔ 1.5 LINK were sent from 0xAd2A096396AaAb37F153d26DbF695f4F9AB59DA1 to 0x07E8dEe8Ce82Ba750E525EB9151b57a76f731806
+✔ 1.5 LINK were sent from <YOUR ADDRESS> to 0x07E8dEe8Ce82Ba750E525EB9151b57a76f731806
   Transaction Hash: 0xf170c98ec99b322747ec3b87306f37f384c978b84cee11006d9b80d9cee6e78d
   Block Number: 207017202
   Gas Used: 51658
