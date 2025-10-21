@@ -9,7 +9,8 @@
     "link": "0x0b9d5D9136855f6FEc3c0993feE6E9CE8a297846",
     "confirmations": 2,
     "nativeCurrencySymbol": "AVAX",
-    "chainType": "evm"
+    "chainType": "l1",
+    "chainFamily": "evm"
   },
   "arbitrumSepolia": {
     "chainId": 421614,
@@ -21,7 +22,8 @@
     "link": "0xb1D4538B4571d411F07960EF2838Ce337FE1E80E",
     "confirmations": 2,
     "nativeCurrencySymbol": "ETH",
-    "chainType": "evm"
+    "chainType": "l1",
+    "chainFamily": "evm"
   },
   "ethereumSepolia": {
     "chainId": 11155111,
@@ -33,7 +35,8 @@
     "link": "0x779877A7B0D9E8603169DdbD7836e478b4624789",
     "confirmations": 3,
     "nativeCurrencySymbol": "ETH",
-    "chainType": "evm"
+    "chainType": "l1",
+    "chainFamily": "evm"
   },
   "baseSepolia": {
     "chainId": 84532,
@@ -45,7 +48,8 @@
     "link": "0xE4aB69C077896252FAFBD49EFD26B5D171A32410",
     "confirmations": 2,
     "nativeCurrencySymbol": "ETH",
-    "chainType": "evm"
+    "chainType": "op",
+    "chainFamily": "evm"
   },
   "polygonAmoy": {
     "chainId": 80002,
@@ -57,11 +61,13 @@
     "link": "0x0Fd9e8d3aF1aaee056EB9e802c3A762a667b1904",
     "confirmations": 3,
     "nativeCurrencySymbol": "POL",
-    "chainType": "evm"
+    "chainType": "l1",
+    "chainFamily": "evm"
   },
   "solanaDevnet": {
     "chainId": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
     "chainSelector": "16423721717087811551",
-    "chainType": "svm"
+    "chainType": "generic",
+    "chainFamily": "svm"
   }
 }

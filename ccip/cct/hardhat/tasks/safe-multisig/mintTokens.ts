@@ -1,211 +1,238 @@
-import { task } from "hardhat/config"; // Import the "task" utility from Hardhat to define custom tasks
-import { Chains, networks, logger, getEVMNetworkConfig } from "../../config"; // Import configurations for chains, networks, and a logger for logging messages
+import { task } from "hardhat/config";
+import { HardhatRuntimeEnvironment } from "hardhat/types/hre";
+import { Chains, logger, getEVMNetworkConfig } from "../../config";
 import {
   MetaTransactionData,
   SafeTransaction,
   TransactionResult,
-} from "@safe-global/safe-core-sdk-types"; // Import Safe transaction-related types
-import Safe, { SigningMethod } from "@safe-global/protocol-kit"; // Import Safe SDK and signing methods to interact with Safe multisig accounts
+} from "@safe-global/safe-core-sdk-types";
+import SafeDefault from "@safe-global/protocol-kit";
+import { isAddress, encodeFunctionData } from "viem";
+import { TokenContractName } from "../../config/types";
 
-// Define the interface for the task arguments
-interface MintTokensArgs {
-  tokenaddress: string; // The address of the token contract
-  amount: string; // The amount of tokens to mint to each recipient
-  receiveraddresses: string; // Comma-separated list of addresses to receive the minted tokens
-  safeaddress: string; // The Safe multisig account address that will execute the transaction
-}
+/**
+ * Mint tokens to multiple receivers through a Gnosis Safe.
+ *
+ * Example:
+ * npx hardhat mintTokensFromSafe \
+ *   --tokenaddress 0xYourToken \
+ *   --amount 1000000000000000000 \
+ *   --receiveraddresses 0xAddr1,0xAddr2 \
+ *   --safeaddress 0xYourSafe \
+ *   --network sepolia
+ */
+export const mintTokensFromSafe = task("mintTokensFromSafe", "Mint tokens to multiple receivers via Safe multisig")
+  .addOption({
+    name: "tokenaddress",
+    description: "The address of the token contract",
+    defaultValue: "",
+  })
+  .addOption({
+    name: "amount",
+    description: "The amount of tokens to mint per receiver (in wei)",
+    defaultValue: "",
+  })
+  .addOption({
+    name: "receiveraddresses",
+    description: "Comma-separated list of receiver addresses",
+    defaultValue: "",
+  })
+  .addOption({
+    name: "safeaddress",
+    description: "The address of the Safe multisig",
+    defaultValue: "",
+  })
+  .setAction(async () => ({
+    default: async (
+      {
+        tokenaddress,
+        amount,
+        receiveraddresses,
+        safeaddress,
+      }: {
+        tokenaddress: string;
+        amount: string;
+        receiveraddresses: string;
+        safeaddress: string;
+      },
+      hre: HardhatRuntimeEnvironment
+    ) => {
+      // ⚙️ Validate required parameters
+      if (!tokenaddress) throw new Error("❌ --tokenaddress is required");
+      if (!amount) throw new Error("❌ --amount is required");
+      if (!receiveraddresses) throw new Error("❌ --receiveraddresses is required");
+      if (!safeaddress) throw new Error("❌ --safeaddress is required");
 
-// Define a new Hardhat task named "mintTokensFromSafe"
-task("mintTokensFromSafe", "Mint tokens to multiple receivers via Safe")
-  // Add parameters for the task with descriptions
-  .addParam("tokenaddress", "The address of the token")
-  .addParam("amount", "The amount to mint for each address")
-  .addParam(
-    "receiveraddresses",
-    "Comma-separated list of addresses to receive the minted tokens"
-  )
-  .addParam("safeaddress", "The Safe address to execute the transaction")
-  .setAction(async (taskArgs: MintTokensArgs, hre) => {
-    // Destructure task arguments for easier reference
-    const {
-      tokenaddress: tokenAddress,
-      amount,
-      receiveraddresses: receiverAddresses,
-      safeaddress: safeAddress,
-    } = taskArgs;
 
-    // Get the current network's name from Hardhat runtime environment
-    const networkName = hre.network.name as Chains;
+      // ⚙️ Connect to network and get viem client
+      const networkConnection = await hre.network.connect();
+      const { viem } = networkConnection;
+      const networkName = networkConnection.networkName as Chains;
+      const publicClient = await viem.getPublicClient();
 
-    // Validate that the network is configured
-    const networkConfig = getEVMNetworkConfig(networkName);
-    if (!networkConfig) {
-      throw new Error(`Network ${networkName} not found in config`);
-    }
+      // ⚙️ Validate network config
+      const networkConfig = getEVMNetworkConfig(networkName);
+      if (!networkConfig)
+        throw new Error(`❌ Network ${networkName} not found in config`);
 
-    // Get the signer from the list of available signers
-    const signer = (await hre.ethers.getSigners())[0];
+      const { confirmations } = networkConfig;
+      if (confirmations === undefined)
+        throw new Error(`❌ confirmations not defined for ${networkName}`);
 
-    // Split and validate receiver addresses
-    const receivers = receiverAddresses
-      .split(",")
-      .map((address) => address.trim());
+      // ⚙️ Validate addresses
+      if (!isAddress(tokenaddress))
+        throw new Error(`❌ Invalid token address: ${tokenaddress}`);
+      if (!isAddress(safeaddress))
+        throw new Error(`❌ Invalid Safe address: ${safeaddress}`);
 
-    // Ensure there is at least one receiver address
-    if (receivers.length === 0) {
-      throw new Error("No receiver addresses provided");
-    }
+      // ⚙️ Parse and validate receivers
+      const receivers = receiveraddresses
+        .split(",")
+        .map((a: string) => a.trim())
+        .filter(Boolean);
 
-    // Validate each receiver address
-    for (const address of receivers) {
-      if (!hre.ethers.isAddress(address)) {
-        throw new Error(`Invalid receiver address: ${address}`);
+      if (receivers.length === 0)
+        throw new Error("❌ No receiver addresses provided");
+
+      for (const r of receivers) {
+        if (!isAddress(r))
+          throw new Error(`❌ Invalid receiver address: ${r}`);
       }
-    }
 
-    // Validate the token address
-    if (!hre.ethers.isAddress(tokenAddress)) {
-      throw new Error(`Invalid token address: ${tokenAddress}`);
-    }
+        // ⚙️ Environment variables for Safe signers
+      const pk1 = process.env.PRIVATE_KEY;
+      const pk2 = process.env.PRIVATE_KEY_2;
+      if (!pk1 || !pk2)
+        throw new Error("❌ Both PRIVATE_KEY and PRIVATE_KEY_2 must be set");
 
-    // Validate the Safe address
-    if (!hre.ethers.isAddress(safeAddress)) {
-      throw new Error(`Invalid Safe address: ${safeAddress}`);
-    }
+      // ⚙️ Extract RPC URL for Safe Protocol Kit
+      const rpcUrl = publicClient.chain.rpcUrls.default.http[0];
+      if (!rpcUrl)
+        throw new Error(`❌ RPC URL not found for ${networkName}`);
 
-    // Ensure both PRIVATE_KEY and PRIVATE_KEY_2 environment variables are set
-    const privateKey = process.env.PRIVATE_KEY;
-    const privateKey2 = process.env.PRIVATE_KEY_2;
+      logger.info(`⚙️ Connecting to token contract at ${tokenaddress}...`);
 
-    if (!privateKey || !privateKey2) {
-      throw new Error(
-        "Both PRIVATE_KEY and PRIVATE_KEY_2 environment variables must be set"
+      // ⚙️ Get token contract interface
+      const token = await viem.getContractAt(
+        TokenContractName.BurnMintERC20,
+        tokenaddress as `0x${string}`
       );
-    }
 
-    // Retrieve network configuration details, including the RPC URL
-    const rpcUrl = networkConfig.url;
-    if (!rpcUrl) {
-      throw new Error("RPC URL not found in network config");
-    }
+      // ⚙️ Verify Safe has MINTER_ROLE (required for minting)
+      try {
+        const minterRole = await token.read.MINTER_ROLE();
+        const hasMinterRole = await token.read.hasRole([minterRole, safeaddress as `0x${string}`]);
 
-    // Retrieve the number of confirmations required for the transaction
-    const { confirmations } = networkConfig;
-    if (confirmations === undefined) {
-      throw new Error(`Confirmations are not defined for ${networkName}`);
-    }
+        logger.info(`⚙️ Checking if Safe has MINTER_ROLE...`);
+        
+        if (!hasMinterRole) {
+          throw new Error(
+            `❌ Safe (${safeaddress}) does not have MINTER_ROLE on token (${tokenaddress}).\n` +
+            `   Please grant MINTER_ROLE to the Safe before attempting to mint.\n` +
+            `   \n` +
+            `   Run the following command to grant the role:\n` +
+            `   npx hardhat grantMintBurnRoleFromSafe --tokenaddress ${tokenaddress} --burnerminters ${safeaddress} --safeaddress ${safeaddress} --network ${networkName}`
+          );
+        }
+        
+        logger.info(`✅ Safe has MINTER_ROLE - proceeding with mint transaction`);
+      } catch (e: any) {
+        // If it's our custom error, re-throw it
+        if (e.message?.includes("does not have MINTER_ROLE")) {
+          throw e;
+        }
+        // Otherwise, it might be a contract call error
+        throw new Error(
+          `❌ Failed to verify MINTER_ROLE on token contract.\n` +
+          `   Error: ${e.message}\n` +
+          `   Ensure the token contract at ${tokenaddress} is a valid BurnMintERC20 contract.`
+        );
+      }
 
-    // Log connection to the token contract and initialize it
-    logger.info(`Connecting to token contract at ${tokenAddress}...`);
-    const { BurnMintERC20__factory } = await import("../../typechain-types");
-    const tokenContract = BurnMintERC20__factory.connect(tokenAddress, signer);
-
-    // Log the minting process
-    logger.info(
-      `Minting ${amount} of ${await tokenContract.symbol()} tokens to multiple addresses: ${receivers.join(
-        ", "
-      )}`
-    );
-
-    // Create meta-transaction data for each receiver
-    const metaTransactions: MetaTransactionData[] = receivers.map(
-      (receiver) => ({
-        to: tokenAddress, // Address of the token contract
-        data: tokenContract.interface.encodeFunctionData("mint", [
-          receiver,
-          amount,
-        ]), // Encoded function data to mint tokens to each receiver
-        value: "0", // No Ether is being transferred with the mint transaction
-      })
-    );
-
-    // Initialize Safe signers using the Safe Protocol Kit for both owners
-    const safeSigner1 = await Safe.init({
-      provider: rpcUrl, // The RPC URL for the network
-      signer: privateKey, // Private key of the first Safe signer
-      safeAddress: safeAddress, // Address of the Safe
-    });
-
-    const safeSigner2 = await Safe.init({
-      provider: rpcUrl, // The RPC URL for the network
-      signer: privateKey2, // Private key of the second Safe signer
-      safeAddress: safeAddress, // Address of the Safe
-    });
-
-    // Create the Safe transaction containing all mint meta-transactions
-    let safeTransaction: SafeTransaction;
-    try {
-      safeTransaction = await safeSigner1.createTransaction({
-        transactions: metaTransactions, // Transactions to mint tokens to each receiver
+      // ⚙️ Initialize Safe instances for both signers
+      logger.info(`⚙️ Initializing Safe Protocol Kit for multisig transaction...`);
+      
+      const safe1 = await SafeDefault.init({
+        provider: rpcUrl,
+        signer: pk1,
+        safeAddress: safeaddress,
       });
-      logger.info("Safe transaction created");
-    } catch (error) {
-      logger.error("Failed to create Safe transaction", error);
-      throw new Error("Failed to create Safe transaction");
-    }
+      const safe2 = await SafeDefault.init({
+        provider: rpcUrl,
+        signer: pk2,
+        safeAddress: safeaddress,
+      });
 
-    // Sign the Safe transaction with the first owner
-    let signedSafeTransaction: SafeTransaction;
-    try {
-      signedSafeTransaction = await safeSigner1.signTransaction(
-        safeTransaction,
-        SigningMethod.ETH_SIGN // Use ETH_SIGN as the signing method
-      );
-      logger.info("Safe transaction signed by owner 1");
-    } catch (error) {
-      logger.error("Failed to sign Safe transaction by owner 1", error);
-      throw new Error("Failed to sign Safe transaction by owner 1");
-    }
-
-    // Sign the Safe transaction with the second owner
-    try {
-      signedSafeTransaction = await safeSigner2.signTransaction(
-        signedSafeTransaction,
-        SigningMethod.ETH_SIGN // Use ETH_SIGN as the signing method for the second owner
-      );
-      logger.info("Safe transaction signed by owner 2");
-    } catch (error) {
-      logger.error("Failed to sign Safe transaction by owner 2", error);
-      throw new Error("Failed to sign Safe transaction by owner 2");
-    }
-
-    // Execute the signed Safe transaction
-    logger.info(
-      `Executing Safe transaction to mint tokens to multiple addresses...`
-    );
-
-    let result: TransactionResult;
-    try {
-      result = await safeSigner1.executeTransaction(signedSafeTransaction);
-    } catch (error) {
-      logger.error("Error executing Safe transaction", error);
-      throw new Error("Error executing Safe transaction");
-    }
-
-    logger.info("Executed Safe transaction");
-
-    // Wait for the transaction to be confirmed on the blockchain
-    if (result && result.transactionResponse) {
       logger.info(
-        `Waiting for ${confirmations} blocks for transaction ${result.hash} to be confirmed...`
+        `⚙️ Preparing to mint ${amount} tokens to receivers: ${receivers.join(", ")}`
       );
 
-      // Wait for the specified number of block confirmations
-      await (result.transactionResponse as any).wait(confirmations);
-      logger.info(`Transaction confirmed after ${confirmations} blocks.`);
-    } else {
-      throw new Error("No transaction response available");
-    }
+      // ⚙️ Build meta-transactions for each receiver
+      const metaTxs: MetaTransactionData[] = receivers.map((to: string) => ({
+        to: tokenaddress,
+        data: encodeFunctionData({
+          abi: token.abi,
+          functionName: "mint",
+          args: [to as `0x${string}`, BigInt(amount)],
+        }),
+        value: "0",
+      }));
 
-    // Log details for each receiver to confirm successful minting
-    for (const receiver of receivers) {
+      // ⚙️ Create Safe transaction
+      let safeTx: SafeTransaction;
+      try {
+        safeTx = await safe1.createTransaction({ transactions: metaTxs });
+        logger.info("✅ Safe transaction created");
+      } catch (e) {
+        logger.error("❌ Failed to create Safe transaction", e);
+        throw e;
+      }
+
+      // ⚙️ Sign by both owners
+      try {
+        // Sign with both owners - signatures will be collected in the transaction
+        safeTx = await safe1.signTransaction(safeTx);
+        logger.info("✅ Signed by owner 1");
+        
+        safeTx = await safe2.signTransaction(safeTx);
+        logger.info("✅ Signed by owner 2");
+        
+        logger.info(`✅ Transaction has ${safeTx.signatures.size} signature(s)`);
+      } catch (e) {
+        logger.error("❌ Error signing Safe transaction", e);
+        throw e;
+      }
+
+      // ⚙️ Execute via Safe
+      logger.info("🚀 Executing Safe transaction to mint tokens...");
+      let result: any;
+      try {
+        result = await safe1.executeTransaction(safeTx);
+      } catch (e) {
+        logger.error("❌ Safe execution failed", e);
+        throw e;
+      }
+
+      if (!result?.transactionResponse)
+        throw new Error("❌ No transaction response returned");
+
       logger.info(
-        `Minted ${amount} of ${await tokenContract.symbol()} tokens to ${receiver}`
+        `⏳ Waiting ${confirmations} blocks for tx ${result.hash} confirmation...`
       );
-      logger.info(
-        `Current balance of ${receiver} is ${await tokenContract.balanceOf(
-          receiver
-        )} ${await tokenContract.symbol()}`
-      );
-    }
-  });
+      await result.transactionResponse.wait(confirmations);
+
+      logger.info("✅ Tokens minted successfully via Safe multisig");
+
+      // ℹ️ Display receiver balances
+      try {
+        const symbol = await token.read.symbol();
+        for (const r of receivers) {
+          const balance = await token.read.balanceOf([r as `0x${string}`]);
+          logger.info(`ℹ️ ${r} → balance: ${balance.toString()} ${symbol}`);
+        }
+      } catch {
+        logger.warn("⚠️ Could not fetch balances (read error).");
+      }
+    },
+  }))
+  .build();

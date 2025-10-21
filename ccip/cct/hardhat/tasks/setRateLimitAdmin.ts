@@ -1,56 +1,117 @@
 import { task } from "hardhat/config";
-import { Chains, networks, logger, getEVMNetworkConfig } from "../config";
+import { HardhatRuntimeEnvironment } from "hardhat/types/hre";
+import { isAddress } from "viem";
+import {
+  Chains,
+  CCIPContractName,
+  logger,
+  getEVMNetworkConfig,
+} from "../config";
 
-// Define the interface for the task arguments
-interface SetRateLimitAdminArgs {
-  pooladdress: string; // The address of the token pool
-  adminaddress: string; // The address of the new rate limit administrator
-}
+/**
+ * Sets the rate-limit administrator for a TokenPool contract.
+ *
+ * Example:
+ * npx hardhat setRateLimitAdmin \
+ *   --pooladdress 0xYourPool \
+ *   --adminaddress 0xNewAdmin \
+ *   --network sepolia
+ */
+export const setRateLimitAdmin = task("setRateLimitAdmin", "Sets the rate-limit administrator for a token pool")
+  .addOption({
+    name: "pooladdress",
+    description: "The token pool address",
+    defaultValue: "",
+  })
+  .addOption({
+    name: "adminaddress",
+    description: "The new rate limit admin address",
+    defaultValue: "",
+  })
+  .setAction(async () => ({
+    default: async (
+      {
+        pooladdress,
+        adminaddress,
+      }: {
+        pooladdress: string;
+        adminaddress: string;
+      },
+      hre: HardhatRuntimeEnvironment
+    ) => {
+      // Validate required parameters
+      if (!pooladdress) {
+        throw new Error("Pool address is required (--pooladdress)");
+      }
 
-// Task to set the rate limit administrator for a token pool
-// The rate limit admin can update rate limits without being the pool owner
-task("setRateLimitAdmin", "Set the rate limit admin for a token pool")
-  .addParam("pooladdress", "The address of the pool") // The token pool to configure
-  .addParam("adminaddress", "The address of the new rate limit admin") // The address that will have rate limit admin rights
-  .setAction(async (taskArgs: SetRateLimitAdminArgs, hre) => {
-    const { pooladdress: poolAddress, adminaddress: adminAddress } = taskArgs;
-    const networkName = hre.network.name as Chains;
+      if (!adminaddress) {
+        throw new Error("Admin address is required (--adminaddress)");
+      }
 
-    // Ensure the network is configured in the network settings
-    const networkConfig = getEVMNetworkConfig(networkName);
-    if (!networkConfig) {
-      throw new Error(`Network ${networkName} not found in config`);
-    }
+      // Connect to network first
+      const networkConnection = await hre.network.connect();
+      const { viem } = networkConnection;
+      const networkName = networkConnection.networkName as Chains;
+      const networkConfig = getEVMNetworkConfig(networkName);
+      if (!networkConfig) throw new Error(`Network ${networkName} not found`);
+      const { confirmations } = networkConfig;
+      if (confirmations === undefined)
+        throw new Error(`confirmations missing for ${networkName}`);
 
-    // Validate the provided addresses are properly formatted
-    if (!hre.ethers.isAddress(poolAddress)) {
-      throw new Error(`Invalid pool address: ${poolAddress}`);
-    }
+      // ✅ Validate addresses
+      if (!isAddress(pooladdress))
+        throw new Error(`Invalid pool address: ${pooladdress}`);
+      if (!isAddress(adminaddress))
+        throw new Error(`Invalid admin address: ${adminaddress}`);
 
-    if (!hre.ethers.isAddress(adminAddress)) {
-      throw new Error(`Invalid admin address: ${adminAddress}`);
-    }
+      const [wallet] = await viem.getWalletClients();
+      const publicClient = await viem.getPublicClient();
 
-    // Get the signer to interact with the contract
-    const signer = (await hre.ethers.getSigners())[0];
-    const { TokenPool__factory } = await import("../typechain-types");
-    const poolContract = TokenPool__factory.connect(poolAddress, signer);
+      try {
+        logger.info(`⚙️  Setting rate-limit admin for pool ${pooladdress} on ${networkName}...`);
+        logger.info(`   New admin address: ${adminaddress}`);
 
-    // Log the operation being performed
-    logger.info(
-      `Setting rate limit admin to ${adminAddress} for pool at ${poolAddress}`
-    );
+        // ✅ Connect to TokenPool contract
+        const pool = await viem.getContractAt(
+          CCIPContractName.TokenPool,
+          pooladdress as `0x${string}`
+        );
 
-    // Execute the transaction to set the new rate limit admin
-    const tx = await poolContract.setRateLimitAdmin(adminAddress);
+        // ✅ Check if the caller is the pool owner
+        const owner = await pool.read.owner();
+        const callerAddress = wallet.account.address;
+        
+        if (callerAddress.toLowerCase() !== owner.toLowerCase()) {
+          throw new Error(
+            `Unauthorized: Only the pool owner can set the rate limit admin.\n` +
+            `Caller: ${callerAddress}\n` +
+            `Owner: ${owner}`
+          );
+        }
+        
+        logger.info(`   ✅ Caller is the pool owner`);
 
-    // Get the required confirmations from network config
-    const { confirmations } = networkConfig;
-    if (confirmations === undefined) {
-      throw new Error(`confirmations is not defined for ${networkName}`);
-    }
+        // ✅ Send transaction
+        const txHash = await pool.write.setRateLimitAdmin(
+          [adminaddress as `0x${string}`],
+          { account: wallet.account }
+        );
 
-    // Wait for the transaction to be confirmed
-    await tx.wait(confirmations);
-    logger.info("Rate limit admin updated successfully");
-  });
+        logger.info(`⏳ Rate limit admin update tx: ${txHash}`);
+        logger.info(`   Waiting for ${confirmations} confirmation(s)...`);
+
+        await publicClient.waitForTransactionReceipt({ 
+          hash: txHash,
+          confirmations,
+        });
+
+        logger.info(`✅ Rate-limit admin updated successfully`);
+        logger.info(`   Transaction: ${txHash}`);
+
+      } catch (error) {
+        logger.error("❌ Rate limit admin update failed:", error);
+        throw error;
+      }
+    },
+  }))
+  .build();

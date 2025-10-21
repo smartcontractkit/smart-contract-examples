@@ -1,180 +1,205 @@
-import { task, types } from "hardhat/config";
+import { task } from "hardhat/config";
+import { HardhatRuntimeEnvironment } from "hardhat/types/hre";
+import { verifyContract } from "@nomicfoundation/hardhat-verify/verify";
+import { isAddress } from "viem";
 import {
   Chains,
   logger,
   TokenPoolContractName,
   PoolType,
   getEVMNetworkConfig,
+  TokenContractName,
 } from "../config";
 
-interface DeployTokenPoolTaskArgs {
-  verifycontract: boolean;
-  tokenaddress: string;
-  pooltype: string; // 'burnMint' or 'lockRelease'
-  localtokendecimals?: number; // Optional, defaults to 18
-}
-
-// Task to deploy a Token Pool (BurnMintTokenPool or LockReleaseTokenPool)
-task("deployTokenPool", "Deploys a token pool")
-  .addParam("tokenaddress", "The address of the token")
-  .addOptionalParam(
-    "verifycontract",
-    "Verify the contract on Blockchain scan",
-    false,
-    types.boolean
-  )
-  .addOptionalParam(
-    "pooltype",
-    "Type of the pool (burnMint or lockRelease)",
-    "burnMint",
-    types.string
-  )
-  .addOptionalParam(
-    "localtokendecimals",
-    "Local token decimals (defaults to 18)",
-    18,
-    types.int
-  )
-  .setAction(async (taskArgs: DeployTokenPoolTaskArgs, hre) => {
-    const {
-      verifycontract: verifyContract,
-      tokenaddress: tokenAddress,
-      pooltype: poolType,
-      localtokendecimals: localTokenDecimals = 18, // Default to 18 if not provided
-    } = taskArgs;
-    const networkName = hre.network.name as Chains;
-
-    // Ensure the network is configured
-    const networkConfig = getEVMNetworkConfig(networkName);
-    if (!networkConfig) {
-      throw new Error(`Network ${networkName} not found in config`);
-    }
-
-    // Validate the token address
-    if (!tokenAddress || !hre.ethers.isAddress(tokenAddress)) {
-      throw new Error(`Invalid token address: ${tokenAddress}`);
-    }
-
-    // Extract router and RMN proxy from the network config
-    const { router, rmnProxy, confirmations } = networkConfig;
-    if (!router || !rmnProxy) {
-      throw new Error(`Router or RMN Proxy not defined for ${networkName}`);
-    }
-
-    try {
-      let tokenPool;
-      let tokenPoolAddress: string;
-      const constructorArgs: any[] = [];
-
-      if (poolType === PoolType.burnMint) {
-        // Load the contract factory for BurnMintTokenPool
-        const TokenPoolFactory = await hre.ethers.getContractFactory(
-          TokenPoolContractName.BurnMintTokenPool
-        );
-
-        // Deploy BurnMintTokenPool with localTokenDecimals
-        tokenPool = await TokenPoolFactory.deploy(
-          tokenAddress,
-          localTokenDecimals,
-          [], // Allowlist (empty array)
-          rmnProxy,
-          router
-        );
-        constructorArgs.push(
-          tokenAddress,
-          localTokenDecimals,
-          [],
-          rmnProxy,
-          router
-        );
-      } else if (poolType === PoolType.lockRelease) {
-        // Load the contract factory for LockReleaseTokenPool
-        const TokenPoolFactory = await hre.ethers.getContractFactory(
-          TokenPoolContractName.LockReleaseTokenPool
-        );
-
-        // Deploy LockReleaseTokenPool with localTokenDecimals
-        tokenPool = await TokenPoolFactory.deploy(
-          tokenAddress,
-          localTokenDecimals,
-          [], // Allowlist (empty array)
-          rmnProxy,
-          router
-        );
-        constructorArgs.push(
-          tokenAddress,
-          localTokenDecimals,
-          [],
-          rmnProxy,
-          router
-        );
-      } else {
-        throw new Error(`Invalid poolType: ${poolType}`);
+/**
+ * Deploy a token pool (BurnMintTokenPool or LockReleaseTokenPool)
+ *
+ * Example:
+ * npx hardhat deployTokenPool \
+ *   --tokenaddress 0xYourToken \
+ *   --pooltype burnMint \
+ *   --localtokendecimals 18 \
+ *   --allowlist "0xAddress1,0xAddress2,0xAddress3" \
+ *   --verifycontract \
+ *   --network sepolia
+ */
+export const deployTokenPool = task("deployTokenPool", "Deploys a token pool (burnMint or lockRelease)")
+  .addOption({
+    name: "tokenaddress",
+    description: "The token address",
+    defaultValue: "",
+  })
+  .addOption({
+    name: "pooltype",
+    description: "Pool type: burnMint or lockRelease",
+    defaultValue: "burnMint",
+  })
+  .addOption({
+    name: "localtokendecimals",
+    description: "The token decimals",
+    defaultValue: "18",
+  })
+  .addOption({
+    name: "allowlist",
+    description: "Comma-separated list of allowed addresses (optional, leave empty for no restrictions)",
+    defaultValue: "",
+  })
+  .addFlag({
+    name: "verifycontract",
+    description: "Verify the contract on Etherscan",
+  })
+  .setAction(async () => ({
+    default: async (
+      {
+        tokenaddress,
+        pooltype = "burnMint",
+        localtokendecimals = "18",
+        allowlist = "",
+        verifycontract = false,
+      }: {
+        tokenaddress: string;
+        pooltype?: string;
+        localtokendecimals?: string;
+        allowlist?: string;
+        verifycontract?: boolean;
+      },
+      hre: HardhatRuntimeEnvironment
+    ) => {
+      // Validate token address is provided
+      if (!tokenaddress) {
+        throw new Error("Token address is required (--tokenaddress)");
       }
 
-      if (confirmations === undefined) {
+      // Connect to network first
+      const networkConnection = await hre.network.connect();
+      const { viem } = networkConnection;
+      const networkName = networkConnection.networkName as Chains;
+
+      const networkConfig = getEVMNetworkConfig(networkName);
+      if (!networkConfig)
+        throw new Error(`Network ${networkName} not found in config`);
+
+      // Validate token address format
+      if (!isAddress(tokenaddress))
+        throw new Error(`Invalid token address: ${tokenaddress}`);
+
+      const { router, rmnProxy, confirmations } = networkConfig;
+      if (!router || !rmnProxy)
+        throw new Error(`Router or RMN Proxy not defined for ${networkName}`);
+      if (confirmations === undefined)
         throw new Error(`confirmations is not defined for ${networkName}`);
-      }
 
-      // Wait for transaction confirmation
-      logger.info(
-        `Waiting ${confirmations} blocks for transaction ${
-          tokenPool.deploymentTransaction()?.hash
-        } to be confirmed...`
-      );
-      await tokenPool.deploymentTransaction()?.wait(confirmations);
+      // Convert decimals to number
+      const decimalsNum = Number(localtokendecimals);
 
-      // Retrieve and log the deployed token pool address
-      tokenPoolAddress = await tokenPool.getAddress();
-      logger.info(`Token pool deployed to: ${tokenPoolAddress}`);
-
-      if (poolType === PoolType.burnMint) {
-        // Grant mint and burn roles to the token pool
-        logger.info(
-          `Granting mint and burn roles to ${tokenPoolAddress} on token ${tokenAddress}`
-        );
-
-        const { BurnMintERC20__factory } = await import("../typechain-types");
-        const signer = (await hre.ethers.getSigners())[0];
-
-        // Grant roles on the token contract for the token pool
-        const tx = await BurnMintERC20__factory.connect(
-          tokenAddress,
-          signer
-        ).grantMintAndBurnRoles(tokenPoolAddress);
-        await tx.wait(confirmations);
-      }
-      // If the verifyContract option is set, verify the contract on Etherscan
-      if (verifyContract) {
-        logger.info("Verifying contract...");
-        try {
-          await hre.run("verify:verify", {
-            address: tokenPoolAddress,
-            constructorArguments: constructorArgs,
-          });
-          logger.info("Token pool contract deployed and verified");
-        } catch (error) {
-          if (error instanceof Error) {
-            if (!error.message.includes("Already Verified")) {
-              logger.error(error.message);
-              logger.warn(
-                "Token pool contract deployed but not verified. Ensure you are waiting for enough confirmation blocks"
-              );
-            } else {
-              logger.warn("Token pool contract deployed but already verified");
-            }
-          } else {
-            logger.error(
-              "Token pool contract deployed but there was an unknown error while verifying"
-            );
-            logger.error(error);
+      // Parse allowlist from comma-separated string
+      let allowlistAddresses: string[] = [];
+      if (allowlist && allowlist.trim() !== "") {
+        allowlistAddresses = allowlist.split(",").map(addr => addr.trim());
+        
+        // Validate all addresses in the allowlist
+        for (const addr of allowlistAddresses) {
+          if (!isAddress(addr)) {
+            throw new Error(`Invalid address in allowlist: ${addr}`);
           }
         }
-      } else {
-        logger.info("Token pool contract deployed successfully");
       }
-    } catch (error) {
-      logger.error(error);
-      throw new Error("Token pool deployment failed");
-    }
-  });
+
+      logger.info(`🚀 Deploying ${pooltype} pool on ${networkName}`);
+      logger.info(`   Token: ${tokenaddress}`);
+      logger.info(`   Decimals: ${decimalsNum}`);
+      logger.info(`   Allowlist: ${allowlistAddresses.length > 0 ? allowlistAddresses.join(", ") : "None"}`);
+
+      const [wallet] = await viem.getWalletClients();
+      const publicClient = await viem.getPublicClient();
+
+      try {
+        // Determine contract name based on pool type
+        let contractName: string;
+
+        if (pooltype === PoolType.burnMint) {
+          contractName = TokenPoolContractName.BurnMintTokenPool;
+        } else if (pooltype === PoolType.lockRelease) {
+          contractName = TokenPoolContractName.LockReleaseTokenPool;
+        } else {
+          throw new Error(`Invalid pool type: ${pooltype}. Use 'burnMint' or 'lockRelease'`);
+        }
+
+        // Deploy the token pool
+        const constructorArgs = Array<any>([
+            tokenaddress,
+            decimalsNum,
+            allowlistAddresses, // allowlist (empty array or provided addresses)
+            rmnProxy,
+            router,
+        ]);
+
+        const { contract, deploymentTransaction } = await viem.sendDeploymentTransaction(
+          contractName,
+          ...constructorArgs
+        );
+
+
+        logger.info(`⏳ Deployment tx: ${deploymentTransaction.hash}`);
+        logger.info(`   Waiting for ${confirmations} confirmation(s)...`);
+        await publicClient.waitForTransactionReceipt({
+          hash: deploymentTransaction.hash,
+          confirmations,
+        });
+        logger.info(`✅ Token pool deployed at: ${contract.address}`);
+
+        // Grant mint/burn roles if BurnMint pool
+        if (pooltype === PoolType.burnMint) {
+          logger.info(
+            `Granting mint and burn roles to ${contract.address} on token ${tokenaddress}`
+          );
+          const token = await viem.getContractAt(
+            TokenContractName.BurnMintERC20,
+            tokenaddress as `0x${string}`
+          );
+          const grantTx = await token.write.grantMintAndBurnRoles(
+            [contract.address],
+            { account: wallet.account }
+          );
+          logger.info(`   Waiting for ${confirmations} confirmation(s)...`);
+          await publicClient.waitForTransactionReceipt({
+            hash: grantTx,
+            confirmations,
+          });
+          logger.info(`✅ Mint/Burn roles granted`);
+        }
+
+        // Verify contract if requested
+        if (verifycontract) {
+          logger.info("Verifying contract...");
+          try {
+            const isVerified = await verifyContract(
+              {
+                address: contract.address,
+                constructorArgs: constructorArgs.flat(),
+              },
+              hre,
+            );
+
+            if (isVerified) {
+              logger.info("✅ Token pool contract verified successfully");
+            } else {
+              logger.warn("Token pool contract verification failed");
+            }
+          } catch (error: any) {
+            if (error.message?.includes("Already Verified")) {
+              logger.warn("Token pool contract already verified");
+            } else {
+              logger.error(`Verification failed: ${error.message}`);
+            }
+          }
+        } else {
+          logger.info("✅ Token pool contract deployed successfully (no verification)");
+        }
+      } catch (error) {
+        logger.error("❌ Token pool deployment failed:", error);
+        throw error;
+      }
+    },
+  }))
+  .build();

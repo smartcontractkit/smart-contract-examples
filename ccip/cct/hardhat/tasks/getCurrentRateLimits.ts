@@ -1,82 +1,121 @@
 import { task } from "hardhat/config";
-import { Chains, logger, getEVMNetworkConfig, configData } from "../config";
+import { HardhatRuntimeEnvironment } from "hardhat/types/hre";
+import { isAddress } from "viem";
+import {
+  Chains,
+  CCIPContractName,
+  logger,
+  getEVMNetworkConfig,
+  configData,
+} from "../config";
 
-// Define the interface for the task arguments
-interface GetCurrentRateLimitsArgs {
-  pooladdress: string; // The address of the token pool to query
-  remotechain: string; // The remote chain to get rate limits for
-}
+/**
+ * Prints the current inbound and outbound rate-limiter states
+ * for a specific TokenPool and remote chain.
+ *
+ * Example:
+ * npx hardhat getCurrentRateLimits \
+ *   --pooladdress 0xYourPool \
+ *   --remotechain baseSepolia \
+ *   --network sepolia
+ */
+export const getCurrentRateLimits = task("getCurrentRateLimits", "Display current rate limiter states for a remote chain")
+  .addOption({
+    name: "pooladdress",
+    description: "The token pool address",
+    defaultValue: "",
+  })
+  .addOption({
+    name: "remotechain",
+    description: "The remote chain name",
+    defaultValue: "",
+  })
+  .setAction(async () => ({
+    default: async (
+      {
+        pooladdress,
+        remotechain,
+      }: {
+        pooladdress: string;
+        remotechain: string;
+      },
+      hre: HardhatRuntimeEnvironment
+    ) => {
+      // Validate required parameters
+      if (!pooladdress) {
+        throw new Error("Pool address is required (--pooladdress)");
+      }
 
-// Task to get the current rate limiter states for a specific chain
-task("getCurrentRateLimits", "Get current rate limiter states for a chain")
-  .addParam("pooladdress", "The address of the pool") // The token pool to query
-  .addParam("remotechain", "The remote chain") // The remote blockchain to check rate limits for
-  .setAction(async (taskArgs: GetCurrentRateLimitsArgs, hre) => {
-    const { pooladdress: poolAddress, remotechain: remoteChain } = taskArgs;
-    const networkName = hre.network.name as Chains;
+      if (!remotechain) {
+        throw new Error("Remote chain is required (--remotechain)");
+      }
 
-    // Ensure the network is configured in the network settings
-    const networkConfig = getEVMNetworkConfig(networkName);
-    if (!networkConfig) {
-      throw new Error(`Network ${networkName} not found in config`);
-    }
+      // Connect to network first
+      const networkConnection = await hre.network.connect();
+      const { viem } = networkConnection;
+      const networkName = networkConnection.networkName as Chains;
 
-    // Get the remote chain configuration
-    const remoteNetworkConfig =
-      configData[remoteChain as keyof typeof configData];
-    if (!remoteNetworkConfig) {
-      throw new Error(`Remote chain ${remoteChain} not found in config`);
-    }
+      // ✅ Ensure local network config exists
+      const networkConfig = getEVMNetworkConfig(networkName);
+      if (!networkConfig)
+        throw new Error(`Network ${networkName} not found in config`);
 
-    // Get the remote chain's selector
-    const remoteChainSelector = remoteNetworkConfig.chainSelector;
-    if (!remoteChainSelector) {
-      throw new Error(`Chain selector not found for ${remoteChain}`);
-    }
+      // ✅ Remote chain configuration
+      const remoteNetworkConfig = configData[remotechain as keyof typeof configData];
+      if (!remoteNetworkConfig)
+        throw new Error(`Remote chain ${remotechain} not found in config`);
 
-    // Validate the pool address
-    if (!hre.ethers.isAddress(poolAddress)) {
-      throw new Error(`Invalid pool address: ${poolAddress}`);
-    }
+      const remoteChainSelector = remoteNetworkConfig.chainSelector;
+      if (!remoteChainSelector)
+        throw new Error(`chainSelector missing for ${remotechain}`);
 
-    // Get the signer to interact with the contract
-    const signer = (await hre.ethers.getSigners())[0];
+      // ✅ Validate pool address
+      if (!isAddress(pooladdress))
+        throw new Error(`Invalid pool address: ${pooladdress}`);
 
-    // Load the TokenPool contract factory and connect to the contract
-    const { TokenPool__factory } = await import("../typechain-types");
-    const poolContract = TokenPool__factory.connect(poolAddress, signer);
+      const remoteChainSelectorBigInt = BigInt(remoteChainSelector);
 
-    try {
-      // Fetch both rate limiter states in parallel
-      const [outboundState, inboundState] = await Promise.all([
-        poolContract.getCurrentOutboundRateLimiterState(remoteChainSelector), // Get outbound rate limits
-        poolContract.getCurrentInboundRateLimiterState(remoteChainSelector), // Get inbound rate limits
-      ]);
+      try {
+        logger.info(`📊 Fetching rate limiter states for pool ${pooladdress} on ${networkName}...`);
+        logger.info(`   Remote chain: ${remotechain}`);
+        logger.info(`   Remote chain selector: ${remoteChainSelector}`);
 
-      // Display the rate limiter configurations
-      logger.info(`\nRate Limiter States for Chain: ${remoteChain}`);
-      logger.info(`Pool Address: ${poolAddress}`);
-      logger.info(`Chain Selector: ${remoteChainSelector}`);
+        // ✅ Connect to TokenPool contract
+        const pool = await viem.getContractAt(
+          CCIPContractName.TokenPool,
+          pooladdress as `0x${string}`
+        );
 
-      // Display outbound rate limiter configuration
-      logger.info(`\nOutbound Rate Limiter:`);
-      logger.info(`  Enabled: ${outboundState.isEnabled}`);
-      logger.info(`  Capacity: ${outboundState.capacity.toString()}`);
-      logger.info(`  Rate: ${outboundState.rate.toString()}`);
-      logger.info(`  Tokens: ${outboundState.tokens.toString()}`);
-      logger.info(`  Last Updated: ${outboundState.lastUpdated.toString()}`);
+        const [outbound, inbound] = await Promise.all([
+          pool.read.getCurrentOutboundRateLimiterState([remoteChainSelectorBigInt]),
+          pool.read.getCurrentInboundRateLimiterState([remoteChainSelectorBigInt]),
+        ]);
 
-      // Display inbound rate limiter configuration
-      logger.info(`\nInbound Rate Limiter:`);
-      logger.info(`  Enabled: ${inboundState.isEnabled}`);
-      logger.info(`  Capacity: ${inboundState.capacity.toString()}`);
-      logger.info(`  Rate: ${inboundState.rate.toString()}`);
-      logger.info(`  Tokens: ${inboundState.tokens.toString()}`);
-      logger.info(`  Last Updated: ${inboundState.lastUpdated.toString()}`);
-    } catch (error) {
-      logger.error(
-        `Error fetching rate limits for chain ${remoteChain}: ${error}`
-      );
-      throw error;
-    }
-  });
+        // ✅ Log results
+        logger.info(`\n=== Rate Limiter States for ${remotechain} ===`);
+        logger.info(`Pool Address: ${pooladdress}`);
+        logger.info(`Chain Selector: ${remoteChainSelector}`);
+
+        logger.info(`\n📤 Outbound Rate Limiter:`);
+        logger.info(`  Enabled:       ${outbound.isEnabled}`);
+        logger.info(`  Capacity:      ${outbound.capacity.toString()}`);
+        logger.info(`  Rate:          ${outbound.rate.toString()}`);
+        logger.info(`  Tokens:        ${outbound.tokens.toString()}`);
+        logger.info(`  Last Updated:  ${outbound.lastUpdated.toString()}`);
+
+        logger.info(`\n📥 Inbound Rate Limiter:`);
+        logger.info(`  Enabled:       ${inbound.isEnabled}`);
+        logger.info(`  Capacity:      ${inbound.capacity.toString()}`);
+        logger.info(`  Rate:          ${inbound.rate.toString()}`);
+        logger.info(`  Tokens:        ${inbound.tokens.toString()}`);
+        logger.info(`  Last Updated:  ${inbound.lastUpdated.toString()}`);
+
+        logger.info("\n✅ Rate limiters fetched successfully");
+
+      } catch (error) {
+        logger.error(`❌ Error fetching rate limits for ${remotechain}:`, error);
+        throw error;
+      }
+    },
+  }))
+  .build();

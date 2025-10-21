@@ -1,152 +1,173 @@
-import { task, types } from "hardhat/config"; // Importing required modules from Hardhat for defining tasks and specifying types
-import { Chains, networks, logger, getEVMNetworkConfig } from "../../config"; // Importing necessary configuration for chains, networks, and a logger for logging information
+import { task } from "hardhat/config";
+import { HardhatRuntimeEnvironment } from "hardhat/types/hre";
+import { Chains, TokenPoolContractName, logger, getEVMNetworkConfig } from "../../config";
+import { isAddress } from "viem";
+import { verifyContract } from "@nomicfoundation/hardhat-verify/verify";
 
-// Define the interface for the task arguments
-interface DeployTokenPoolTaskArgs {
-  verifycontract: boolean; // Boolean flag indicating if the contract should be verified on a blockchain explorer
-  tokenaddress: string; // The address of the token that the pool will manage
-  safeaddress: string; // The address of the Safe multisig account that will own the token pool
-  localtokendecimals?: number; // Optional parameter for token decimals, defaults to 18
-}
-
-// Define the Hardhat task for deploying a token pool and transferring ownership to a Safe account
-task(
+/**
+ * Deploys a BurnMintTokenPool contract and transfers ownership to a Safe multisig.
+ *
+ * Example:
+ * npx hardhat deployTokenPoolWithSafe \
+ *   --tokenaddress 0xYourToken \
+ *   --safeaddress 0xYourSafe \
+ *   --localtokendecimals 18 \
+ *   --verifycontract \
+ *   --network sepolia
+ */
+export const deployTokenPoolWithSafe = task(
   "deployTokenPoolWithSafe",
-  "Deploys a token pool and transfers ownership to a Safe"
+  "Deploy a BurnMintTokenPool and transfer ownership to a Safe"
 )
-  .addParam("tokenaddress", "The address of the token") // Add a required parameter for the token address
-  .addParam("safeaddress", "The address of the Safe to transfer ownership") // Add a required parameter for the Safe account address
-  .addOptionalParam(
-    "verifycontract",
-    "Verify the contract on Blockchain scan", // Optional parameter to verify the contract
-    false, // Default value is false, indicating that verification is not mandatory
-    types.boolean // Type of parameter is boolean
-  )
-  .addOptionalParam(
-    "localtokendecimals",
-    "Local token decimals (defaults to 18)", // Optional parameter for token decimals
-    18,
-    types.int
-  )
-  .setAction(async (taskArgs: DeployTokenPoolTaskArgs, hre) => {
-    // Destructuring task arguments
-    const {
-      verifycontract: verifyContract,
-      tokenaddress: tokenAddress,
-      safeaddress: safeAddress,
-      localtokendecimals: localTokenDecimals = 18, // Default to 18 if not provided
-    } = taskArgs;
-
-    // Retrieve the current network name from the Hardhat runtime environment
-    const networkName = hre.network.name as Chains;
-
-    // Retrieve the network configuration for the specified network
-    const networkConfig = getEVMNetworkConfig(networkName);
-    if (!networkConfig) {
-      throw new Error(`Network ${networkName} not found in config`);
-    }
-
-    // Get the contract factory for the "BurnMintTokenPool"
-    const TokenPool = await hre.ethers.getContractFactory("BurnMintTokenPool");
-
-    // Validate the provided token address
-    if (!tokenAddress || hre.ethers.isAddress(tokenAddress) === false) {
-      throw new Error(`Invalid token address: ${tokenAddress}`);
-    }
-
-    // Validate the provided Safe address
-    if (!hre.ethers.isAddress(safeAddress)) {
-      throw new Error(`Invalid Safe address: ${safeAddress}`);
-    }
-
-    // Retrieve necessary configuration for the network, including router, proxy, and confirmation details
-    const { router, rmnProxy, confirmations } = networkConfig;
-    if (!router || !rmnProxy) {
-      throw new Error(`Router or RMN Proxy not defined for ${networkName}`);
-    }
-
-    try {
-      // Deploy the Token Pool contract with localTokenDecimals
-      const tokenPool = await TokenPool.deploy(
-        tokenAddress, // Address of the token managed by the pool
-        localTokenDecimals, // Number of decimals for the token
-        [], // Empty array for additional parameters (in this case, no extra addresses)
-        rmnProxy, // Address of the RMN Proxy contract
-        router // Address of the Router contract
-      );
-
-      // Validate if the confirmation parameter is defined
-      if (confirmations === undefined) {
-        throw new Error(`confirmations is not defined for ${networkName}`);
+  .addOption({
+    name: "tokenaddress",
+    description: "Address of the token contract",
+    defaultValue: "",
+  })
+  .addOption({
+    name: "safeaddress",
+    description: "Address of the Safe multisig wallet",
+    defaultValue: "",
+  })
+  .addOption({
+    name: "localtokendecimals",
+    description: "Decimals for the local token",
+    defaultValue: "18",
+  })
+  .addFlag({
+    name: "verifycontract",
+    description: "Verify the contract on Etherscan",
+  })
+  .setAction(async () => ({
+    default: async (
+      {
+        tokenaddress = "",
+        safeaddress = "",
+        localtokendecimals = "18",
+        verifycontract = false,
+      }: {
+        tokenaddress?: string;
+        safeaddress?: string;
+        localtokendecimals?: string;
+        verifycontract?: boolean;
+      },
+      hre: HardhatRuntimeEnvironment
+    ) => {
+      // ⚙️ Validate required parameters
+      if (!tokenaddress) {
+        throw new Error("❌ --tokenaddress is required");
       }
 
-      // Log the transaction hash and wait for the specified number of confirmations
-      logger.info(
-        `Waiting ${confirmations} blocks for transaction ${
-          tokenPool.deploymentTransaction()?.hash
-        } to be confirmed...`
-      );
-      await tokenPool.deploymentTransaction()?.wait(confirmations);
+      if (!safeaddress) {
+        throw new Error("❌ --safeaddress is required");
+      }
 
-      // Retrieve the address of the deployed token pool
-      const tokenPoolAddress = await tokenPool.getAddress();
-      logger.info(`Token pool deployed to: ${tokenPoolAddress}`);
+      // ⚙️ Connect to network and get viem client
+      const networkConnection = await hre.network.connect();
+      const { viem } = networkConnection;
+      const networkName = networkConnection.networkName as Chains;
+      const publicClient = await viem.getPublicClient();
 
-      // If requested, verify the contract on a blockchain explorer
-      if (verifyContract) {
-        logger.info("Verifying contract on Etherscan...");
-        try {
-          await hre.run("verify:verify", {
-            address: tokenPoolAddress,
-            constructorArguments: [
-              tokenAddress,
-              localTokenDecimals,
-              [],
-              rmnProxy,
-              router,
-            ],
-          });
-          logger.info("Token pool contract deployed and verified");
-        } catch (error) {
-          if (error instanceof Error) {
-            if (!error.message.includes("Already Verified")) {
-              // Log an error message if verification fails and the reason is not "Already Verified"
-              logger.error(error.message);
-              logger.warn(
-                "Token pool contract deployed but not verified. Ensure you are waiting for enough confirmation blocks"
-              );
-            } else {
-              // Log a warning if the contract is already verified
-              logger.warn("Token pool contract deployed but already verified");
-            }
-          } else {
-            // Log an error if there was an unknown error during verification
-            logger.error(
-              "Token pool contract deployed but there was an unknown error while verifying"
+      // ⚙️ Validate network config
+      const networkConfig = getEVMNetworkConfig(networkName);
+      if (!networkConfig)
+        throw new Error(`❌ Network ${networkName} not found in config`);
+
+      const { confirmations } = networkConfig;
+      if (confirmations === undefined)
+        throw new Error(`❌ confirmations not defined for ${networkName}`);
+
+      // ⚙️ Validate addresses
+      if (!isAddress(tokenaddress))
+        throw new Error(`❌ Invalid token address: ${tokenaddress}`);
+      if (!isAddress(safeaddress))
+        throw new Error(`❌ Invalid Safe address: ${safeaddress}`);
+
+      // ⚙️ Parse decimals
+      const decimals = parseInt(localtokendecimals);
+      if (isNaN(decimals) || decimals < 0) {
+        throw new Error(`❌ Invalid decimals: ${localtokendecimals}`);
+      }
+
+      // ⚙️ Get router and RMN proxy addresses
+      const { router, rmnProxy } = networkConfig;
+      if (!router || !rmnProxy)
+        throw new Error(`❌ Router or RMN Proxy not defined for ${networkName}`);
+
+      const [wallet] = await viem.getWalletClients();
+
+      logger.info(`⚙️ Deploying BurnMintTokenPool on ${networkName}`);
+      logger.info(`Token: ${tokenaddress}`);
+      logger.info(`Safe:  ${safeaddress}`);
+      logger.info(`Decimals: ${decimals}`);
+
+      try {
+        // ⚙️ Deploy contract
+        const constructorArgs = Array<any>([
+          tokenaddress,
+          decimals,
+          [],
+          rmnProxy,
+          router
+        ]);
+
+        const { contract, deploymentTransaction } = await viem.sendDeploymentTransaction(
+          TokenPoolContractName.BurnMintTokenPool,
+          ...constructorArgs
+        );
+
+        logger.info(`⏳ Deployment tx: ${deploymentTransaction.hash}`);
+        logger.info(`   Waiting for ${confirmations} confirmation(s)...`);
+        await publicClient.waitForTransactionReceipt({
+          hash: deploymentTransaction.hash,
+          confirmations,
+        });
+        logger.info(`✅ TokenPool deployed at: ${contract.address}`);
+
+        // ⚙️ Optional verification
+        if (verifycontract) {
+          logger.info("⚙️ Verifying contract...");
+          try {
+            const isVerified = await verifyContract(
+              {
+                address: contract.address,
+                constructorArgs: constructorArgs.flat(),
+              },
+              hre
             );
-            logger.error(error);
+
+            if (isVerified) {
+              logger.info("✅ TokenPool contract verified successfully");
+            } else {
+              logger.warn("⚠️ TokenPool contract verification failed");
+            }
+          } catch (err: any) {
+            if (err.message?.includes("Already Verified")) {
+              logger.warn("⚠️ Already verified on Etherscan");
+            } else {
+              logger.error(`❌ Verification failed: ${err.message}`);
+            }
           }
         }
-      } else {
-        logger.info("Token pool contract deployed successfully");
+
+        // ⚙️ Transfer ownership to Safe
+        logger.info(`⚙️ Transferring ownership to Safe: ${safeaddress}`);
+        const pool = await viem.getContractAt(
+          TokenPoolContractName.BurnMintTokenPool,
+          contract.address
+        );
+
+        const transferTx = await pool.write.transferOwnership(
+          [safeaddress as `0x${string}`],
+          { account: wallet.account }
+        );
+        await publicClient.waitForTransactionReceipt({ hash: transferTx });
+
+        logger.info(`✅ Ownership transferred to Safe at ${safeaddress}`);
+      } catch (error) {
+        logger.error("❌ TokenPool deployment failed:", error);
+        throw error;
       }
-
-      // Transfer ownership of the Token Pool to the Safe multisig account
-      logger.info(
-        `Transferring ownership of Token Pool to Safe at ${safeAddress}`
-      );
-      const transferOwnershipTransaction = await tokenPool.transferOwnership(
-        safeAddress // Address of the Safe to transfer ownership to
-      );
-      await transferOwnershipTransaction.wait(confirmations);
-
-      // Log the successful ownership transfer
-      logger.info(
-        `Ownership of Token Pool transferred to Safe at ${safeAddress}`
-      );
-    } catch (error) {
-      // Log the error if deployment or ownership transfer fails
-      logger.error(error);
-      throw new Error("Token pool deployment failed");
-    }
-  });
+    },
+  }))
+  .build();

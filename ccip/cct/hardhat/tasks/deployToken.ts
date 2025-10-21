@@ -1,135 +1,170 @@
-import { task, types } from "hardhat/config";
+import { task } from "hardhat/config";
+import { HardhatRuntimeEnvironment } from "hardhat/types/hre";
+import { verifyContract } from "@nomicfoundation/hardhat-verify/verify";
 import {
   Chains,
-  networks,
   TokenContractName,
   logger,
   getEVMNetworkConfig,
 } from "../config";
-import type { BurnMintERC20 } from "../typechain-types";
-import type { ContractFactory } from "ethers";
 
-interface DeployTokenTaskArgs {
-  name: string;
-  symbol: string;
-  decimals: number;
-  maxsupply: bigint;
-  premint: bigint;
-  verifycontract: boolean;
-}
+/**
+ * Task to deploy a BurnMintERC20 token with optional verification.
+ *
+ * Example:
+ * npx hardhat deployToken \
+ *   --name MyToken \
+ *   --symbol MTK \
+ *   --decimals 18 \
+ *   --maxsupply 1000000 \
+ *   --premint 50000 \
+ *   --verifycontract \
+ *   --network sepolia
+ */
+export const deployToken = task("deployToken", "Deploys a BurnMintERC20 token with optional verification")
+  .addOption({
+    name: "name",
+    description: "The token name",
+    defaultValue: "MyToken",
+  })
+  .addOption({
+    name: "symbol",
+    description: "The token symbol",
+    defaultValue: "MTK",
+  })
+  .addOption({
+    name: "decimals",
+    description: "The number of decimals",
+    defaultValue: "18", // CLI args are strings
+  })
+  .addOption({
+    name: "maxsupply",
+    description: "Maximum supply (0 for unlimited)",
+    defaultValue: "0",
+  })
+  .addOption({
+    name: "premint",
+    description: "Initial premint amount",
+    defaultValue: "0",
+  })
+  .addFlag({
+    name: "verifycontract",
+    description: "Verify the contract on Etherscan",
+  })
+  .setAction(async () => ({
+    default: async (
+      {
+        name = "MyToken",
+        symbol = "MTK",
+        decimals = "18",
+        maxsupply = "0",
+        premint = "0",
+        verifycontract = false,
+      }: {
+        name?: string;
+        symbol?: string;
+        decimals?: string;
+        maxsupply?: string;
+        premint?: string;
+        verifycontract?: boolean;
+      },
+      hre: HardhatRuntimeEnvironment
+    ) => {
+      // Connect to network first to get network connection details
+      const networkConnection = await hre.network.connect();
+      const { viem } = networkConnection;
+      const networkName = networkConnection.networkName as Chains;
 
-// Task to deploy BurnMintERC20 tokens, with optional CCIP admin settings
-task("deployToken", "Deploys a token")
-  .addParam("name", "The name of the token") // Token name
-  .addParam("symbol", "The symbol of the token") // Token symbol
-  .addOptionalParam("decimals", "The number of decimals", 18, types.int) // Number of decimals (default: 18)
-  .addOptionalParam("maxsupply", "The maximum supply", 0n, types.bigint) // If maxSupply is 0, then the supply is unlimited
-  .addOptionalParam(
-    "premint",
-    "The initial amount of the token minted to the owner",
-    0n,
-    types.bigint
-  ) // If preMint is 0, then the initial mint amount is 0
-  .addOptionalParam(
-    "verifycontract", // Option to verify the contract on Etherscan
-    "Verify the contract on Blockchain scan",
-    false,
-    types.boolean
-  )
-  .setAction(async (taskArgs: DeployTokenTaskArgs, hre) => {
-    const {
-      name,
-      symbol,
-      decimals,
-      maxsupply: maxSupply,
-      premint: preMint,
-      verifycontract: verifyContract,
-    } = taskArgs;
+      const evmNetworkConfig = getEVMNetworkConfig(networkName);
+      if (!evmNetworkConfig)
+        throw new Error(`Network ${networkName} not found in config`);
 
-    const networkName = hre.network.name as Chains;
+      logger.info(`🚀 Deploying ${TokenContractName.BurnMintERC20} to ${networkName}...`);
+      logger.info(`   name: ${name}, symbol: ${symbol}`);
+      const [wallet] = await viem.getWalletClients();
+      const publicClient = await viem.getPublicClient();
 
-    // Check if network is defined in config
-    if (!getEVMNetworkConfig(networkName)) {
-      throw new Error(`Network ${networkName} not found in config`);
-    }
+      // ✅ Convert string CLI arguments to correct types
+      const decimalsNum = Number(decimals);
+      const maxSupplyBig = BigInt(maxsupply);
+      const premintBig = BigInt(premint);
 
-    let TokenFactory: ContractFactory;
-    let tokenContractName: TokenContractName;
+      try {
+        // ✅ Deploy contract
+        const constructorArgs = Array<any>([
+          name,
+          symbol,
+          decimalsNum,
+          maxSupplyBig,
+          premintBig
+        ]);
 
-    const signer = (await hre.ethers.getSigners())[0]; // Get the signer (deployer)
-    let token: BurnMintERC20;
+        const { contract, deploymentTransaction } = await viem.sendDeploymentTransaction(
+          TokenContractName.BurnMintERC20,
+          ...constructorArgs
+        );
 
-    const { BurnMintERC20__factory } = await import("../typechain-types");
-    TokenFactory = new BurnMintERC20__factory(signer);
-    tokenContractName = TokenContractName.BurnMintERC20;
+        logger.info(`⏳ Deployment tx: ${deploymentTransaction.hash}`);
 
-    // Deploy the BurnMintERC20 contract with the specified parameters
-    token = (await TokenFactory.deploy(
-      name,
-      symbol,
-      decimals,
-      maxSupply,
-      preMint
-    )) as BurnMintERC20;
+        const { confirmations } = evmNetworkConfig;
+        if (confirmations === undefined)
+          throw new Error(`confirmations not defined for ${networkName}`);
 
-    logger.info(`Deploying ${tokenContractName} contract to ${networkName}`);
+        logger.info(`   Waiting for ${confirmations} confirmation(s)...`);
+        await publicClient.waitForTransactionReceipt({
+          hash: deploymentTransaction.hash,
+          confirmations,
+        });
+        logger.info(`✅ Token deployed at: ${contract.address}`);
 
-    try {
-      const numberOfConfirmations =
-        getEVMNetworkConfig(networkName)?.confirmations;
-      if (numberOfConfirmations === undefined) {
-        throw new Error(`confirmations is not defined for ${networkName}`);
-      }
+        // ✅ Connect to token contract for post-deploy setup
+        const token = await viem.getContractAt(TokenContractName.BurnMintERC20, contract.address);
 
-      // Wait for the deployment transaction to be confirmed
-      logger.info(
-        `Waiting ${numberOfConfirmations} blocks for transaction ${
-          token.deploymentTransaction()?.hash
-        } to be confirmed...`
-      );
-      await token.deploymentTransaction()?.wait(numberOfConfirmations);
+        // Grant mint/burn roles to CCIP admin
+        const currentAdmin = await token.read.getCCIPAdmin();
+        logger.info(`Granting mint and burn roles to ${currentAdmin}...`);
+        const roleTx = await token.write.grantMintAndBurnRoles([currentAdmin], {
+          account: wallet.account,
+        });
+        logger.info(`   Waiting for ${confirmations} confirmation(s)...`);
+        await publicClient.waitForTransactionReceipt({
+          hash: roleTx,
+          confirmations,
+        });
+        logger.info(`✅ Mint/Burn roles granted.`);
 
-      const tokenAddress = await token.getAddress();
-      logger.info(`Token deployed to: ${tokenAddress}`);
+        // ✅ Verify contract if requested
+        if (verifycontract) {
+          logger.info("Verifying contract...");
 
-      // Grant mint and burn roles to the token owner or the default CCIP admin
-      const currentOwner = await token.getCCIPAdmin();
-
-      logger.info(`Granting mint and burn roles to ${currentOwner}`);
-      const tx = await token.grantMintAndBurnRoles(currentOwner);
-      await tx.wait(numberOfConfirmations);
-
-      // If verifycontract flag is true, verify the contract on Etherscan
-      if (verifyContract) {
-        logger.info("Verifying contract...");
-        try {
-          await hre.run("verify:verify", {
-            address: tokenAddress,
-            constructorArguments: [name, symbol, decimals, maxSupply, preMint],
-          });
-          logger.info("Token contract deployed and verified");
-        } catch (error) {
-          if (error instanceof Error) {
-            if (!error.message.includes("Already Verified")) {
-              logger.error(error.message);
-              logger.warn(
-                "Token contract deployed but not verified. Ensure you are waiting for enough confirmation blocks"
-              );
-            } else {
-              logger.warn("Token contract deployed but already verified");
-            }
-          } else {
-            logger.error(
-              "Token contract deployed but there was an unknown error while verifying"
+          try {
+            const isVerified = await verifyContract(
+              {
+                address: contract.address,
+                constructorArgs: constructorArgs.flat(),
+              },
+              hre,
             );
-            logger.error(error);
+
+            if (isVerified) {
+              logger.info("✅ Token contract verified successfully");
+            } else {
+              logger.warn("Token contract verification failed");
+            }
+          } catch (error: any) {
+            if (error.message?.includes("Already Verified")) {
+              logger.warn("Token contract already verified");
+            } else {
+              logger.error(`Verification failed: ${error.message}`);
+            }
           }
+        } else {
+          logger.info("✅ Token contract deployed successfully (no verification)");
         }
-      } else {
-        logger.info("Token contract deployed successfully");
+      } catch (error) {
+        logger.error("❌ Token deployment failed:", error);
+        throw error;
       }
-    } catch (error) {
-      logger.error(error);
-      throw new Error("Token deployment failed");
-    }
-  });
+    },
+  }))
+  .build();
