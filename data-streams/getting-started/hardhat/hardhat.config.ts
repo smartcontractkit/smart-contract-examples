@@ -1,11 +1,12 @@
 import type { HardhatUserConfig } from "hardhat/config";
 
-import "@chainlink/env-enc";
 import hardhatToolboxViemPlugin from "@nomicfoundation/hardhat-toolbox-viem";
+import * as envEnc from "@chainlink/env-enc";
 
 // Load environment variables from env-enc
 // Run: npx env-enc set-pw
-// Then the variables will be available in process.env
+envEnc.config();
+
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
 const ARBITRUM_SEPOLIA_RPC_URL = process.env.ARBITRUM_SEPOLIA_RPC_URL;
 

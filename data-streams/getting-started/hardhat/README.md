@@ -69,11 +69,14 @@ npx hardhat ignition deploy ignition/modules/StreamsModule.ts --network arbitrum
 Expect output similar to the following in your terminal:
 
 ```bash
-ℹ Deploying StreamsUpkeepRegistrar contract...
-✔ StreamsUpkeepRegistrar deployed at: 0x48403478Aa021A9BC30Da0BDE47cbc155CcA8916
-ℹ Deploying LogEmitter contract...
-✔ LogEmitter deployed at: 0xD721337a827F9D814daEcCc3c7e72300af914BFE
-✔ All contracts deployed successfully.
+Deploying [ StreamsModule ]
+Batch #1
+  Executed StreamsModule#LogEmitter
+  Executed StreamsModule#StreamsUpkeepRegistrar
+[ StreamsModule ] successfully deployed 🚀
+Deployed Addresses
+StreamsModule#LogEmitter - 0x9B68AB315EA2DBD4Ce61e31Dc2c784101338bAaA
+StreamsModule#StreamsUpkeepRegistrar - 0x07E8dEe8Ce82Ba750E525EB9151b57a76f731806
 ```
 
 Save the deployed contract addresses for both contracts. You will use these addresses later.
@@ -91,10 +94,14 @@ Replace `<StreamsUpkeepRegistrarAddress>` with the address of the `StreamsUpkeep
 Expect output similar to the following in your terminal:
 
 ```bash
-ℹ Starting LINK transfer from <YOUR_ADDRESS> to the streams upkeep contract at 0xD721337a827F9D814daEcCc3c7e72300af914BFE
+ℹ Starting LINK transfer from 0xAd2A096396AaAb37F153d26DbF695f4F9AB59DA1 to 0x07E8dEe8Ce82Ba750E525EB9151b57a76f731806
 ℹ LINK token address: 0xb1D4538B4571d411F07960EF2838Ce337FE1E80E
-ℹ LINK balance of sender 0x45C90FBb5acC1a5c156a401B56Fea55e69E7669d is 6.5 LINK
-✔ 1.5 LINK were sent from 0x45C90FBb5acC1a5c156a401B56Fea55e69E7669d to 0xD721337a827F9D814daEcCc3c7e72300af914BFE. Transaction Hash: 0xf241bf4415ec081325ccd8ec3d54432e424afd16f1c81fa78b291ae9a0c03ce2
+ℹ LINK balance of sender 0xAd2A096396AaAb37F153d26DbF695f4F9AB59DA1 is 38.84611618077145972 LINK
+ℹ Transaction submitted: 0xf170c98ec99b322747ec3b87306f37f384c978b84cee11006d9b80d9cee6e78d
+✔ 1.5 LINK were sent from 0xAd2A096396AaAb37F153d26DbF695f4F9AB59DA1 to 0x07E8dEe8Ce82Ba750E525EB9151b57a76f731806
+  Transaction Hash: 0xf170c98ec99b322747ec3b87306f37f384c978b84cee11006d9b80d9cee6e78d
+  Block Number: 207017202
+  Gas Used: 51658
 ```
 
 ### Register and fund the upkeep
