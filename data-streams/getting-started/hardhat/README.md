@@ -18,7 +18,7 @@ This guide uses the [Hardhat](https://hardhat.org/) development environment to d
 - **Node.js** and **npm**: [Install the latest release of Node.js 22](https://nodejs.org/en/download/). Optionally, you can use the nvm package to switch between Node.js versions with `nvm use 22`. To ensure you are running the correct version in a terminal, type `node -v`.
   ```bash
    $ node -v
-   v22.0.0
+   v22.x.x
   ```
 - **RPC URL**: You need a Remote Procedure Call (RPC) URL for the Arbitrum Sepolia network. You can obtain one by creating an account on [Alchemy](https://www.alchemy.com/) or [Infura](https://www.infura.io/) and setting up an Arbitrum Sepolia project.
 - **Private key**: You need the private key of the account that will deploy and interact with the contracts. You can use the private key of your [MetaMask wallet](https://metamask.io/).
@@ -114,7 +114,8 @@ STREAMS_UPKEEP=<StreamsUpkeepRegistrarAddress> LOG_EMITTER=<LogEmitterAddress> n
 
 Replace `<StreamsUpkeepRegistrarAddress>` and `<LogEmitterAddress>` with the addresses of your `StreamsUpkeepRegistrar` and `LogEmitter` contracts.
 
-> **Note:** This step may fail. Chainlink Automation auto-approval is currently disabled and [requires manual approval from the Chainlink Automation team](https://chainlinkcommunity.typeform.com/to/m10dC36d).
+> **Note:** This step may fail. Chainlink Automation auto-approval is currently disabled on several chains, which [requires approval from the Chainlink Automation team](https://chainlinkcommunity.typeform.com/to/m10dC36d).
+> You may use https://automation.chain.link/ to register your Upkeep contract and log emitter. Depending on your network, you may be asked to submit verification prior to registration.
 
 Expect output similar to the following in your terminal:
 
