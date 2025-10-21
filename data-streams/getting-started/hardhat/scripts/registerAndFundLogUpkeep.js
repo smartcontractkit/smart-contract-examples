@@ -69,15 +69,13 @@ async function main() {
     const topic2 = "0x0000000000000000000000000000000000000000000000000000000000000000";
     const topic3 = "0x0000000000000000000000000000000000000000000000000000000000000000";
 
-    // ABI-encode the trigger configuration using Viem
-    // This replaces ethers.utils.defaultAbiCoder.encode()
+    // ABI-encode the trigger config
     const triggerConfig = encodeAbiParameters(
       parseAbiParameters("address, uint8, bytes32, bytes32, bytes32, bytes32"),
       [logEmitterAddress, 0, topic0, topic1, topic2, topic3]
     );
 
     // Construct the registration parameters struct
-    // Viem handles structs as arrays in the order they appear in the ABI
     const params = {
       name,
       encryptedEmail,

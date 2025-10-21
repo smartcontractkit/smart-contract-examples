@@ -24,7 +24,6 @@ async function main() {
   try {
     spinner.start(`Retrieving the last price from StreamsUpkeep at ${streamsUpkeepAddress}...`);
 
-    // For READ operations, we only need a public client (no wallet/private key needed!)
     const publicClient = createPublicClient({
       chain: arbitrumSepolia,
       transport: http(process.env.ARBITRUM_SEPOLIA_RPC_URL),
@@ -37,16 +36,14 @@ async function main() {
     );
     const artifact = JSON.parse(fs.readFileSync(artifactPath, "utf-8"));
 
-    // Create a contract instance with Viem
-    // For read-only operations, we use getContract with a public client
+    // Create a contract instance
     const contract = getContract({
       address: streamsUpkeepAddress,
       abi: artifact.abi,
       client: publicClient,
     });
 
-    // Call the read function - this is instant, no transaction needed!
-    // Viem uses contract.read.functionName() for view/pure functions
+    // Call the read function
     const lastDecodedPrice = await contract.read.lastDecodedPrice();
 
     spinner.succeed(

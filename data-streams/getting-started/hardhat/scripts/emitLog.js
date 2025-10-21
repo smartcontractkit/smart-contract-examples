@@ -23,7 +23,7 @@ async function main() {
     throw new Error("Please set the LOG_EMITTER environment variable with the contract address");
   }
 
-  // Initialize spinner for user feedback (same as original Hardhat 2 version)
+  // Initialize spinner for user feedback
   const spinner = spin();
   
   try {
