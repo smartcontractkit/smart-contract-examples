@@ -10,7 +10,7 @@ import { spin } from "./utils/index.js";
  * request to a specified StreamsUpkeep contract.
  */
 export const registerUpkeep = task(
-  "register-upkeep",
+  "registerAndFundUpkeep",
   "Registers and funds an upkeep with Chainlink Automation"
 )
   .addOption({

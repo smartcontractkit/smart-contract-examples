@@ -109,7 +109,7 @@ Expect output similar to the following in your terminal:
 Programmatically register and fund a new `Log Trigger` upkeep with 1 LINK:
 
 ```bash
-npx hardhat register-upkeep --streams-upkeep <StreamsUpkeepRegistrarAddress> --log-emitter <LogEmitterAddress> --network arbitrumSepolia
+npx hardhat registerAndFundUpkeep --streams-upkeep <StreamsUpkeepRegistrarAddress> --log-emitter <LogEmitterAddress> --network arbitrumSepolia
 ```
 
 Replace `<StreamsUpkeepRegistrarAddress>` and `<LogEmitterAddress>` with the addresses of your `StreamsUpkeepRegistrar` and `LogEmitter` contracts.
@@ -128,7 +128,7 @@ Expect output similar to the following in your terminal:
 Now, you can use your emitter contract to emit a log and initiate the upkeep, which retrieves data for the specified Data Streams feed ID.
 
 ```bash
-npx hardhat emit-log --log-emitter <LogEmitterAddress> --network arbitrumSepolia
+npx hardhat emitLog --log-emitter <LogEmitterAddress> --network arbitrumSepolia
 ```
 
 Replace `<LogEmitterAddress>` with the address of your `LogEmitter` contract.
@@ -146,7 +146,7 @@ After the transaction is complete, the log is emitted, and the upkeep is trigger
 The retrieved price is stored in the `lastDecodedPrice` contract variable and emitted in the logs. To see the price retrieved by the `StreamsUpkeepRegistrar` contract:
 
 ```bash
-npx hardhat get-last-price --streams-upkeep <StreamsUpkeepRegistrarAddress> --network arbitrumSepolia
+npx hardhat getLastRetrievedPrice --streams-upkeep <StreamsUpkeepRegistrarAddress> --network arbitrumSepolia
 ```
 
 Replace `<StreamsUpkeepRegistrarAddress>` with the address of your `StreamsUpkeepRegistrar` contract.

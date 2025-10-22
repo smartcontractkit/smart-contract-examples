@@ -7,7 +7,7 @@ import { spin } from "./utils/index.js";
  * This task requires the address of the deployed StreamsUpkeep contract as input.
  */
 export const getLastPrice = task(
-  "get-last-price",
+  "getLastRetrievedPrice",
   "Gets the last retrieved price from StreamsUpkeep"
 )
   .addOption({

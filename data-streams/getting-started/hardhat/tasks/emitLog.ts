@@ -2,9 +2,9 @@ import { task } from "hardhat/config";
 import { HardhatRuntimeEnvironment } from "hardhat/types/hre";
 import { spin } from "./utils/index.js";
 
-// Define a Hardhat task named "emit-log" to trigger log emission from the LogEmitter contract.
+// Define a Hardhat task named "emitLog" to trigger log emission from the LogEmitter contract.
 export const emitLog = task(
-  "emit-log",
+  "emitLog",
   "Emits a log from the LogEmitter contract"
 )
   .addOption({
