@@ -13,7 +13,7 @@ const networks: Networks = {
   [EVMChains.avalancheFuji]: {
     type: "http",
     ...configData.avalancheFuji,
-    url: process.env.AVALANCHE_FUJI_RPC_URL!,
+    url: process.env.AVALANCHE_FUJI_RPC_URL || "https://UNSET-PLEASE-SET-AVALANCHE_FUJI_RPC_URL",
     gasPrice: undefined,
     nonce: undefined,
     accounts,
@@ -21,7 +21,7 @@ const networks: Networks = {
   [EVMChains.arbitrumSepolia]: {
     type: "http",
     ...configData.arbitrumSepolia,
-    url: process.env.ARBITRUM_SEPOLIA_RPC_URL!,
+    url: process.env.ARBITRUM_SEPOLIA_RPC_URL || "https://UNSET-PLEASE-SET-ARBITRUM_SEPOLIA_RPC_URL",
     gasPrice: undefined,
     nonce: undefined,
     accounts,
@@ -29,7 +29,7 @@ const networks: Networks = {
   [EVMChains.sepolia]: {
     type: "http",
     ...configData.ethereumSepolia,
-    url: process.env.ETHEREUM_SEPOLIA_RPC_URL!,
+    url: process.env.ETHEREUM_SEPOLIA_RPC_URL || "https://UNSET-PLEASE-SET-ETHEREUM_SEPOLIA_RPC_URL",
     gasPrice: undefined,
     nonce: undefined,
     accounts,
@@ -37,7 +37,7 @@ const networks: Networks = {
   [EVMChains.baseSepolia]: {
     type: "http",
     ...configData.baseSepolia,
-    url: process.env.BASE_SEPOLIA_RPC_URL!,
+    url: process.env.BASE_SEPOLIA_RPC_URL || "https://UNSET-PLEASE-SET-BASE_SEPOLIA_RPC_URL",
     gasPrice: undefined,
     nonce: undefined,
     accounts,
@@ -45,7 +45,7 @@ const networks: Networks = {
   [EVMChains.polygonAmoy]: {
     type: "http",
     ...configData.polygonAmoy,
-    url: process.env.POLYGON_AMOY_RPC_URL!,
+    url: process.env.POLYGON_AMOY_RPC_URL || "https://UNSET-PLEASE-SET-POLYGON_AMOY_RPC_URL",
     gasPrice: undefined,
     nonce: undefined,
     accounts,

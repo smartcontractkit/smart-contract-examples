@@ -9,13 +9,13 @@
   "license": "ISC",
   "scripts": {
     "compile:hardhat": "hardhat compile",
-    "compile:typechain": "hardhat typechain",
     "compile:typescript": "tsc --noEmit",
     "compile": "npm run compile:hardhat && npm run compile:typescript"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox-viem": "^5.0.0",
     "@solana/web3.js": "^1.98.2",
+    "@types/bn.js": "^5.2.0",
     "@types/chai": "^4.3.16",
     "@types/mocha": "^10.0.6",
     "@types/node": "^20.12.12",
