@@ -67,12 +67,12 @@ $ npm run estimate-gas-provider
 > ts-node src/estimateGasProvider.ts
 
 Final Gas Usage Report:
-Number of iterations 0 - Gas used: 5377
-Number of iterations 50 - Gas used: 14946
-Number of iterations 99 - Gas used: 24324
+Number of iterations: 0 - Gas used: 5363
+Number of iterations: 50 - Gas used: 11525
+Number of iterations: 99 - Gas used: 17564
 ```
 
-As you can notice from the output, the gas usage increases with the number of iterations. This is a crucial insight for setting the gasLimit when sending a CCIP message from the Sender contract. The maximum gas usage is observed when the number of iterations is set to `99` (gas: `24324`).
+As you can notice from the output, the gas usage increases with the number of iterations. This is a crucial insight for setting the gasLimit when sending a CCIP message from the Sender contract. The maximum gas usage is observed when the number of iterations is set to `99` (gas: `17564`).
 
 ## Estimate gas using tenderly API
 
@@ -93,19 +93,19 @@ $ npm run estimate-gas-tenderly
 > ts-node src/estimateGasTenderly.ts
 
 Final Gas Usage Report:
-Number of iterations 0 - Gas used: 5031
-Number of iterations 50 - Gas used: 14581
-Number of iterations 99 - Gas used: 23940
+Number of iterations: 0 - Gas used: 5016
+Number of iterations: 50 - Gas used: 11166
+Number of iterations: 99 - Gas used: 17193
 ```
 
-As you can notice from the output, the gas usage increases with the number of iterations. This is a crucial insight for setting the gasLimit when sending a CCIP message from the Sender contract. The maximum gas usage is observed when the number of iterations is set to `99` (gas: `23940`).
+As you can notice from the output, the gas usage increases with the number of iterations. This is a crucial insight for setting the gasLimit when sending a CCIP message from the Sender contract. The maximum gas usage is observed when the number of iterations is set to `99` (gas: `17564`).
 
 ## Conclusion
 
 | Number of iterations | ethers.js provider Gas used | tenderly API Gas used |
 | -------------------- | --------------------------- | --------------------- |
-| 0                    | 5377                        | 5031                  |
-| 50                   | 14946                       | 14581                 |
-| 99                   | 24324                       | 23940                 |
+| 0                    | 5363                        | 5016                  |
+| 50                   | 11525                       | 11166                 |
+| 99                   | 17564                       | 17193                 |
 
 Read the [CCIP gas estimator using Hardhat](../hardhat/README.md) guide to compare the results. More specifically, check the actual testnet results. You will notice that using the tenderly API gives more precise results.

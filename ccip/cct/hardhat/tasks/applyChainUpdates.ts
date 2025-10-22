@@ -182,11 +182,8 @@ export const applyChainUpdates = task(
         .split(",")
         .map((addr) => addr.trim());
 
-        console.log(remotePoolAddresses)
-
       try {
         for (const addr of remotePoolAddresses) {
-          console.log(addr, remoteChainFamily);
           validateChainAddressOrThrow(addr, remoteChainFamily);
         }
 
@@ -260,7 +257,7 @@ export const applyChainUpdates = task(
           [[], [chainUpdate]],
           { account: wallet.account.address }
         );
-        logger.info(`� TX sent: ${txHash}`);
+        logger.info(`📤 TX sent: ${txHash}`);
 
         const { confirmations } = networkConfig;
         if (confirmations === undefined)

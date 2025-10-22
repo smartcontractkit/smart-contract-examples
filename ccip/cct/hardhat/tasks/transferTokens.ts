@@ -1,10 +1,11 @@
 import { task } from "hardhat/config";
 import { HardhatRuntimeEnvironment } from "hardhat/types/hre";
-import { isAddress, zeroAddress, encodeAbiParameters, keccak256, stringToBytes } from "viem";
+import { isAddress, zeroAddress, encodeAbiParameters, keccak256, stringToBytes, Abi, decodeErrorResult } from "viem";
 import {
   Chains,
   CCIPContractName,
   TokenContractName,
+  TokenPoolContractName,
   logger,
   getEVMNetworkConfig,
   configData,
@@ -13,6 +14,81 @@ import {
 enum Fee {
   native = "native",
   link = "LINK",
+}
+
+/**
+ * Helper function to decode and log error data from CCIP contracts
+ * @param revertData - The revert data from the failed transaction
+ * @param hre - Hardhat Runtime Environment
+ */
+async function tryDecodeError(revertData: any, hre: HardhatRuntimeEnvironment) {
+
+  const contracts = [
+    TokenContractName.BurnMintERC20,
+    TokenContractName.ERC20,
+    CCIPContractName.Router,
+    CCIPContractName.OnRamp,
+    CCIPContractName.RateLimiter,
+    CCIPContractName.TokenPool,
+    CCIPContractName.Client,
+    CCIPContractName.OwnerIsCreator,
+    TokenPoolContractName.BurnMintTokenPool,
+    TokenPoolContractName.LockReleaseTokenPool,
+  ];
+
+  let firstMatch: { errorName: string; args: readonly unknown[] | undefined; contract: string } | null = null;
+
+  // Try to decode with each contract's ABI
+  for (const contract of contracts) {
+    try {
+      const artifact = await hre.artifacts.readArtifact(contract);
+      const abi = artifact.abi as Abi;
+
+      const decodedError = decodeErrorResult({
+        abi,
+        data: revertData as `0x${string}`,
+      });
+
+      if (decodedError && decodedError.errorName) {
+        // Store the first match
+        if (!firstMatch) {
+          firstMatch = {
+            errorName: decodedError.errorName,
+            args: decodedError.args,
+            contract
+          };
+        }
+
+        // If this match has args and the first match didn't, use this one instead
+        if (decodedError.args && Array.isArray(decodedError.args) && decodedError.args.length > 0) {
+          firstMatch = {
+            errorName: decodedError.errorName,
+            args: decodedError.args,
+            contract
+          };
+          break; // Stop once we find a match with args
+        }
+      }
+    } catch (err) {
+      // Continue to the next contract if parsing fails
+      continue;
+    }
+  }
+
+  if (firstMatch) {
+    logger.error(`❌ ${firstMatch.errorName} (from ${firstMatch.contract})`);
+    if (firstMatch.args && Array.isArray(firstMatch.args) && firstMatch.args.length > 0) {
+      logger.error(`   Args:`);
+      firstMatch.args.forEach((arg, index) => {
+        logger.error(`     [${index}]: ${typeof arg === 'bigint' ? arg.toString() : JSON.stringify(arg)}`);
+      });
+    }
+    return;
+  }
+
+  // If no method could decode the error, log it as-is
+  logger.error(`❌ Could not decode the revert data`);
+  logger.error(`   Raw data:`, revertData);
 }
 
 /**
@@ -127,7 +203,7 @@ export const transferTokens = task("transferTokens", "Transfer tokens cross-chai
       const destChainSelector = destConfig.chainSelector;
       if (!destChainSelector)
         throw new Error(`chainSelector not defined for ${destinationchain}`);
-      
+
       const destChainSelectorBigInt = BigInt(destChainSelector);
 
       const [wallet] = await viem.getWalletClients();
@@ -185,7 +261,7 @@ export const transferTokens = task("transferTokens", "Transfer tokens cross-chai
           account: wallet.account,
         });
         logger.info(`   Waiting for ${confirmations} confirmation(s)...`);
-        await publicClient.waitForTransactionReceipt({ 
+        await publicClient.waitForTransactionReceipt({
           hash: txHash,
           confirmations,
         });
@@ -201,7 +277,7 @@ export const transferTokens = task("transferTokens", "Transfer tokens cross-chai
             account: wallet.account,
           });
           logger.info(`   Waiting for ${confirmations} confirmation(s)...`);
-          await publicClient.waitForTransactionReceipt({ 
+          await publicClient.waitForTransactionReceipt({
             hash: txHash,
             confirmations,
           });
@@ -213,19 +289,42 @@ export const transferTokens = task("transferTokens", "Transfer tokens cross-chai
           throw new Error("Fee estimation returned 0, this may indicate an issue with the message");
         }
 
+        // ✅ Simulate the CCIP send call first to catch potential errors
+        logger.info("Simulating CCIP message...");
+        try {
+          await publicClient.simulateContract({
+            address: router as `0x${string}`,
+            abi: routerContract.abi,
+            functionName: "ccipSend",
+            args: [destChainSelectorBigInt, message],
+            account: wallet.account.address,
+            value: feeTokenAddress === zeroAddress ? fees as bigint : 0n,
+          });
+        } catch (error: any) {
+          logger.error("❌ Simulation failed");
+          // console.log(error)
+          const revertData = error.cause?.raw;
+          if (revertData) {
+            await tryDecodeError(revertData, hre);
+          } else {
+            logger.error("Error:", error.message || error);
+          }
+          return;
+        }
+
         // ✅ Send CCIP message
         logger.info("Sending CCIP message...");
         txHash = await routerContract.write.ccipSend(
           [destChainSelectorBigInt, message],
-          { 
-            account: wallet.account, 
-            value: feeTokenAddress === zeroAddress ? fees as bigint : 0n 
+          {
+            account: wallet.account,
+            value: feeTokenAddress === zeroAddress ? fees as bigint : 0n
           }
         );
 
         logger.info(`⏳ CCIP message tx: ${txHash}`);
         logger.info(`   Waiting for ${confirmations} confirmation(s)...`);
-        const receipt = await publicClient.waitForTransactionReceipt({ 
+        const receipt = await publicClient.waitForTransactionReceipt({
           hash: txHash,
           confirmations,
         });
@@ -234,7 +333,7 @@ export const transferTokens = task("transferTokens", "Transfer tokens cross-chai
         logger.info(`✅ CCIP message sent successfully`);
         logger.info(`   Transaction: ${txHash}`);
         logger.info(`   Check status: https://ccip.chain.link/tx/${txHash}`);
-        
+
         // Log message details
         logger.info(`📋 Transfer Summary:`);
         logger.info(`   Token: ${tokenaddress}`);

@@ -102,7 +102,7 @@ export const deploySafe = task("deploySafe", "Deploys a new Safe multisig contra
         logger.info(`   Salt nonce: ${saltNonce}`);
         logger.info(`   Deploying Safe contract...`);
 
-        // ✅ Deploy the Safe using Safe.init() with predictedSafe configuration
+        // ✅ Initialize Safe with predictedSafe configuration
         const protocolKit = await SafeDefault.init({
           provider: rpcUrl,
           signer: privateKey,
@@ -117,11 +117,39 @@ export const deploySafe = task("deploySafe", "Deploys a new Safe multisig contra
           },
         });
 
-        const safeAddress = await protocolKit.getAddress();
+        const predictedAddress = await protocolKit.getAddress();
+        logger.info(`   Predicted Safe address: ${predictedAddress}`);
         
-        logger.info(`✅ Safe deployed successfully`);
-        logger.info(`   Safe address: ${safeAddress}`);
-        logger.info(`   Network: ${networkName}`);
+        // Check if Safe is already deployed
+        const isSafeDeployed = await protocolKit.isSafeDeployed();
+        
+        if (isSafeDeployed) {
+          logger.info(`ℹ️  Safe already deployed at ${predictedAddress}`);
+          logger.info(`   Network: ${networkName}`);
+        } else {
+          logger.info(`   Deploying Safe contract on-chain...`);
+          
+          // Actually deploy the Safe using viem wallet client
+          const deploymentTransaction = await protocolKit.createSafeDeploymentTransaction();
+          const [wallet] = await viem.getWalletClients();
+          const publicClient = await viem.getPublicClient();
+          
+          const txHash = await wallet.sendTransaction({
+            to: deploymentTransaction.to as `0x${string}`,
+            value: BigInt(deploymentTransaction.value),
+            data: deploymentTransaction.data as `0x${string}`,
+          });
+          
+          logger.info(`   Deployment transaction: ${txHash}`);
+          logger.info(`   Waiting for confirmation...`);
+          
+          // Wait for transaction confirmation
+          await publicClient.waitForTransactionReceipt({ hash: txHash });
+          
+          logger.info(`✅ Safe deployed successfully`);
+          logger.info(`   Safe address: ${predictedAddress}`);
+          logger.info(`   Network: ${networkName}`);
+        }
 
       } catch (error) {
         logger.error("❌ Safe deployment failed:", error);

@@ -40,7 +40,7 @@ export interface EVMChainConfig {
 export enum Chains {
   avalancheFuji = "avalancheFuji",
   arbitrumSepolia = "arbitrumSepolia",
-  sepolia = "sepolia",
+  ethereumSepolia = "ethereumSepolia",
   baseSepolia = "baseSepolia",
   solanaDevnet = "solanaDevnet",
   polygonAmoy = "polygonAmoy",
@@ -50,7 +50,7 @@ export enum Chains {
 export enum EVMChains {
   avalancheFuji = "avalancheFuji",
   arbitrumSepolia = "arbitrumSepolia",
-  sepolia = "sepolia",
+  ethereumSepolia = "ethereumSepolia",
   baseSepolia = "baseSepolia",
   polygonAmoy = "polygonAmoy",
 }
@@ -93,6 +93,7 @@ export interface EtherscanConfig {
 
 export enum TokenContractName {
   BurnMintERC20 = "BurnMintERC20",
+  ERC20 = "ERC20",
 }
 
 export enum TokenPoolContractName {
@@ -107,6 +108,8 @@ export enum CCIPContractName {
   Router = "IRouterClient",
   OnRamp = "OnRamp",
   OwnerIsCreator = "OwnerIsCreator",
+  RateLimiter = "RateLimiter",
+  Client = "Client",
 }
 
 export enum PoolType {
