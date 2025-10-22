@@ -17,10 +17,11 @@ export const emitLog = task(
       { logEmitter }: { logEmitter: string },
       hre: HardhatRuntimeEnvironment
     ) => {
-      // Connect to network and get the contract instance
       const { viem } = await hre.network.connect();
       const publicClient = await viem.getPublicClient();
-      const logEmitterContract = await viem.getContractAt(
+
+      // Create an instance of the LogEmitter contract at the specified address.
+      const LogEmitterContract = await viem.getContractAt(
         "LogEmitter",
         logEmitter as `0x${string}`
       );
@@ -29,14 +30,16 @@ export const emitLog = task(
       spinner.start("Emitting a log...");
 
       try {
-        // Call the emitLog function of the LogEmitter contract
-        const hash = await logEmitterContract.write.emitLog();
+        // Call the emitLog function of the LogEmitter contract to emit a log event.
+        const tx = await LogEmitterContract.write.emitLog();
 
-        // Wait for the transaction to be mined
-        await publicClient.waitForTransactionReceipt({ hash });
+        // Wait for the transaction to be mined to ensure the log has been emitted.
+        await publicClient.waitForTransactionReceipt({ hash: tx });
 
-        spinner.succeed(`Log emitted successfully in transaction: ${hash}`);
+        // Stop the spinner with a success message, including the transaction hash.
+        spinner.succeed(`Log emitted successfully in transaction: ${tx}`);
       } catch (error) {
+        // In case of error, stop the spinner with a failure message.
         spinner.fail("Failed to emit log.");
         throw error;
       }

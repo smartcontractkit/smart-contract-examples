@@ -31,31 +31,33 @@ export const registerUpkeep = task(
       }: { streamsUpkeep: string; logEmitter: string },
       hre: HardhatRuntimeEnvironment
     ) => {
-      // Connect to network and get wallet client
       const { viem } = await hre.network.connect();
       const [walletClient] = await viem.getWalletClients();
-      const account = walletClient.account.address;
 
-      // Define registration parameters for the upkeep
-      const name = "Prog. Streams Upkeep";
-      const encryptedEmail = "0x" as `0x${string}`;
-      const gasLimit = 500000;
-      const triggerType = 1; // Log Trigger
-      const checkData = "0x" as `0x${string}`;
-      const offchainConfig = "0x" as `0x${string}`;
-      const amount = parseEther("1"); // 1 LINK
+      // Retrieve the deployer's (admin's) signer object to sign transactions.
+      const admin = walletClient.account.address;
 
-      // Event signature hash and placeholder topics for the LogEmitter trigger
+      // Define registration parameters for the upkeep.
+      // See more information on https://docs.chain.link/chainlink-automation/guides/register-upkeep-in-contract.
+      const name = "Prog. Streams Upkeep"; // Name of the upkeep registration.
+      const encryptedEmail = "0x" as `0x${string}`; // Placeholder for an encrypted email (optional).
+      const gasLimit = 500000; // Maximum gas allowance for the upkeep execution.
+      const triggerType = 1; // Type of trigger, where `1` represents a Log Trigger.
+      const checkData = "0x" as `0x${string}`; // Data passed to checkUpkeep; placeholder in this context.
+      const offchainConfig = "0x" as `0x${string}`; // Off-chain configuration data; placeholder in this context.
+      const amount = parseEther("1"); // Funding amount in LINK tokens.
+
+      // Event signature hash and placeholder topics for the LogEmitter trigger.
       const topic0 =
-        "0xb8a00d6d8ca1be30bfec34d8f97e55f0f0fd9eeb7fb46e030516363d4cfe1ad6";
+        "0xb8a00d6d8ca1be30bfec34d8f97e55f0f0fd9eeb7fb46e030516363d4cfe1ad6"; // Event signature hash.
       const topic1 =
-        "0x0000000000000000000000000000000000000000000000000000000000000000";
+        "0x0000000000000000000000000000000000000000000000000000000000000000"; // Placeholder topics.
       const topic2 =
         "0x0000000000000000000000000000000000000000000000000000000000000000";
       const topic3 =
         "0x0000000000000000000000000000000000000000000000000000000000000000";
 
-      // ABI-encode the trigger configuration data
+      // ABI-encode the trigger configuration data.
       const triggerConfig = encodeAbiParameters(
         parseAbiParameters(
           "address, uint8, bytes32, bytes32, bytes32, bytes32"
@@ -63,13 +65,13 @@ export const registerUpkeep = task(
         [logEmitter as `0x${string}`, 0, topic0, topic1, topic2, topic3]
       );
 
-      // Construct the parameters for registration
+      // Construct the parameters for registration, combining all previously defined values.
       const params = {
         name,
         encryptedEmail,
         upkeepContract: streamsUpkeep as `0x${string}`,
         gasLimit,
-        adminAddress: account,
+        adminAddress: admin,
         triggerType,
         checkData,
         triggerConfig,
@@ -78,18 +80,17 @@ export const registerUpkeep = task(
       };
 
       const spinner = spin();
+      // Interact with the deployed StreamsUpkeep contract to register the upkeep.
       spinner.start(
-        `Registering upkeep with Chainlink Automation using account: ${account}`
+        `Registering upkeep with Chainlink Automation using account: ${admin}`
       );
-
-      // Interact with the deployed StreamsUpkeep contract to register the upkeep
-      const streamsUpkeepContract = await viem.getContractAt(
+      const StreamsUpkeepContract = await viem.getContractAt(
         "StreamsUpkeepRegistrar",
         streamsUpkeep as `0x${string}`
       );
 
       try {
-        await streamsUpkeepContract.write.registerAndPredictID([params]);
+        await StreamsUpkeepContract.write.registerAndPredictID([params]);
         spinner.succeed(
           "Upkeep registered and funded with 1 LINK successfully."
         );

@@ -25,16 +25,18 @@ export const getLastPrice = task(
         `Retrieving the last price from StreamsUpkeep at ${streamsUpkeep}...`
       );
 
-      // Retrieve an instance of the StreamsUpkeep contract
+      // Retrieve an instance of the StreamsUpkeep contract using the provided address.
+      // This enables interaction with the contract's functions.
       const { viem } = await hre.network.connect();
-      const contract = await viem.getContractAt(
+      const StreamsUpkeepContract = await viem.getContractAt(
         "StreamsUpkeepRegistrar",
         streamsUpkeep as `0x${string}`
       );
 
       try {
-        // Call the automatically generated getter function for the lastDecodedPrice public state variable
-        const lastDecodedPrice = await contract.read.lastDecodedPrice();
+        // Call the automatically generated getter function for the lastDecodedPrice public state variable.
+        const lastDecodedPrice =
+          await StreamsUpkeepContract.read.lastDecodedPrice();
         spinner.succeed(`Last Retrieved Price: ${lastDecodedPrice}`);
       } catch (error) {
         spinner.fail("Failed to retrieve the last price.");
