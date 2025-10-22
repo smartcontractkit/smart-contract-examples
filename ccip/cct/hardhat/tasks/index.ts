@@ -1,6 +1,7 @@
 import { deployToken } from "./deployToken";
 import { deployTokenPool } from "./deployTokenPool";
 import { mintTokens } from "./mintTokens";
+import { checkTokenBalance } from "./checkTokenBalance";
 import {claimAdmin} from "./claimAdmin";
 import {acceptAdminRole} from "./acceptAdminRole";
 import { transferTokenAdminRole } from "./transferTokenAdminRole";
@@ -20,6 +21,7 @@ export const tasks = [
     deployToken, 
     deployTokenPool, 
     mintTokens, 
+    checkTokenBalance,
     claimAdmin, 
     acceptAdminRole,
     transferTokenAdminRole,
@@ -44,7 +46,10 @@ export const npmFilesToBuild = [
       "@chainlink/contracts-ccip/contracts/tokenAdminRegistry/RegistryModuleOwnerCustom.sol",
       "@chainlink/contracts-ccip/contracts/tokenAdminRegistry/TokenAdminRegistry.sol",
       "@chainlink/contracts-ccip/contracts/interfaces/IRouterClient.sol",
-      "@chainlink/contracts/src/v0.8/shared/access/OwnerIsCreator.sol"
+      "@chainlink/contracts/src/v0.8/shared/access/OwnerIsCreator.sol",
+      "@chainlink/contracts-ccip/contracts/libraries/RateLimiter.sol",
+      "@chainlink/contracts-ccip/contracts/libraries/Client.sol",
+      "@openzeppelin/contracts/token/ERC20/ERC20.sol",
 ];
 
 console.log("✅ Tasks loaded from /tasks/index.ts");

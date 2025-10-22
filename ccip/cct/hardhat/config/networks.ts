@@ -26,7 +26,7 @@ const networks: Networks = {
     nonce: undefined,
     accounts,
   },
-  [EVMChains.sepolia]: {
+  [EVMChains.ethereumSepolia]: {
     type: "http",
     ...configData.ethereumSepolia,
     url: process.env.ETHEREUM_SEPOLIA_RPC_URL || "https://UNSET-PLEASE-SET-ETHEREUM_SEPOLIA_RPC_URL",
