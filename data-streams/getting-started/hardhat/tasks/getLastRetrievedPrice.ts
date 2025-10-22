@@ -1,20 +1,18 @@
 import { task } from "hardhat/config";
 import { HardhatRuntimeEnvironment } from "hardhat/types/hre";
-import { isAddress } from "viem";
 import { spin } from "./utils/index.js";
 
 /**
- * Task to retrieve the last price from the StreamsUpkeepRegistrar contract using Viem.
- *
- * Usage: npx hardhat get-last-price --streams-upkeep 0xYourAddress --network arbitrumSepolia
+ * Defines a Hardhat task to retrieve the last price updated in the StreamsUpkeep contract.
+ * This task requires the address of the deployed StreamsUpkeep contract as input.
  */
 export const getLastPrice = task(
   "get-last-price",
-  "Retrieves the last price from the StreamsUpkeepRegistrar contract"
+  "Gets the last retrieved price from StreamsUpkeep"
 )
   .addOption({
     name: "streamsUpkeep",
-    description: "The address of the deployed StreamsUpkeepRegistrar contract",
+    description: "The address of the deployed StreamsUpkeep contract",
     defaultValue: "",
   })
   .setAction(async () => ({
@@ -22,45 +20,24 @@ export const getLastPrice = task(
       { streamsUpkeep }: { streamsUpkeep: string },
       hre: HardhatRuntimeEnvironment
     ) => {
-      if (!streamsUpkeep) {
-        throw new Error("StreamsUpkeep address is required (--streams-upkeep)");
-      }
-
-      if (!isAddress(streamsUpkeep)) {
-        throw new Error(`Invalid StreamsUpkeep address: ${streamsUpkeep}`);
-      }
-
       const spinner = spin();
+      spinner.start(
+        `Retrieving the last price from StreamsUpkeep at ${streamsUpkeep}...`
+      );
+
+      // Retrieve an instance of the StreamsUpkeep contract
+      const { viem } = await hre.network.connect();
+      const contract = await viem.getContractAt(
+        "StreamsUpkeepRegistrar",
+        streamsUpkeep as `0x${string}`
+      );
 
       try {
-        // Connect to network and get public client (read-only, no wallet needed)
-        const networkConnection = await hre.network.connect();
-        const { viem, networkName } = networkConnection;
-
-        const publicClient = await viem.getPublicClient();
-
-        spinner.start(
-          `Retrieving the last price from StreamsUpkeep at ${streamsUpkeep}...`
-        );
-
-        // Get the contract instance using Hardhat's helper (read-only)
-        const contract = await viem.getContractAt(
-          "StreamsUpkeepRegistrar",
-          streamsUpkeep,
-          { client: { public: publicClient } }
-        );
-
-        // Call the read function
+        // Call the automatically generated getter function for the lastDecodedPrice public state variable
         const lastDecodedPrice = await contract.read.lastDecodedPrice();
-
-        spinner.succeed(
-          `Last Retrieved Price: ${lastDecodedPrice}\n` +
-            `  Contract: ${streamsUpkeep}\n` +
-            `  Network: ${networkName}`
-        );
+        spinner.succeed(`Last Retrieved Price: ${lastDecodedPrice}`);
       } catch (error) {
-        spinner.fail("Failed to retrieve the last price");
-        console.error(error);
+        spinner.fail("Failed to retrieve the last price.");
         throw error;
       }
     },
