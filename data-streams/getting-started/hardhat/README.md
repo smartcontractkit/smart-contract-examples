@@ -86,7 +86,7 @@ Save the deployed contract addresses for both contracts. You will use these addr
 In this example, the upkeep contract pays for onchain verification of reports from Data Streams. The Automation subscription does not cover the cost. Transfer `1.5` testnet LINK to the upkeep contract address you saved earlier. You can retrieve unused LINK later.
 
 ```bash
-RECIPIENT=<StreamsUpkeepRegistrarAddress> AMOUNT=1500000000000000000 npx hardhat run scripts/transferLink.js --network arbitrumSepolia
+npx hardhat transfer-link --recipient <StreamsUpkeepRegistrarAddress> --amount 1.5 --network arbitrumSepolia
 ```
 
 Replace `<StreamsUpkeepRegistrarAddress>` with the address of the `StreamsUpkeepRegistrar` contract you saved earlier.
@@ -109,7 +109,7 @@ Expect output similar to the following in your terminal:
 Programmatically register and fund a new `Log Trigger` upkeep with 1 LINK:
 
 ```bash
-STREAMS_UPKEEP=<StreamsUpkeepRegistrarAddress> LOG_EMITTER=<LogEmitterAddress> npx hardhat run scripts/registerAndFundLogUpkeep.js --network arbitrumSepolia
+npx hardhat register-upkeep --streams-upkeep <StreamsUpkeepRegistrarAddress> --log-emitter <LogEmitterAddress> --network arbitrumSepolia
 ```
 
 Replace `<StreamsUpkeepRegistrarAddress>` and `<LogEmitterAddress>` with the addresses of your `StreamsUpkeepRegistrar` and `LogEmitter` contracts.
@@ -128,7 +128,7 @@ Expect output similar to the following in your terminal:
 Now, you can use your emitter contract to emit a log and initiate the upkeep, which retrieves data for the specified Data Streams feed ID.
 
 ```bash
-LOG_EMITTER=<LogEmitterAddress> npx hardhat run scripts/emitLog.js --network arbitrumSepolia
+npx hardhat emit-log --log-emitter <LogEmitterAddress> --network arbitrumSepolia
 ```
 
 Replace `<LogEmitterAddress>` with the address of your `LogEmitter` contract.
@@ -146,7 +146,7 @@ After the transaction is complete, the log is emitted, and the upkeep is trigger
 The retrieved price is stored in the `lastDecodedPrice` contract variable and emitted in the logs. To see the price retrieved by the `StreamsUpkeepRegistrar` contract:
 
 ```bash
-STREAMS_UPKEEP=<StreamsUpkeepRegistrarAddress> npx hardhat run scripts/getLastRetrievedPrice.js --network arbitrumSepolia
+npx hardhat get-last-price --streams-upkeep <StreamsUpkeepRegistrarAddress> --network arbitrumSepolia
 ```
 
 Replace `<StreamsUpkeepRegistrarAddress>` with the address of your `StreamsUpkeepRegistrar` contract.

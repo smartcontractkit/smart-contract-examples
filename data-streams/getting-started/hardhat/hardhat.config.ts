@@ -3,6 +3,9 @@ import type { HardhatUserConfig } from "hardhat/config";
 import hardhatToolboxViemPlugin from "@nomicfoundation/hardhat-toolbox-viem";
 import * as envEnc from "@chainlink/env-enc";
 
+// Load custom tasks
+import { tasks } from "./tasks/index.js";
+
 // Load environment variables from env-enc
 // Run: npx env-enc set-pw
 envEnc.config();
@@ -22,6 +25,7 @@ const COMPILER_SETTINGS = {
 
 const config: HardhatUserConfig = {
   plugins: [hardhatToolboxViemPlugin],
+  tasks,
   solidity: {
     compilers: [
       {
