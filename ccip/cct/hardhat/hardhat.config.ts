@@ -28,6 +28,20 @@ const config: HardhatUserConfig = {
       },
     },
   },
+  // Fix for Arbitrum Sepolia chain descriptor bug in hardhat-verify
+  chainDescriptors: {
+    421614: {
+      name: "Arbitrum Sepolia",
+      chainType: "generic",
+      blockExplorers: {
+        etherscan: {
+          name: "Arbiscan",
+          url: "https://sepolia.arbiscan.io",
+          apiUrl: "https://api-sepolia.arbiscan.io/api",
+        },
+      },
+    },
+  },
   verify: {
     etherscan: {
       apiKey: process.env.ETHERSCAN_API_KEY || "UNSET",
