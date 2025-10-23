@@ -1,4 +1,4 @@
-# CCIP gas estimator using Hardhat
+# CCIP gas estimator using Foundry
 
 This guide is designed to help you accurately estimate the gas consumption of the `ccipReceive` function within a CCIP Receiver contract. Understanding the gas dynamics of this function is crucial for setting an appropriate gasLimit when sending a CCIP message from the Sender contract.
 
@@ -42,35 +42,36 @@ Example output:
 
 ```text
 $ forge test -vv --isolate
+
 [⠊] Compiling...
 No files changed, compilation skipped
 
 Ran 3 tests for test/SendReceive.t.sol:SenderReceiverTest
-[PASS] test_SendReceiveAverage() (gas: 125166)
+[PASS] test_SendReceiveAverage() (gas: 137800)
 Logs:
-  Number of iterations 50 - Gas used: 14740
+  Number of iterations 50 - Gas used: 11323
 
-[PASS] test_SendReceiveMax() (gas: 134501)
+[PASS] test_SendReceiveMax() (gas: 143803)
 Logs:
-  Number of iterations 99 - Gas used: 24099
+  Number of iterations 99 - Gas used: 17350
 
-[PASS] test_SendReceiveMin() (gas: 115581)
+[PASS] test_SendReceiveMin() (gas: 131614)
 Logs:
-  Number of iterations 0 - Gas used: 5190
+  Number of iterations 0 - Gas used: 5173
 
-Suite result: ok. 3 passed; 0 failed; 0 skipped; finished in 2.73ms (1.35ms CPU time)
+Suite result: ok. 3 passed; 0 failed; 0 skipped; finished in 7.32ms (8.86ms CPU time)
 
-Ran 1 test suite in 177.46ms (2.73ms CPU time): 3 tests passed, 0 failed, 0 skipped (3 total tests)
+Ran 1 test suite in 110.73ms (7.32ms CPU time): 3 tests passed, 0 failed, 0 skipped (3 total tests)
 ```
 
 This table summarized the gas usage for different iterations:
 
 | Number of iterations | Gas used |
 | -------------------- | -------- |
-| 0                    | 5190     |
-| 50                   | 14740    |
-| 99                   | 24099    |
+| 0                    | 5173     |
+| 50                   | 11323    |
+| 99                   | 17350    |
 
-As you can notice from the output, the gas usage increases with the number of iterations. This is a crucial insight for setting the gasLimit when sending a CCIP message from the Sender contract. The maximum gas usage is observed when the number of iterations is set to `99` (gas: `24099`).
+As you can notice from the output, the gas usage increases with the number of iterations. This is a crucial insight for setting the gasLimit when sending a CCIP message from the Sender contract. The maximum gas usage is observed when the number of iterations is set to `99` (gas: `17350`).
 
 **Remark**: Compare this with the results from the [Hardhat guide](../hardhat/README.md).

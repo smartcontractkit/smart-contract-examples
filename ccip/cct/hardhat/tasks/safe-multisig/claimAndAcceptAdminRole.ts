@@ -1,227 +1,224 @@
-import { task, types } from "hardhat/config"; // Import required modules from Hardhat for defining tasks and specifying types
-import { Chains, networks, logger, getEVMNetworkConfig } from "../../config"; // Import necessary configurations, including chains, network settings, and a logger for logging information
+import { task } from "hardhat/config";
+import { HardhatRuntimeEnvironment } from "hardhat/types/hre";
+import { Chains, TokenContractName, CCIPContractName, logger, getEVMNetworkConfig } from "../../config";
 import {
   MetaTransactionData,
   SafeTransaction,
-  TransactionResult,
-} from "@safe-global/safe-core-sdk-types"; // Import types from the Safe Core SDK for defining meta-transactions, Safe transactions, and results
-import Safe, { SigningMethod } from "@safe-global/protocol-kit"; // Import Safe and its signing method from the Safe Protocol Kit to interact with Safe accounts
-import { HttpNetworkConfig } from "hardhat/types"; // Import Hardhat type definitions for network configuration
+} from "@safe-global/safe-core-sdk-types";
+import SafeDefault from "@safe-global/protocol-kit";
+import { isAddress, encodeFunctionData } from "viem";
 
-// Define the interface for the task arguments
-interface ClaimAndAcceptAdminRoleTaskArgs {
-  tokenaddress: string; // Address of the token for which the admin role will be claimed
-  safeaddress: string; // Address of the Safe that will execute the transaction
-}
-
-// Define a Hardhat task for claiming and accepting the admin role using a Safe
-task(
+/**
+ * Claims and accepts the admin role of a token via a Gnosis Safe.
+ *
+ * Example:
+ * npx hardhat claimAndAcceptAdminRoleFromSafe \
+ *   --tokenaddress 0xYourToken \
+ *   --safeaddress 0xYourSafe \
+ *   --network sepolia
+ */
+export const claimAndAcceptAdminRoleFromSafe = task(
   "claimAndAcceptAdminRoleFromSafe",
-  "Claims and accepts the admin role of a token via Safe"
+  "Claim and accept the admin role of a token via Safe multisig"
 )
-  .addParam("tokenaddress", "The address of the token") // Required parameter for the token address
-  .addParam(
-    "safeaddress",
-    "The address of the Safe to execute the transactions"
-  ) // Required parameter for the Safe address
-  .setAction(async (taskArgs: ClaimAndAcceptAdminRoleTaskArgs, hre) => {
-    // Destructure the task arguments
-    const { tokenaddress: tokenAddress, safeaddress: safeAddress } = taskArgs;
+  .addOption({
+    name: "tokenaddress",
+    description: "Address of the token contract",
+    defaultValue: "",
+  })
+  .addOption({
+    name: "safeaddress",
+    description: "Address of the Safe multisig wallet",
+    defaultValue: "",
+  })
+  .setAction(async () => ({
+    default: async (
+      {
+        tokenaddress = "",
+        safeaddress = "",
+      }: {
+        tokenaddress?: string;
+        safeaddress?: string;
+      },
+      hre: HardhatRuntimeEnvironment
+    ) => {
+      // ⚙️ Validate required parameters
+      if (!tokenaddress) {
+        throw new Error("❌ --tokenaddress is required");
+      }
 
-    // Retrieve the current network's name from the Hardhat runtime environment
-    const networkName = hre.network.name as Chains;
+      if (!safeaddress) {
+        throw new Error("❌ --safeaddress is required");
+      }
 
-    // Validate the network configuration
-    const networkConfig = getEVMNetworkConfig(networkName);
-    if (!networkConfig) {
-      throw new Error(`Network ${networkName} not found in config`);
-    }
+      // ⚙️ Connect to network and get viem client
+      const networkConnection = await hre.network.connect();
+      const { viem } = networkConnection;
+      const networkName = networkConnection.networkName as Chains;
+      const publicClient = await viem.getPublicClient();
 
-    // Validate if the provided token address is a valid Ethereum address
-    if (!hre.ethers.isAddress(tokenAddress)) {
-      throw new Error(`Invalid token address: ${tokenAddress}`);
-    }
+      // ⚙️ Validate network config
+      const networkConfig = getEVMNetworkConfig(networkName);
+      if (!networkConfig)
+        throw new Error(`❌ Network ${networkName} not found in config`);
 
-    // Validate if the provided Safe address is a valid Ethereum address
-    if (!hre.ethers.isAddress(safeAddress)) {
-      throw new Error(`Invalid Safe address: ${safeAddress}`);
-    }
+      const { confirmations } = networkConfig;
+      if (confirmations === undefined)
+        throw new Error(`❌ confirmations not defined for ${networkName}`);
 
-    // Retrieve configuration for the current network
-    const { tokenAdminRegistry, registryModuleOwnerCustom, confirmations } =
-      networkConfig;
-    if (!tokenAdminRegistry || !registryModuleOwnerCustom) {
-      throw new Error(
-        `tokenAdminRegistry or registryModuleOwnerCustom is not defined for ${networkName}`
-      );
-    }
+      const { tokenAdminRegistry, registryModuleOwnerCustom } = networkConfig;
+      if (!tokenAdminRegistry || !registryModuleOwnerCustom)
+        throw new Error(
+          `❌ tokenAdminRegistry or registryModuleOwnerCustom missing for ${networkName}`
+        );
 
-    if (confirmations === undefined) {
-      throw new Error(`confirmations is not defined for ${networkName}`);
-    }
+      // ⚙️ Validate addresses
+      if (!isAddress(tokenaddress))
+        throw new Error(`❌ Invalid token address: ${tokenaddress}`);
+      if (!isAddress(safeaddress))
+        throw new Error(`❌ Invalid Safe address: ${safeaddress}`);
 
-    // Ensure that both private keys are provided
-    const privateKey = process.env.PRIVATE_KEY;
-    const privateKey2 = process.env.PRIVATE_KEY_2;
+      // ⚙️ Environment variables for Safe signers
+      const pk1 = process.env.PRIVATE_KEY;
+      const pk2 = process.env.PRIVATE_KEY_2;
+      if (!pk1 || !pk2)
+        throw new Error("❌ Both PRIVATE_KEY and PRIVATE_KEY_2 must be set");
 
-    if (!privateKey || !privateKey2) {
-      throw new Error(
-        "Both PRIVATE_KEY and PRIVATE_KEY_2 environment variables must be set"
-      );
-    }
+      // ⚙️ Extract RPC URL for Safe Protocol Kit
+      const rpcUrl = publicClient.chain.rpcUrls.default.http[0];
+      if (!rpcUrl)
+        throw new Error(`❌ RPC URL not found for ${networkName}`);
 
-    // Get the RPC URL for the current network
-    const networkConfigDetails = hre.config.networks[
-      networkName
-    ] as HttpNetworkConfig;
-    const rpcUrl = networkConfigDetails.url;
+      logger.info(`⚙️ Connecting to token contract at ${tokenaddress}...`);
 
-    if (!rpcUrl) {
-      throw new Error("RPC URL not found in network config");
-    }
-
-    // Initialize an array to store meta-transactions
-    const metaTransactions: MetaTransactionData[] = [];
-    let txDescription = "";
-
-    const { BurnMintERC20__factory } = await import("../../typechain-types");
-    const tokenContract = BurnMintERC20__factory.connect(
-      tokenAddress,
-      hre.ethers.provider
-    );
-
-    const tokenContractCCIPAdmin = await tokenContract.getCCIPAdmin();
-    logger.info(`Current token CCIP admin: ${tokenContractCCIPAdmin}`);
-
-    const { RegistryModuleOwnerCustom__factory } = await import(
-      "../../typechain-types"
-    );
-    const registryContract = RegistryModuleOwnerCustom__factory.connect(
-      registryModuleOwnerCustom,
-      hre.ethers.provider
-    );
-
-    logger.info(
-      `Claiming admin of ${tokenAddress} via getCCIPAdmin() for Safe at ${safeAddress}`
-    );
-
-    // Encode the function data to claim admin using the getCCIPAdmin method
-    const encodedClaimAdminData = registryContract.interface.encodeFunctionData(
-      "registerAdminViaGetCCIPAdmin",
-      [tokenAddress]
-    );
-
-    // Add the meta-transaction to the list of meta-transactions
-    metaTransactions.push({
-      to: registryModuleOwnerCustom,
-      data: encodedClaimAdminData,
-      value: "0",
-    });
-
-    txDescription = `Claiming admin of token ${tokenAddress} via Safe`;
-
-    // Accept Admin Role
-    const { TokenAdminRegistry__factory } = await import(
-      "../../typechain-types"
-    );
-    const tokenAdminRegistryContract = TokenAdminRegistry__factory.connect(
-      tokenAdminRegistry,
-      hre.ethers.provider
-    );
-
-    // Encode the function data to accept the admin role
-    const encodedAcceptAdminData =
-      tokenAdminRegistryContract.interface.encodeFunctionData(
-        "acceptAdminRole",
-        [tokenAddress]
+      // ⚙️ Get token contract interface
+      const token = await viem.getContractAt(
+        TokenContractName.BurnMintERC20,
+        tokenaddress as `0x${string}`
       );
 
-    // Add the meta-transaction to the list of meta-transactions
-    metaTransactions.push({
-      to: tokenAdminRegistry,
-      data: encodedAcceptAdminData,
-      value: "0",
-    });
+      // ⚙️ Read token CCIP admin
+      const ccipAdmin = await token.read.getCCIPAdmin();
+      logger.info(`⚙️ Current CCIP admin: ${ccipAdmin}`);
 
-    logger.info(
-      `Adding second MetaTransaction to accept admin role for token ${tokenAddress}`
-    );
+      // ⚙️ Verify CCIP admin matches Safe address
+      if (ccipAdmin.toLowerCase() !== safeaddress.toLowerCase()) {
+        throw new Error(
+          `❌ CCIP admin (${ccipAdmin}) does not match Safe address (${safeaddress}).\n` +
+          `   The Safe must be set as the CCIP admin before claiming the admin role.\n` +
+          `   \n` +
+          `   The token's CCIP admin should be the Safe address to proceed with this operation.`
+        );
+      }
+      logger.info(`✅ CCIP admin matches Safe address - proceeding with claim and accept`);
 
-    // Create Safe signers for both owners
-    const safeSigner1 = await Safe.init({
-      provider: rpcUrl,
-      signer: privateKey,
-      safeAddress: safeAddress,
-    });
+      // ⚙️ Get registry contracts
+      const registry = await viem.getContractAt(
+        CCIPContractName.TokenAdminRegistry,
+        tokenAdminRegistry as `0x${string}`
+      );
 
-    const safeSigner2 = await Safe.init({
-      provider: rpcUrl,
-      signer: privateKey2,
-      safeAddress: safeAddress,
-    });
+      // ⚙️ Check if Safe has already accepted the admin role
+      const currentAdmin = await registry.read.getTokenConfig([
+        tokenaddress as `0x${string}`,
+      ]);
+      
+      if (currentAdmin && currentAdmin.administrator && 
+          currentAdmin.administrator.toLowerCase() === safeaddress.toLowerCase()) {
+        logger.info(`⚠️ Safe ${safeaddress} has already claimed and accepted the admin role for token ${tokenaddress}`);
+        logger.info(`✅ No action needed - admin role is already configured`);
+        return;
+      }
 
-    // Create a Safe transaction containing both meta-transactions
-    let safeTransaction: SafeTransaction;
-    try {
-      safeTransaction = await safeSigner1.createTransaction({
-        transactions: metaTransactions,
+      // ⚙️ Get registry module contract
+      const registryModule = await viem.getContractAt(
+        CCIPContractName.RegistryModuleOwnerCustom,
+        registryModuleOwnerCustom as `0x${string}`
+      );
+
+      // ⚙️ Encode both function calls
+      const claimAdminData = encodeFunctionData({
+        abi: registryModule.abi,
+        functionName: "registerAdminViaGetCCIPAdmin",
+        args: [tokenaddress as `0x${string}`],
       });
-      logger.info("Safe transaction with two meta transactions created");
-    } catch (error) {
-      logger.error("Failed to create Safe transaction", error);
-      throw new Error("Failed to create Safe transaction");
-    }
 
-    // Sign the transaction by both owners
-    let signedSafeTransaction: SafeTransaction;
-    try {
-      signedSafeTransaction = await safeSigner1.signTransaction(
-        safeTransaction,
-        SigningMethod.ETH_SIGN
-      );
-      logger.info("Safe transaction signed by owner 1");
-    } catch (error) {
-      logger.error("Failed to sign Safe transaction by owner 1", error);
-      throw new Error("Failed to sign Safe transaction by owner 1");
-    }
+      const acceptAdminData = encodeFunctionData({
+        abi: registry.abi,
+        functionName: "acceptAdminRole",
+        args: [tokenaddress as `0x${string}`],
+      });
 
-    try {
-      signedSafeTransaction = await safeSigner2.signTransaction(
-        signedSafeTransaction,
-        SigningMethod.ETH_SIGN
-      );
-      logger.info("Safe transaction signed by owner 2");
-    } catch (error) {
-      logger.error("Failed to sign Safe transaction by owner 2", error);
-      throw new Error("Failed to sign Safe transaction by owner 2");
-    }
+      const metaTxs: MetaTransactionData[] = [
+        {
+          to: registryModuleOwnerCustom,
+          data: claimAdminData,
+          value: "0",
+        },
+        {
+          to: tokenAdminRegistry,
+          data: acceptAdminData,
+          value: "0",
+        },
+      ];
 
-    // Execute the signed transaction
-    logger.info(`Executing Safe transaction to claim and accept admin role...`);
+      logger.info(`⚙️ Prepared Safe meta-transactions for ${tokenaddress}`);
 
-    let result: TransactionResult;
-    try {
-      result = await safeSigner1.executeTransaction(signedSafeTransaction);
-    } catch (error) {
-      logger.error("Error executing Safe transaction", error);
-      throw new Error("Error executing Safe transaction");
-    }
+      // ⚙️ Initialize Safe instances for both signers
+      logger.info(`⚙️ Initializing Safe Protocol Kit for multisig transaction...`);
 
-    logger.info("Executed Safe transaction");
+      const safe1 = await SafeDefault.init({
+        provider: rpcUrl,
+        signer: pk1,
+        safeAddress: safeaddress,
+      });
+      const safe2 = await SafeDefault.init({
+        provider: rpcUrl,
+        signer: pk2,
+        safeAddress: safeaddress,
+      });
 
-    // Wait for the transaction to be confirmed
-    if (result && result.transactionResponse) {
+      // ⚙️ Create Safe transaction
+      let safeTx: SafeTransaction;
+      try {
+        safeTx = await safe1.createTransaction({ transactions: metaTxs });
+        logger.info("✅ Safe transaction (claim + accept) created");
+      } catch (err) {
+        logger.error("❌ Failed to create Safe transaction", err);
+        throw err;
+      }
+
+      // ⚙️ Sign by both owners
+      try {
+        safeTx = await safe1.signTransaction(safeTx);
+        logger.info("✅ Signed by owner 1");
+        safeTx = await safe2.signTransaction(safeTx);
+        logger.info("✅ Signed by owner 2");
+        logger.info(`✅ Transaction has ${safeTx.signatures.size} signature(s)`);
+      } catch (err) {
+        logger.error("❌ Error signing Safe transaction", err);
+        throw err;
+      }
+
+      // ⚙️ Execute Safe transaction
+      logger.info("🚀 Executing Safe transaction (claim + accept admin role)...");
+      let result: any;
+      try {
+        result = await safe1.executeTransaction(safeTx);
+      } catch (err) {
+        logger.error("❌ Safe execution failed", err);
+        throw err;
+      }
+
+      if (!result?.transactionResponse)
+        throw new Error("❌ No transaction response returned");
+
       logger.info(
-        `Waiting for ${confirmations} blocks for transaction ${result.hash} to be confirmed...`
+        `⏳ Waiting ${confirmations} blocks for tx ${result.hash} confirmation...`
       );
+      await result.transactionResponse.wait(confirmations);
 
-      // Wait for the transaction to be confirmed by the specified number of blocks
-      await (result.transactionResponse as any).wait(confirmations);
-      logger.info(`Transaction confirmed after ${confirmations} blocks.`);
-    } else {
-      throw new Error("No transaction response available");
-    }
-
-    // Log the successful completion of the task
-    logger.info(`${txDescription} and accepted admin role successfully.`);
-  });
+      logger.info(`✅ Admin role claimed and accepted for ${tokenaddress}`);
+    },
+  }))
+  .build();

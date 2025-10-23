@@ -1,6 +1,8 @@
 import { HardhatUserConfig } from "hardhat/config";
-import "@nomicfoundation/hardhat-toolbox";
-require("@chainlink/env-enc").config();
+import hardhatToolboxViemPlugin from "@nomicfoundation/hardhat-toolbox-viem";
+import hardhatVerifyPlugin from "@nomicfoundation/hardhat-verify";
+import * as envEnc from "@chainlink/env-enc";
+envEnc.config();
 
 const SOLC_SETTINGS = {
   optimizer: {
@@ -13,42 +15,45 @@ const PRIVATE_KEY = process.env.PRIVATE_KEY || "";
 const accounts = [PRIVATE_KEY];
 
 const config: HardhatUserConfig = {
+  plugins: [hardhatToolboxViemPlugin, hardhatVerifyPlugin],
   solidity: {
-    compilers: [
-      {
-        version: "0.8.24",
-        settings: SOLC_SETTINGS,
-      },
+    npmFilesToBuild: [
+      "@chainlink/contracts/src/v0.8/shared/token/ERC677/BurnMintERC677.sol",
+      "@chainlink/contracts-ccip/contracts/test/mocks/MockRouter.sol"
     ],
+    profiles: {
+      default: {
+        version: "0.8.24",
+        settings: SOLC_SETTINGS
+      },
+      production: {
+        version: "0.8.24",
+        settings: SOLC_SETTINGS
+      },
+    },
   },
   networks: {
     ethereumSepolia: {
+      type: "http",
       url: process.env.ETHEREUM_SEPOLIA_RPC_URL || "UNSET",
       chainId: 11155111,
       accounts,
     },
     avalancheFuji: {
+      type: "http",
       url: process.env.AVALANCHE_FUJI_RPC_URL || "UNSET",
       chainId: 43113,
       accounts,
     },
-  },
-  etherscan: {
-    apiKey: {
-      sepolia: process.env.ETHERSCAN_API_KEY || "UNSET",
-      avalancheFuji: "avalancheFuji",
+  } as any,
+  verify: {
+    etherscan: {
+      apiKey: process.env.ETHERSCAN_API_KEY || "UNSET",
+      enabled: true,
     },
-    customChains: [
-      {
-        network: "avalancheFuji",
-        chainId: 43113,
-        urls: {
-          apiURL:
-            "https://api.routescan.io/v2/network/testnet/evm/43113/etherscan",
-          browserURL: "https://testnet.snowtrace.io",
-        },
-      },
-    ],
+    blockscout: {
+      enabled: false,
+    },
   },
 };
 

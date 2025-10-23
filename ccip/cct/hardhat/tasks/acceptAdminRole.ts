@@ -1,66 +1,114 @@
 import { task } from "hardhat/config";
-import { Chains, networks, logger, getEVMNetworkConfig } from "../config";
+import { HardhatRuntimeEnvironment } from "hardhat/types/hre";
+import { isAddress } from "viem";
+import {
+  Chains,
+  CCIPContractName,
+  logger,
+  getEVMNetworkConfig,
+} from "../config";
 
-interface AcceptAdminRoleTaskArgs {
-  tokenaddress: string;
-}
+/**
+ * Accepts the admin role for a token with a pending administrator.
+ *
+ * Example:
+ * npx hardhat acceptAdminRole --tokenaddress 0x1234... --network sepolia
+ */
+export const acceptAdminRole = task("acceptAdminRole", "Accepts the admin role for a token with a pending admin")
+  .addOption({
+    name: "tokenaddress",
+    description: "The token address",
+    defaultValue: "",
+  })
+  .setAction(async () => ({
+    default: async (
+      {
+        tokenaddress,
+      }: {
+        tokenaddress: string;
+      },
+      hre: HardhatRuntimeEnvironment
+    ) => {
+      // Validate token address is provided
+      if (!tokenaddress) {
+        throw new Error("Token address is required (--tokenaddress)");
+      }
 
-// Task to accept the admin role for a token that has a pending admin
-task("acceptAdminRole", "Accepts the admin role of a token")
-  .addParam("tokenaddress", "The address of the token") // Token address
-  .setAction(async (taskArgs: AcceptAdminRoleTaskArgs, hre) => {
-    const { tokenaddress: tokenAddress } = taskArgs;
-    const networkName = hre.network.name as Chains;
+      // Connect to network first
+      const networkConnection = await hre.network.connect();
+      const { viem } = networkConnection;
+      const networkName = networkConnection.networkName as Chains;
 
-    // Retrieve the network configuration
-    const networkConfig = getEVMNetworkConfig(networkName);
-    if (!networkConfig) {
-      throw new Error(`Network ${networkName} not found in config`);
-    }
+      logger.info(`🔄 Accepting admin role for ${tokenaddress} on ${networkName}...`);
 
-    // Validate the provided token address
-    if (!hre.ethers.isAddress(tokenAddress)) {
-      throw new Error(`Invalid token address: ${tokenAddress}`);
-    }
+      const networkConfig = getEVMNetworkConfig(networkName);
+      if (!networkConfig)
+        throw new Error(`Network ${networkName} not found in config`);
 
-    // Retrieve the token admin registry and confirmations from the network config
-    const { tokenAdminRegistry, confirmations } = networkConfig;
-    if (!tokenAdminRegistry) {
-      throw new Error(`tokenAdminRegistry is not defined for ${networkName}`);
-    }
+      // Validate token address format
+      if (!isAddress(tokenaddress))
+        throw new Error(`Invalid token address: ${tokenaddress}`);
 
-    if (confirmations === undefined) {
-      throw new Error(`confirmations is not defined for ${networkName}`);
-    }
+      const { tokenAdminRegistry, confirmations } = networkConfig;
+      if (!tokenAdminRegistry)
+        throw new Error(`tokenAdminRegistry missing for ${networkName}`);
+      if (confirmations === undefined)
+        throw new Error(`confirmations not defined for ${networkName}`);
 
-    // Get the signer (pending admin)
-    const [signer] = await hre.ethers.getSigners();
+      // Validate contract exists
+      try {
+        const code = await viem.getPublicClient().then(client =>
+          client.getBytecode({ address: tokenaddress as `0x${string}` })
+        );
+        if (!code) {
+          throw new Error(`No contract found at ${tokenaddress} on ${networkName}`);
+        }
+      } catch (error: any) {
+        throw new Error(`Failed to validate contract at ${tokenaddress}: ${error.message}`);
+      }
 
-    // Load the TokenAdminRegistry contract factory
-    const { TokenAdminRegistry__factory } = await import("../typechain-types");
+      const [wallet] = await viem.getWalletClients();
+      const publicClient = await viem.getPublicClient();
 
-    // Connect to the TokenAdminRegistry contract
-    const tokenAdminRegistryContract = TokenAdminRegistry__factory.connect(
-      tokenAdminRegistry,
-      signer
-    );
+      try {
+        // Connect to TokenAdminRegistry contract
+        const registry = await viem.getContractAt(
+          CCIPContractName.TokenAdminRegistry,
+          tokenAdminRegistry as `0x${string}`
+        );
 
-    // Retrieve the token configuration to check if the signer is the pending administrator
-    const { pendingAdministrator } =
-      await tokenAdminRegistryContract.getTokenConfig(tokenAddress);
+        logger.info(`Checking pending admin for ${tokenaddress}...`);
 
-    // Ensure that the signer is the pending administrator
-    if (pendingAdministrator !== signer.address) {
-      throw new Error(
-        `Only the pending administrator can accept the admin role. Pending administrator: ${pendingAdministrator}`
-      );
-    }
+        // Retrieve pending admin
+        const cfg = await registry.read.getTokenConfig([tokenaddress]);
+        const pendingAdmin = cfg.pendingAdministrator;
 
-    // Call the acceptAdminRole function to finalize the admin role
-    const tx = await tokenAdminRegistryContract.acceptAdminRole(tokenAddress);
+        if (pendingAdmin.toLowerCase() !== wallet.account.address.toLowerCase()) {
+          throw new Error(
+            `Only pending admin can accept.\nPending admin: ${pendingAdmin}\nCurrent wallet: ${wallet.account.address}`
+          );
+        }
 
-    // Wait for the transaction to be confirmed
-    await tx.wait(confirmations);
+        logger.info(`✅ Current wallet ${wallet.account.address} is the pending admin`);
+        logger.info(`Accepting admin role...`);
 
-    logger.info(`Accepted admin role for token ${tokenAddress} tx: ${tx.hash}`);
-  });
+        // Send transaction to accept admin role
+        const txHash = await registry.write.acceptAdminRole(
+          [tokenaddress],
+          { account: wallet.account.address }
+        );
+
+        logger.info(`📤 TX sent: ${txHash}. Waiting for ${confirmations} confirmations...`);
+
+        await publicClient.waitForTransactionReceipt({ hash: txHash, confirmations });
+
+        logger.info(
+          `✅ Admin role accepted for ${tokenaddress} on ${networkName} (${confirmations} confirmations)`
+        );
+      } catch (error: any) {
+        logger.error(`❌ Failed to accept admin role: ${error?.message || String(error)}`);
+        throw error;
+      }
+    },
+  }))
+  .build();

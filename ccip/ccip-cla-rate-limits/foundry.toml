@@ -9,6 +9,7 @@ remappings = [
     '@chainlink/contracts-ccip=node_modules/@chainlink/contracts-ccip',
     '@chainlink/local=node_modules/@chainlink/local',
     '@openzeppelin/contracts=node_modules/@openzeppelin/contracts',
+    '@openzeppelin/contracts@5.0.2=node_modules/@openzeppelin/contracts-5.0.2'
 ]
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

@@ -1,162 +1,215 @@
-import { task, types } from "hardhat/config";
+import { task } from "hardhat/config";
+import { HardhatRuntimeEnvironment } from "hardhat/types/hre";
+import { isAddress } from "viem";
+import { verifyContract } from "@nomicfoundation/hardhat-verify/verify";
 import {
   Chains,
-  networks,
-  TokenContractName,
   logger,
+  TokenContractName,
   getEVMNetworkConfig,
 } from "../../config";
-import type { BurnMintERC20 } from "../../typechain-types";
-import type { ContractFactory } from "ethers";
 
-// Define the interface for the task arguments
-interface DeployTokenTaskArgs {
-  safeaddress: string; // The address of the Safe multisig account
-  name: string; // The name of the token
-  symbol: string; // The symbol of the token
-  decimals: number; // The number of decimal places the token supports
-  maxsupply: bigint; // The maximum supply of tokens. When maxSupply is 0, the supply is unlimited
-  premint: bigint; // The initial amount of the token minted to the owner
-  verifycontract: boolean; // Whether to verify the contract on a blockchain explorer
-}
-
-// Define a Hardhat task called "deployTokenWithSafe"
-task("deployTokenWithSafe", "Deploys a token")
-  .addParam("safeaddress", "The address of the Safe") // Adds a mandatory parameter "safeaddress" to identify the Safe
-  .addParam("name", "The name of the token") // Adds a mandatory parameter "name" for the token's name
-  .addParam("symbol", "The symbol of the token") // Adds a mandatory parameter "symbol" for the token's symbol
-  .addOptionalParam("decimals", "The number of decimals", 18, types.int) // Adds an optional parameter "decimals" with a default value of 18
-  .addOptionalParam("maxsupply", "The maximum supply", 0n, types.bigint) // Adds an optional parameter "maxSupply" with a default value of 0
-  .addOptionalParam(
-    "premint",
-    "The initial amount of the token minted to the owner",
-    0n,
-    types.bigint
-  ) // If preMint is 0, then the initial mint amount is 0
-  .addOptionalParam(
-    "verifycontract",
-    "Verify the contract on Blockchain scan",
-    false,
-    types.boolean
-  )
-  .setAction(async (taskArgs: DeployTokenTaskArgs, hre) => {
-    // Extract task arguments
-    const {
-      safeaddress: safeAddress,
-      name,
-      symbol,
-      decimals,
-      maxsupply: maxSupply,
-      premint: preMint,
-      verifycontract: verifyContract,
-    } = taskArgs;
-
-    // Get the current network's name from the Hardhat runtime environment
-    const networkName = hre.network.name as Chains;
-
-    // Validate if the network is configured
-    if (!getEVMNetworkConfig(networkName)) {
-      throw new Error(`Network ${networkName} not found in config`);
-    }
-
-    // Initialize variables to hold the token factory, contract name, and CCIP admin address
-    let TokenFactory: ContractFactory;
-    let tokenContractName: TokenContractName;
-    let ccipAdminCalculatedAddress = "";
-
-    // Validate if the Safe address is a valid Ethereum address
-    if (!hre.ethers.isAddress(safeAddress)) {
-      throw new Error(`Invalid Safe address: ${safeAddress}`);
-    }
-
-    // Get the first signer available in the Hardhat environment
-    const signer = (await hre.ethers.getSigners())[0];
-    let token: BurnMintERC20;
-
-    const { BurnMintERC20__factory } = await import("../../typechain-types");
-    TokenFactory = new BurnMintERC20__factory(signer);
-    tokenContractName = TokenContractName.BurnMintERC20;
-
-    // Deploy the BurnMintERC20 contract with the specified parameters
-    token = (await TokenFactory.deploy(
-      name,
-      symbol,
-      decimals,
-      maxSupply,
-      preMint
-    )) as BurnMintERC20;
-
-    logger.info(`Deploying ${tokenContractName} contract to ${networkName}`);
-
-    try {
-      // Get the number of confirmations required for the deployment
-      const numberOfConfirmations =
-        getEVMNetworkConfig(networkName)?.confirmations;
-      if (numberOfConfirmations === undefined) {
-        throw new Error(`confirmations is not defined for ${networkName}`);
+/**
+ * Deploy a BurnMintERC20 token and transfer ownership to a Safe multisig.
+ *
+ * Example:
+ * npx hardhat deployTokenWithSafe \
+ *   --safeaddress 0xYourSafe \
+ *   --name MyToken \
+ *   --symbol MTK \
+ *   --decimals 18 \
+ *   --maxsupply 1000000 \
+ *   --premint 10000 \
+ *   --verifycontract \
+ *   --network sepolia
+ */
+export const deployTokenWithSafe = task(
+  "deployTokenWithSafe",
+  "Deploys a BurnMintERC20 token and assigns Safe as owner & CCIP admin"
+)
+  .addOption({
+    name: "safeaddress",
+    description: "The Safe multisig address",
+    defaultValue: "",
+  })
+  .addOption({
+    name: "name",
+    description: "The token name",
+    defaultValue: "MyToken",
+  })
+  .addOption({
+    name: "symbol",
+    description: "The token symbol",
+    defaultValue: "MTK",
+  })
+  .addOption({
+    name: "decimals",
+    description: "The token decimals",
+    defaultValue: "18",
+  })
+  .addOption({
+    name: "maxsupply",
+    description: "The maximum supply",
+    defaultValue: "0",
+  })
+  .addOption({
+    name: "premint",
+    description: "The amount to premint",
+    defaultValue: "0",
+  })
+  .addFlag({
+    name: "verifycontract",
+    description: "Verify the contract on Etherscan",
+  })
+  .setAction(async () => ({
+    default: async (
+      {
+        safeaddress,
+        name = "MyToken",
+        symbol = "MTK",
+        decimals: decimalsStr = "18",
+        maxsupply: maxsupplyStr = "0",
+        premint: premintStr = "0",
+        verifycontract = false,
+      }: {
+        safeaddress: string;
+        name?: string;
+        symbol?: string;
+        decimals?: string;
+        maxsupply?: string;
+        premint?: string;
+        verifycontract?: boolean;
+      },
+      hre: HardhatRuntimeEnvironment
+    ) => {
+      // Validate required parameters
+      if (!safeaddress) {
+        throw new Error("Safe address is required (--safeaddress)");
       }
 
-      // Log the deployment process and wait for the transaction to be confirmed
-      logger.info(
-        `Waiting ${numberOfConfirmations} blocks for transaction ${
-          token.deploymentTransaction()?.hash
-        } to be confirmed...`
-      );
-      await token.deploymentTransaction()?.wait(numberOfConfirmations);
+      // Parse string parameters to proper types
+      const decimals = parseInt(decimalsStr, 10);
+      if (isNaN(decimals)) {
+        throw new Error(`Invalid decimals value: ${decimalsStr}`);
+      }
 
-      // Get the deployed token contract address
-      const tokenAddress = await token.getAddress();
-      logger.info(`Token deployed to: ${tokenAddress}`);
+      const maxsupply = BigInt(maxsupplyStr);
+      const premint = BigInt(premintStr);
 
-      // Verify the contract on a blockchain explorer if requested
-      if (verifyContract) {
-        logger.info("Verifying contract on Etherscan...");
-        try {
-          await hre.run("verify:verify", {
-            address: tokenAddress,
-            constructorArguments: [name, symbol, decimals, maxSupply, preMint],
-          });
-          logger.info("Token contract deployed and verified");
-        } catch (error) {
-          if (error instanceof Error) {
-            if (!error.message.includes("Already Verified")) {
-              logger.error(error.message);
-              logger.warn(
-                "Token contract deployed but not verified. Ensure you are waiting for enough confirmation blocks"
-              );
-            } else {
-              logger.warn("Token contract deployed but already verified");
-            }
-          } else {
-            logger.error(
-              "Token contract deployed but there was an unknown error while verifying"
+      // Connect to network first
+      const networkConnection = await hre.network.connect();
+      const { viem } = networkConnection;
+      const networkName = networkConnection.networkName as Chains;
+      const networkConfig = getEVMNetworkConfig(networkName);
+      if (!networkConfig) throw new Error(`Network ${networkName} not found`);
+      const { confirmations } = networkConfig;
+      if (confirmations === undefined)
+        throw new Error(`confirmations missing for ${networkName}`);
+
+      // ✅ Validate Safe address
+      if (!isAddress(safeaddress))
+        throw new Error(`Invalid Safe address: ${safeaddress}`);
+
+      const [wallet] = await viem.getWalletClients();
+      const publicClient = await viem.getPublicClient();
+
+      try {
+        logger.info(`⚙️  Deploying ${TokenContractName.BurnMintERC20} on ${networkName}...`);
+        logger.info(`   Token: ${name} (${symbol})`);
+        logger.info(`   Decimals: ${decimals}`);
+        logger.info(`   Max supply: ${maxsupply}`);
+        logger.info(`   Premint: ${premint}`);
+        logger.info(`   Safe address: ${safeaddress}`);
+
+        // ✅ Deploy BurnMintERC20 contract
+        logger.info(`   Deploying contract...`);
+        const constructorArgs = Array<any>([
+              name,
+              symbol,
+              decimals,
+              maxsupply,
+              premint
+        ]);
+        const token = await viem.deployContract(
+          TokenContractName.BurnMintERC20,
+          ...constructorArgs
+        );
+
+        const contractAddress = token.address;
+        
+        logger.info(`✅ Token deployed at: ${contractAddress}`);
+        logger.info(`   Waiting for ${confirmations} confirmation(s)...`);
+        
+        // Wait for confirmations
+        await new Promise(resolve => setTimeout(resolve, confirmations * 3000));
+
+        // ✅ Verify contract if requested
+        if (verifycontract) {
+          logger.info(`   Verifying contract...`);
+
+          try {
+            
+            const isVerified = await verifyContract(
+              {
+                address: contractAddress,
+                constructorArgs: constructorArgs.flat(),
+              },
+              hre,
             );
-            logger.error(error);
+
+            if (isVerified) {
+              logger.info(`   ✅ Token contract verified successfully`);
+            } else {
+              logger.warn(`   ⚠️  Token contract verification failed`);
+            }
+          } catch (error: any) {
+            if (error.message?.includes("Already Verified")) {
+              logger.warn(`   ⚠️  Token contract already verified`);
+            } else {
+              logger.error(`   ❌ Verification failed: ${error.message}`);
+            }
           }
         }
-      } else {
-        logger.info("Token contract deployed successfully");
+
+        // Transfer ownership of the token to the Safe account
+        logger.info(`   Transferring ownership of token to Safe at ${safeaddress}`);
+        const adminRole = await token.read.DEFAULT_ADMIN_ROLE();
+        logger.info(`   Granting DEFAULT_ADMIN_ROLE to Safe: ${safeaddress}`);
+        // ✅ Grant admin role to Safe
+        const grantTx = await token.write.grantRole(
+          [adminRole, safeaddress as `0x${string}`],
+          { account: wallet.account }
+        );
+        
+        logger.info(`   ⏳ Grant role tx: ${grantTx}`);
+        await publicClient.waitForTransactionReceipt({ 
+          hash: grantTx,
+          confirmations,
+        });
+        logger.info(`   ✅ Safe granted DEFAULT_ADMIN_ROLE`);
+
+        // ✅ Set Safe as CCIP admin
+        logger.info(`   Setting CCIP admin to Safe...`);
+        const ccipTx = await token.write.setCCIPAdmin(
+          [safeaddress as `0x${string}`],
+          { account: wallet.account }
+        );
+        
+        logger.info(`   ⏳ Set CCIP admin tx: ${ccipTx}`);
+        await publicClient.waitForTransactionReceipt({ 
+          hash: ccipTx,
+          confirmations,
+        });
+        logger.info(`   ✅ Safe set as CCIP admin`);
+
+        logger.info(`\n✅ Token deployment and configuration complete!`);
+        logger.info(`   Token address: ${contractAddress}`);
+        logger.info(`   Safe address: ${safeaddress}`);
+
+      } catch (error) {
+        logger.error("❌ Token deployment failed:", error);
+        throw error;
       }
-
-      // Transfer ownership of the token to the Safe account
-      logger.info(`Transferring ownership of token to Safe at ${safeAddress}`);
-      const transferOwnershipTransaction = await token.grantRole(
-        await token.DEFAULT_ADMIN_ROLE(),
-        safeAddress
-      );
-      await transferOwnershipTransaction.wait(numberOfConfirmations);
-
-      logger.info(`Ownership of token transferred to Safe at ${safeAddress}`);
-
-      // Setting the Safe account as the CCIP admin
-      logger.info(`Setting Safe at ${safeAddress} as the CCIP admin`);
-      const settingCCIPAdminTransaction = await token.setCCIPAdmin(safeAddress);
-      await settingCCIPAdminTransaction.wait(numberOfConfirmations);
-
-      logger.info(`Safe at ${safeAddress} has been set as the CCIP admin`);
-    } catch (error) {
-      // Log an error if the deployment or any other process fails
-      logger.error(error);
-      throw new Error("Token deployment failed");
-    }
-  });
+    },
+  }))
+  .build();

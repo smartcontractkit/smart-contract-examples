@@ -1,11 +1,11 @@
-export type CHAIN_TYPE = "evm" | "svm";
+export type CHAIN_FAMILY = "evm" | "svm";
 
 /**
- * Type guard to check if a string is a valid CHAIN_TYPE
+ * Type guard to check if a string is a valid CHAIN_FAMILY
  * @param value - The string to check
- * @returns true if the string is a valid CHAIN_TYPE
+ * @returns true if the string is a valid CHAIN_FAMILY
  */
-export function isChainType(value: string): value is CHAIN_TYPE {
+export function isChainType(value: string): value is CHAIN_FAMILY {
   return value === "evm" || value === "svm";
 }
 
@@ -19,7 +19,7 @@ export interface ChainConfig {
   link?: string; // Optional for non-EVM chains
   confirmations: number;
   nativeCurrencySymbol: string;
-  chainType: CHAIN_TYPE;
+  chainFamily: CHAIN_FAMILY;
 }
 
 // Specific type for EVM chains used by Hardhat
@@ -33,13 +33,14 @@ export interface EVMChainConfig {
   link: string;
   confirmations: number;
   nativeCurrencySymbol: string;
-  chainType: "evm";
+  chainType: string;
+  type: string;
 }
 
 export enum Chains {
   avalancheFuji = "avalancheFuji",
   arbitrumSepolia = "arbitrumSepolia",
-  sepolia = "sepolia",
+  ethereumSepolia = "ethereumSepolia",
   baseSepolia = "baseSepolia",
   solanaDevnet = "solanaDevnet",
   polygonAmoy = "polygonAmoy",
@@ -49,7 +50,7 @@ export enum Chains {
 export enum EVMChains {
   avalancheFuji = "avalancheFuji",
   arbitrumSepolia = "arbitrumSepolia",
-  sepolia = "sepolia",
+  ethereumSepolia = "ethereumSepolia",
   baseSepolia = "baseSepolia",
   polygonAmoy = "polygonAmoy",
 }
@@ -92,11 +93,23 @@ export interface EtherscanConfig {
 
 export enum TokenContractName {
   BurnMintERC20 = "BurnMintERC20",
+  ERC20 = "ERC20",
 }
 
 export enum TokenPoolContractName {
   BurnMintTokenPool = "BurnMintTokenPool",
   LockReleaseTokenPool = "LockReleaseTokenPool",
+}
+
+export enum CCIPContractName {
+  RegistryModuleOwnerCustom = "RegistryModuleOwnerCustom",
+  TokenAdminRegistry = "TokenAdminRegistry",
+  TokenPool = "TokenPool",
+  Router = "IRouterClient",
+  OnRamp = "OnRamp",
+  OwnerIsCreator = "OwnerIsCreator",
+  RateLimiter = "RateLimiter",
+  Client = "Client",
 }
 
 export enum PoolType {

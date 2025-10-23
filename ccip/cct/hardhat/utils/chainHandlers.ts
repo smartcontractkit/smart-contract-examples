@@ -1,7 +1,7 @@
-import { CHAIN_TYPE } from "../config/types";
+import { CHAIN_FAMILY } from "../config/types";
 import bs58 from "bs58";
-import type { HardhatRuntimeEnvironment } from "hardhat/types";
 import { configData } from "../config";
+import { isAddress, encodeAbiParameters, decodeAbiParameters, parseAbiParameters } from "viem";
 
 /**
  * Error thrown when an invalid address is provided for a specific chain type
@@ -9,11 +9,11 @@ import { configData } from "../config";
 export class InvalidAddressError extends Error {
   constructor(
     public readonly address: string,
-    public readonly chainType: CHAIN_TYPE,
+    public readonly chainFamily: CHAIN_FAMILY,
     public readonly reason?: string
   ) {
     super(
-      `Invalid ${chainType} address: ${address}${reason ? ` (${reason})` : ""}`
+      `Invalid ${chainFamily} address: ${address}${reason ? ` (${reason})` : ""}`
     );
     this.name = "InvalidAddressError";
   }
@@ -22,10 +22,10 @@ export class InvalidAddressError extends Error {
 /**
  * Error thrown when an unsupported chain type is encountered
  */
-export class UnsupportedChainTypeError extends Error {
-  constructor(public readonly chainType: string) {
-    super(`Unsupported chain type: ${chainType}`);
-    this.name = "UnsupportedChainTypeError";
+export class UnsupportedChainFamilyError extends Error {
+  constructor(public readonly chainFamily: string) {
+    super(`Unsupported chain type: ${chainFamily}`);
+    this.name = "UnsupportedChainFamilyError";
   }
 }
 
@@ -36,18 +36,16 @@ export interface ChainAddressHandler {
   /**
    * Validates if an address is valid for this chain type
    * @param address - The address to validate
-   * @param hre - Hardhat runtime environment
    * @returns true if valid, false otherwise
    */
-  validateAddress(address: string, hre: HardhatRuntimeEnvironment): boolean;
+  validateAddress(address: string): boolean;
 
   /**
    * Prepares address data for contract interaction
    * @param address - The address to prepare
-   * @param hre - Hardhat runtime environment
    * @returns Prepared address data
    */
-  prepareAddressData(address: string, hre: HardhatRuntimeEnvironment): string;
+  prepareAddressData(address: string): string;
 
   /**
    * Converts address to hex format if needed
@@ -61,12 +59,12 @@ export interface ChainAddressHandler {
  * EVM chain address handler implementation
  */
 class EvmAddressHandler implements ChainAddressHandler {
-  validateAddress(address: string, hre: HardhatRuntimeEnvironment): boolean {
-    return hre.ethers.isAddress(address);
+  validateAddress(address: string): boolean {
+    return isAddress(address);
   }
 
-  prepareAddressData(address: string, hre: HardhatRuntimeEnvironment): string {
-    if (!this.validateAddress(address, hre)) {
+  prepareAddressData(address: string): string {
+    if (!this.validateAddress(address)) {
       throw new InvalidAddressError(
         address,
         "evm",
@@ -74,8 +72,11 @@ class EvmAddressHandler implements ChainAddressHandler {
       );
     }
 
-    // For EVM chains, encode as an Ethereum address
-    return new hre.ethers.AbiCoder().encode(["address"], [address]);
+    // For EVM chains, encode as an Ethereum address using viem
+    return encodeAbiParameters(
+      parseAbiParameters('address'),
+      [address as `0x${string}`]
+    );
   }
 
   toHex(address: string): string {
@@ -88,7 +89,7 @@ class EvmAddressHandler implements ChainAddressHandler {
  * Solana (SVM) chain address handler implementation
  */
 class SvmAddressHandler implements ChainAddressHandler {
-  validateAddress(address: string, hre: HardhatRuntimeEnvironment): boolean {
+  validateAddress(address: string): boolean {
     try {
       // Validate Solana address format (should be base58 encoded and proper length)
       const decoded = bs58.decode(address);
@@ -98,8 +99,8 @@ class SvmAddressHandler implements ChainAddressHandler {
     }
   }
 
-  prepareAddressData(address: string, hre: HardhatRuntimeEnvironment): string {
-    if (!this.validateAddress(address, hre)) {
+  prepareAddressData(address: string): string {
+    if (!this.validateAddress(address)) {
       throw new InvalidAddressError(
         address,
         "svm",
@@ -124,21 +125,21 @@ class SvmAddressHandler implements ChainAddressHandler {
 /**
  * Registry of chain address handlers
  */
-const chainHandlers: Record<CHAIN_TYPE, ChainAddressHandler> = {
+const chainHandlers: Record<CHAIN_FAMILY, ChainAddressHandler> = {
   evm: new EvmAddressHandler(),
   svm: new SvmAddressHandler(),
 } as const;
 
 /**
  * Gets the appropriate address handler for a given chain type
- * @param chainType - The chain type
+ * @param chainFamily - The chain type
  * @returns The address handler for the chain type
- * @throws {UnsupportedChainTypeError} If the chain type is not supported
+ * @throws {UnsupportedChainFamilyError} If the chain type is not supported
  */
-export function getChainHandler(chainType: CHAIN_TYPE): ChainAddressHandler {
-  const handler = chainHandlers[chainType];
+export function getChainHandler(chainFamily: CHAIN_FAMILY): ChainAddressHandler {
+  const handler = chainHandlers[chainFamily];
   if (!handler) {
-    throw new UnsupportedChainTypeError(chainType);
+    throw new UnsupportedChainFamilyError(chainFamily);
   }
   return handler;
 }
@@ -146,18 +147,16 @@ export function getChainHandler(chainType: CHAIN_TYPE): ChainAddressHandler {
 /**
  * Validates an address for a specific chain type
  * @param address - The address to validate
- * @param chainType - The chain type
- * @param hre - Hardhat runtime environment
+ * @param chainFamily - The chain type
  * @returns true if the address is valid for the chain type
  */
 export function validateChainAddress(
   address: string,
-  chainType: CHAIN_TYPE,
-  hre: HardhatRuntimeEnvironment
+  chainFamily: CHAIN_FAMILY
 ): boolean {
   try {
-    const handler = getChainHandler(chainType);
-    return handler.validateAddress(address, hre);
+    const handler = getChainHandler(chainFamily);
+    return handler.validateAddress(address);
   } catch (error) {
     return false;
   }
@@ -166,68 +165,62 @@ export function validateChainAddress(
 /**
  * Validates an address for a specific chain type, throwing an error if invalid
  * @param address - The address to validate
- * @param chainType - The chain type
- * @param hre - Hardhat runtime environment
+ * @param chainFamily - The chain type
  * @throws {InvalidAddressError} If the address is invalid
- * @throws {UnsupportedChainTypeError} If the chain type is not supported
+ * @throws {UnsupportedChainFamilyError} If the chain type is not supported
  */
 export function validateChainAddressOrThrow(
   address: string,
-  chainType: CHAIN_TYPE,
-  hre: HardhatRuntimeEnvironment
+  chainFamily: CHAIN_FAMILY
 ): void {
-  const handler = getChainHandler(chainType);
-  if (!handler.validateAddress(address, hre)) {
-    throw new InvalidAddressError(address, chainType);
+  const handler = getChainHandler(chainFamily);
+  if (!handler.validateAddress(address)) {
+    throw new InvalidAddressError(address, chainFamily);
   }
 }
 
 /**
  * Prepares address data for contract interaction based on chain type
  * @param address - The address to prepare
- * @param chainType - The chain type
- * @param hre - Hardhat runtime environment
+ * @param chainFamily - The chain type
  * @returns Prepared address data
  * @throws {InvalidAddressError} If the address is invalid
- * @throws {UnsupportedChainTypeError} If the chain type is not supported
+ * @throws {UnsupportedChainFamilyError} If the chain type is not supported
  */
 export function prepareChainAddressData(
   address: string,
-  chainType: CHAIN_TYPE,
-  hre: HardhatRuntimeEnvironment
+  chainFamily: CHAIN_FAMILY
 ): string {
-  const handler = getChainHandler(chainType);
-  return handler.prepareAddressData(address, hre);
+  const handler = getChainHandler(chainFamily);
+  return handler.prepareAddressData(address);
 }
 
 /**
  * Converts an address to hex format for a specific chain type
  * @param address - The address to convert
- * @param chainType - The chain type
- * @param hre - Hardhat runtime environment
+ * @param chainFamily - The chain type
  * @returns Hex representation of the address
  * @throws {InvalidAddressError} If the address is invalid
- * @throws {UnsupportedChainTypeError} If the chain type is not supported
+ * @throws {UnsupportedChainFamilyError} If the chain type is not supported
  */
 export function convertChainAddressToHex(
   address: string,
-  chainType: CHAIN_TYPE,
-  hre: HardhatRuntimeEnvironment
+  chainFamily: CHAIN_FAMILY
 ): string {
-  const handler = getChainHandler(chainType);
-  if (!handler.validateAddress(address, hre)) {
-    throw new InvalidAddressError(address, chainType);
+  const handler = getChainHandler(chainFamily);
+  if (!handler.validateAddress(address)) {
+    throw new InvalidAddressError(address, chainFamily);
   }
   return handler.toHex(address);
 }
 
 /**
- * Type guard to check if a string is a valid CHAIN_TYPE
- * @param chainType - The string to check
- * @returns true if the string is a valid CHAIN_TYPE
+ * Type guard to check if a string is a valid CHAIN_FAMILY
+ * @param chainFamily - The string to check
+ * @returns true if the string is a valid CHAIN_FAMILY
  */
-export function isValidChainType(chainType: string): chainType is CHAIN_TYPE {
-  return chainType === "evm" || chainType === "svm";
+export function isValidChainFamily(chainFamily: string): chainFamily is CHAIN_FAMILY {
+  return chainFamily === "evm" || chainFamily === "svm";
 }
 
 /**
@@ -235,7 +228,7 @@ export function isValidChainType(chainType: string): chainType is CHAIN_TYPE {
  */
 export interface ChainInfo {
   name: string;
-  chainType: CHAIN_TYPE;
+  chainFamily: CHAIN_FAMILY;
   chainSelector: string;
   config: any;
 }
@@ -261,11 +254,11 @@ export function getChainInfoBySelector(
   }
 
   const config = configData[chainName as keyof typeof configData];
-  const chainType = config.chainType as CHAIN_TYPE;
+  const chainFamily = config.chainFamily as CHAIN_FAMILY;
 
   return {
     name: chainName,
-    chainType,
+    chainFamily,
     chainSelector: selectorString,
     config,
   };
@@ -274,31 +267,30 @@ export function getChainInfoBySelector(
 /**
  * Decodes an encoded address based on the chain type
  * @param encodedAddress - The encoded address data
- * @param chainType - The chain type (evm or svm)
- * @param hre - Hardhat runtime environment (optional, required for EVM)
+ * @param chainFamily - The chain type (evm or svm)
  * @returns The decoded address string
  * @throws Error if decoding fails
  */
 export function decodeChainAddress(
   encodedAddress: string,
-  chainType: CHAIN_TYPE,
-  hre?: HardhatRuntimeEnvironment
+  chainFamily: CHAIN_FAMILY
 ): string {
-  if (chainType === "svm") {
+  if (chainFamily === "svm") {
     // For Solana, the encoded address is a hex string (32 bytes)
     const hexString = encodedAddress.startsWith("0x")
       ? encodedAddress.slice(2)
       : encodedAddress;
     const bytes = Buffer.from(hexString, "hex");
     return bs58.encode(bytes);
-  } else if (chainType === "evm") {
-    if (!hre) {
-      throw new Error("HardhatRuntimeEnvironment is required for EVM address decoding");
-    }
-    // For EVM chains, use AbiCoder
-    return new hre.ethers.AbiCoder().decode(["address"], encodedAddress)[0];
+  } else if (chainFamily === "evm") {
+    // For EVM chains, use viem's decodeAbiParameters
+    const [decoded] = decodeAbiParameters(
+      parseAbiParameters('address'),
+      encodedAddress as `0x${string}`
+    );
+    return decoded as string;
   } else {
-    throw new UnsupportedChainTypeError(chainType);
+    throw new UnsupportedChainFamilyError(chainFamily);
   }
 }
 
@@ -311,15 +303,14 @@ export function decodeChainAddress(
  */
 export function decodeAddressByChainSelector(
   encodedAddress: string,
-  chainSelector: string | bigint,
-  hre: HardhatRuntimeEnvironment
+  chainSelector: string | bigint
 ): string {
   try {
     const chainInfo = getChainInfoBySelector(chainSelector);
     if (!chainInfo) {
       return "UNKNOWN_CHAIN";
     }
-    return decodeChainAddress(encodedAddress, chainInfo.chainType, hre);
+    return decodeChainAddress(encodedAddress, chainInfo.chainFamily);
   } catch (error) {
     return "DECODE_ERROR";
   }
