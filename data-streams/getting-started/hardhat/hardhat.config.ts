@@ -4,7 +4,7 @@ import hardhatToolboxViemPlugin from "@nomicfoundation/hardhat-toolbox-viem";
 import * as envEnc from "@chainlink/env-enc";
 
 // Load custom tasks
-import { tasks } from "./tasks/index.js";
+import { tasks, npmFilesToBuild } from "./tasks/index.js";
 
 // Load environment variables from env-enc
 // Run: npx env-enc set-pw
@@ -27,6 +27,7 @@ const config: HardhatUserConfig = {
   plugins: [hardhatToolboxViemPlugin],
   tasks,
   solidity: {
+    npmFilesToBuild,
     compilers: [
       {
         version: "0.8.20",

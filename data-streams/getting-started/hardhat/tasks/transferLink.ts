@@ -1,29 +1,8 @@
 import { task } from "hardhat/config";
 import { HardhatRuntimeEnvironment } from "hardhat/types/hre";
-import { formatEther, parseEther, isAddress, getContract } from "viem";
+import { formatEther, parseEther, isAddress } from "viem";
 import { spin } from "./utils/index.js";
 import { networkConfig } from "../helper-hardhat-config.js";
-
-// Minimal ERC20 ABI for LINK token interactions
-const minimalERC20ABI = [
-  {
-    name: "balanceOf",
-    type: "function",
-    stateMutability: "view",
-    inputs: [{ name: "owner", type: "address" }],
-    outputs: [{ type: "uint256" }],
-  },
-  {
-    name: "transfer",
-    type: "function",
-    stateMutability: "nonpayable",
-    inputs: [
-      { name: "to", type: "address" },
-      { name: "amount", type: "uint256" },
-    ],
-    outputs: [{ type: "bool" }],
-  },
-] as const;
 
 /**
  * Task to transfer LINK tokens using Viem.
@@ -100,15 +79,16 @@ export const transferLink = task(
         spinner.info(`Starting LINK transfer from ${account} to ${recipient}`);
         spinner.info(`LINK token address: ${linkTokenAddress}`);
 
-        // Create LINK token contract instance using viem's getContract
-        const linkToken = getContract({
-          address: linkTokenAddress,
-          abi: minimalERC20ABI,
-          client: { public: publicClient, wallet: walletClient },
-        });
+        // Create LINK token contract instance using viem's getContractAt
+        const linkToken = await viem.getContractAt(
+          "LinkTokenInterface",
+          linkTokenAddress as `0x${string}`
+        );
 
         // Check sender's LINK balance (read operation)
-        const balance = await linkToken.read.balanceOf([account]);
+        const balance = (await linkToken.read.balanceOf([
+          account,
+        ])) as bigint;
         spinner.info(
           `LINK balance of sender ${account} is ${formatEther(balance)} LINK`
         );

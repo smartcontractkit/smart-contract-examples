@@ -1,6 +1,6 @@
 import { task } from "hardhat/config";
 import { HardhatRuntimeEnvironment } from "hardhat/types/hre";
-import { parseEther, encodeAbiParameters, parseAbiParameters } from "viem";
+import { parseEther, encodeAbiParameters, parseAbiParameters, keccak256, toHex, zeroHash } from "viem";
 import { spin } from "./utils/index.js";
 
 /**
@@ -23,39 +23,96 @@ export const registerUpkeep = task(
     description: "The address of the deployed LogEmitter contract",
     defaultValue: "",
   })
+  .addOption({
+    name: "name",
+    description: "Name of the upkeep registration",
+    defaultValue: "Prog. Streams Upkeep",
+  })
+  .addOption({
+    name: "encryptedEmail",
+    description: "Encrypted email (optional)",
+    defaultValue: "0x",
+  })
+  .addOption({
+    name: "gasLimit",
+    description: "Maximum gas allowance for the upkeep execution",
+    defaultValue: "500000",
+  })
+  .addOption({
+    name: "triggerType",
+    description: "Type of trigger (1 for Log Trigger)",
+    defaultValue: "1",
+  })
+  .addOption({
+    name: "checkData",
+    description: "Data passed to checkUpkeep",
+    defaultValue: "0x",
+  })
+  .addOption({
+    name: "offchainConfig",
+    description: "Off-chain configuration data",
+    defaultValue: "0x",
+  })
+  .addOption({
+    name: "amount",
+    description: "Funding amount in LINK tokens (in ether units)",
+    defaultValue: "1",
+  })
+  .addOption({
+    name: "eventSig",
+    description:
+      "Event signature to trigger on (e.g., 'Log(address)'). Find this in your contract's events. Format: EventName(type1,type2,...) without parameter names or 'indexed' keyword",
+    defaultValue: "Log(address)",
+  })
   .setAction(async () => ({
     default: async (
       {
         streamsUpkeep,
         logEmitter,
-      }: { streamsUpkeep: string; logEmitter: string },
+        name,
+        encryptedEmail,
+        gasLimit,
+        triggerType,
+        checkData,
+        offchainConfig,
+        amount,
+        eventSig,
+      }: {
+        streamsUpkeep: string;
+        logEmitter: string;
+        name: string;
+        encryptedEmail: string;
+        gasLimit: string;
+        triggerType: string;
+        checkData: string;
+        offchainConfig: string;
+        amount: string;
+        eventSig: string;
+      },
       hre: HardhatRuntimeEnvironment
     ) => {
-      const { viem } = await hre.network.connect();
+
+      // Connect to network and get viem client
+      const networkConnection = await hre.network.connect();
+      const { viem } = networkConnection;
       const [walletClient] = await viem.getWalletClients();
 
       // Retrieve the deployer's (admin's) signer object to sign transactions.
       const admin = walletClient.account.address;
 
-      // Define registration parameters for the upkeep.
+      // Parse task arguments
       // See more information on https://docs.chain.link/chainlink-automation/guides/register-upkeep-in-contract.
-      const name = "Prog. Streams Upkeep"; // Name of the upkeep registration.
-      const encryptedEmail = "0x" as `0x${string}`; // Placeholder for an encrypted email (optional).
-      const gasLimit = 500000; // Maximum gas allowance for the upkeep execution.
-      const triggerType = 1; // Type of trigger, where `1` represents a Log Trigger.
-      const checkData = "0x" as `0x${string}`; // Data passed to checkUpkeep; placeholder in this context.
-      const offchainConfig = "0x" as `0x${string}`; // Off-chain configuration data; placeholder in this context.
-      const amount = parseEther("1"); // Funding amount in LINK tokens.
+      const parsedGasLimit = parseInt(gasLimit);
+      const parsedTriggerType = parseInt(triggerType);
+      const parsedAmount = parseEther(amount);
 
-      // Event signature hash and placeholder topics for the LogEmitter trigger.
-      const topic0 =
-        "0xb8a00d6d8ca1be30bfec34d8f97e55f0f0fd9eeb7fb46e030516363d4cfe1ad6"; // Event signature hash.
-      const topic1 =
-        "0x0000000000000000000000000000000000000000000000000000000000000000"; // Placeholder topics.
-      const topic2 =
-        "0x0000000000000000000000000000000000000000000000000000000000000000";
-      const topic3 =
-        "0x0000000000000000000000000000000000000000000000000000000000000000";
+      // Generate event signature hash from the event signature string
+      const topic0 = keccak256(toHex(eventSig)); // Event signature hash computed from eventSig parameter
+      const topic1 = zeroHash; // Placeholder topics (match any value for indexed parameters)
+      const topic2 = zeroHash;
+      const topic3 = zeroHash;
+
+      console.log(topic1)
 
       // ABI-encode the trigger configuration data.
       const triggerConfig = encodeAbiParameters(
@@ -68,15 +125,15 @@ export const registerUpkeep = task(
       // Construct the parameters for registration, combining all previously defined values.
       const params = {
         name,
-        encryptedEmail,
+        encryptedEmail: encryptedEmail as `0x${string}`,
         upkeepContract: streamsUpkeep as `0x${string}`,
-        gasLimit,
+        gasLimit: parsedGasLimit,
         adminAddress: admin,
-        triggerType,
-        checkData,
+        triggerType: parsedTriggerType,
+        checkData: checkData as `0x${string}`,
         triggerConfig,
-        offchainConfig,
-        amount,
+        offchainConfig: offchainConfig as `0x${string}`,
+        amount: parsedAmount,
       };
 
       const spinner = spin();
@@ -90,12 +147,31 @@ export const registerUpkeep = task(
       );
 
       try {
+        // Simulate the transaction first to catch any errors before sending
+        await StreamsUpkeepContract.simulate.registerAndPredictID([params]);
+
+        // If simulation succeeds, execute the actual transaction
         await StreamsUpkeepContract.write.registerAndPredictID([params]);
         spinner.succeed(
-          "Upkeep registered and funded with 1 LINK successfully."
+          `Upkeep registered and funded with ${amount} LINK successfully.`
         );
-      } catch (error) {
+      } catch (error: any) {
         spinner.fail("Failed to register upkeep.");
+
+        // Check if the error is related to auto-approve being disabled
+        const errorMessage = error.message || "";
+        const errorCause = error.cause?.reason || error.cause?.message || "";
+
+        if (
+          errorMessage.includes("auto-approve disabled") ||
+          errorCause.includes("auto-approve disabled")
+        ) {
+          console.error(
+            "\n❌ Auto-approve is disabled. If you would like to get your contract (i.e., StreamsUpkeepRegistrar in this case) whitelisted for using Log Triggers Automation, please fill the form at https://chainlinkcommunity.typeform.com/to/m10dC36d.\n"
+          );
+          return;
+        }
+
         throw error;
       }
     },
