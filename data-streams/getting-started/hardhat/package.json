@@ -5,12 +5,10 @@
   "devDependencies": {
     "@chainlink/contracts": "1.5.0",
     "@chainlink/env-enc": "^1.0.5",
-    "@nomicfoundation/hardhat-ignition": "^3.0.3",
     "@nomicfoundation/hardhat-toolbox-viem": "^5.0.0",
     "@types/node": "^22.18.10",
     "hardhat": "^3.0.7",
     "ora": "^5.4.1",
-    "typescript": "~5.8.0",
-    "viem": "^2.38.3"
+    "typescript": "~5.8.0"
   }
 }
