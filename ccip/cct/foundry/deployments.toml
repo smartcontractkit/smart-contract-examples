@@ -1,0 +1,5 @@
+[avalanche-fuji]
+endpoint_url = "${RPC_URL_FUJI}"
+
+[arbitrum-sepolia]
+endpoint_url = "${RPC_URL_ARBITRUM_SEPOLIA}"
