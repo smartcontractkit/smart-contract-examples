@@ -2,31 +2,53 @@
 pragma solidity 0.8.24;
 
 import {Script, console} from "forge-std/Script.sol";
+import {Config} from "forge-std/Config.sol";
 import {HelperUtils} from "./utils/HelperUtils.s.sol"; // Utility functions for JSON parsing and chain info
 import {HelperConfig} from "./HelperConfig.s.sol"; // Network configuration helper
 import {LockReleaseTokenPool} from "@chainlink/contracts-ccip/contracts/pools/LockReleaseTokenPool.sol";
 import {IERC20} from "@openzeppelin/contracts@4.8.3/token/ERC20/IERC20.sol";
 
-contract DeployLockReleaseTokenPool is Script {
+contract DeployLockReleaseTokenPool is Script, Config {
     function run() external {
+        _loadConfigAndForks("./deployments.toml", true);
+        for (uint256 i = 0; i < chainIds.length; i++) {
+            uint256 chainId = chainIds[i];
+            deployToChain(chainId);
+        }
+    }
+
+    function deployToChain(uint256 chainId) internal {
+        vm.selectFork(forkOf[chainId]);
         // Get the chain name based on the current chain ID
         string memory chainName = HelperUtils.getChainName(block.chainid);
 
         // Construct the path to the deployed token JSON file
         string memory root = vm.projectRoot();
-        string memory deployedTokenPath = string.concat(root, "/script/output/deployedToken_", chainName, ".json");
+        string memory deployedTokenPath = string.concat(
+            root,
+            "/script/output/deployedToken_",
+            chainName,
+            ".json"
+        );
 
         // Extract the deployed token address from the JSON file
-        address tokenAddress =
-            HelperUtils.getAddressFromJson(vm, deployedTokenPath, string.concat(".deployedToken_", chainName));
+        address tokenAddress = HelperUtils.getAddressFromJson(
+            vm,
+            deployedTokenPath,
+            string.concat(".deployedToken_", chainName)
+        );
 
         // Fetch network configuration (router and RMN proxy addresses)
         HelperConfig helperConfig = new HelperConfig();
-        (, address router, address rmnProxy,,,,,) = helperConfig.activeNetworkConfig();
+        (, address router, address rmnProxy, , , , , ) = helperConfig
+            .activeNetworkConfig();
 
         // Ensure that the token address, router, and RMN proxy are valid
         require(tokenAddress != address(0), "Invalid token address");
-        require(router != address(0) && rmnProxy != address(0), "Router or RMN Proxy not defined for this network");
+        require(
+            router != address(0) && rmnProxy != address(0),
+            "Router or RMN Proxy not defined for this network"
+        );
 
         vm.startBroadcast();
 
@@ -39,17 +61,35 @@ contract DeployLockReleaseTokenPool is Script {
             router
         );
 
-        console.log("Lock & Release token pool deployed to:", address(tokenPool));
+        console.log(
+            "Lock & Release token pool deployed to:",
+            address(tokenPool)
+        );
 
         vm.stopBroadcast();
 
         // Serialize and write the token pool address to a new JSON file
         string memory jsonObj = "internal_key";
-        string memory key = string(abi.encodePacked("deployedTokenPool_", chainName));
-        string memory finalJson = vm.serializeAddress(jsonObj, key, address(tokenPool));
+        string memory key = string(
+            abi.encodePacked("deployedTokenPool_", chainName)
+        );
+        string memory finalJson = vm.serializeAddress(
+            jsonObj,
+            key,
+            address(tokenPool)
+        );
 
-        string memory poolFileName = string(abi.encodePacked("./script/output/deployedTokenPool_", chainName, ".json"));
-        console.log("Writing deployed token pool address to file:", poolFileName);
+        string memory poolFileName = string(
+            abi.encodePacked(
+                "./script/output/deployedTokenPool_",
+                chainName,
+                ".json"
+            )
+        );
+        console.log(
+            "Writing deployed token pool address to file:",
+            poolFileName
+        );
         vm.writeJson(finalJson, poolFileName);
     }
 }
