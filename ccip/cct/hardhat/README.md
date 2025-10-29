@@ -146,10 +146,24 @@ Required information from these directories:
 
 ### Environment Variable
 
+The system automatically generates environment variable names from network names using this pattern:
+- Convert camelCase to SNAKE_CASE
+- Add `_RPC_URL` suffix
+
+**Examples:**
+- `newNetwork` → `NEW_NETWORK_RPC_URL`
+- `optimismSepolia` → `OPTIMISM_SEPOLIA_RPC_URL`  
+- `bscTestnet` → `BSC_TESTNET_RPC_URL`
+
 Set the RPC URL environment variable:
 
 ```bash
 npx env-enc set NEW_NETWORK_RPC_URL
+```
+
+**For the example network above:**
+```bash
+npx env-enc set OPTIMISM_SEPOLIA_RPC_URL
 ```
 
 ### Contract Verification (Optional)
