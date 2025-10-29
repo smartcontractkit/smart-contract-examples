@@ -461,3 +461,137 @@ The tasks work on all CCIP-supported testnet and mainnet networks:
 - **Polygon Amoy** / Polygon Mainnet
 
 Each network automatically uses its native token pair (ETH/WETH, AVAX/WAVAX, MATIC/WMATIC, etc.).
+
+## Adding a New Network
+
+To add support for a new CCIP-enabled network, follow these steps:
+
+### Step 1: Update Type Definitions
+
+**File**: `config/types.ts`
+
+Add the new network to both enums:
+
+```typescript
+export enum Chains {
+  // ... existing networks
+  newNetworkName = "newNetworkName", // ADD THIS
+}
+
+export enum EVMChains {
+  // ... existing networks
+  newNetworkName = "newNetworkName", // ADD THIS
+}
+```
+
+### Step 2: Add Network Configuration
+
+**File**: `config/config.json`
+
+Add the network's CCIP infrastructure addresses:
+
+```json
+{
+  "newNetworkName": {
+    "chainId": 12345,
+    "chainSelector": "1234567890123456789",
+    "router": "0xRouterAddressOnNewNetwork",
+    "rmnProxy": "0xRMNProxyAddress",
+    "tokenAdminRegistry": "0xTokenAdminRegistryAddress",
+    "registryModuleOwnerCustom": "0xRegistryModuleOwnerAddress",
+    "link": "0xLinkTokenAddress",
+    "confirmations": 2,
+    "nativeCurrencySymbol": "NEW",
+    "chainType": "l1",
+    "chainFamily": "evm"
+  }
+}
+```
+
+### Step 3: Add Network Connection
+
+**File**: `config/networks.ts`
+
+Add the network to the networks object:
+
+```typescript
+const networks: Networks = {
+  // ... existing networks
+  [EVMChains.newNetworkName]: {
+    type: "http",
+    ...configData.newNetworkName,
+    url:
+      process.env.NEW_NETWORK_RPC_URL ||
+      "https://UNSET-PLEASE-SET-NEW_NETWORK_RPC_URL",
+    gasPrice: undefined,
+    nonce: undefined,
+    accounts,
+  },
+};
+```
+
+### Step 4: Add Verification Support (Optional)
+
+**File**: `hardhat.config.ts`
+
+If the network needs custom verification settings:
+
+```typescript
+chainDescriptors: {
+  12345: { // New network's chainId
+    name: "New Network Name",
+    chainType: "generic",
+    blockExplorers: {
+      etherscan: {
+        name: "NewScan",
+        url: "https://newscan.io",
+        apiUrl: "https://api.newscan.io/api",
+      },
+    },
+  },
+}
+```
+
+### Step 5: Environment Variables
+
+Add the required environment variables using `npx env-enc set`:
+
+- `NEW_NETWORK_RPC_URL` - RPC endpoint for the network
+- `NEWSCAN_API_KEY` - Block explorer API key (for verification)
+
+### Step 6: Required CCIP Information
+
+To get the configuration values, consult:
+
+- **CCIP Mainnet Directory**: [https://docs.chain.link/ccip/directory/mainnet](https://docs.chain.link/ccip/directory/mainnet)
+- **CCIP Testnet Directory**: [https://docs.chain.link/ccip/directory/testnet](https://docs.chain.link/ccip/directory/testnet)
+- **CCIP Addresses**: Router, RMN Proxy, Token Admin Registry addresses
+- **Chain Selector**: Unique CCIP identifier for the network
+- **LINK Token**: LINK contract address on the network
+
+### Step 7: Test the New Network
+
+```bash
+# Deploy EtherSenderReceiver
+npx hardhat deployTokenSenderReceiver --network newNetworkName --verifycontract
+
+# Test cross-chain transfer
+npx hardhat sendTokens \
+  --contract 0xDeployedContract \
+  --destinationchain ethereumSepolia \
+  --receiver 0xRecipientAddress \
+  --amount 0.001 \
+  --network newNetworkName
+```
+
+### Files Summary
+
+| File                 | Purpose          | Changes                               |
+| -------------------- | ---------------- | ------------------------------------- |
+| `config/types.ts`    | Type definitions | Add to `Chains` and `EVMChains` enums |
+| `config/config.json` | CCIP addresses   | Add network configuration object      |
+| `config/networks.ts` | RPC connections  | Add network connection settings       |
+| `hardhat.config.ts`  | Verification     | Add chain descriptor (optional)       |
+| Environment          | Secrets          | Add RPC URL and API key               |
+
+**Note**: All CCIP infrastructure addresses can be found in the [CCIP Mainnet Directory](https://docs.chain.link/ccip/directory/mainnet) and [CCIP Testnet Directory](https://docs.chain.link/ccip/directory/testnet) for each supported network.
