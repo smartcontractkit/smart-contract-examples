@@ -16,6 +16,11 @@ import { setRateLimitAdmin } from "./setRateLimitAdmin";
 import { addRemotePool } from "./addRemotePool";
 import { removeRemotePool } from "./removeRemotePool";
 import { safeMultisigTasks } from "./safe-multisig";
+import {
+  deployTokenSenderReceiver,
+  sendTokens,
+  estimateFee
+} from "./native-gas-sender-receiver";
 
 export const tasks = [
     deployToken, 
@@ -35,6 +40,10 @@ export const tasks = [
     setRateLimitAdmin,
     addRemotePool,
     removeRemotePool,
+    // Native Gas Sender Receiver tasks
+    deployTokenSenderReceiver,
+    sendTokens,
+    estimateFee,
     ...safeMultisigTasks
 ];
 
@@ -49,6 +58,7 @@ export const npmFilesToBuild = [
       "@chainlink/contracts/src/v0.8/shared/access/OwnerIsCreator.sol",
       "@chainlink/contracts-ccip/contracts/libraries/RateLimiter.sol",
       "@chainlink/contracts-ccip/contracts/libraries/Client.sol",
+      "@chainlink/contracts-ccip/contracts/applications/EtherSenderReceiver.sol",
       "@openzeppelin/contracts/token/ERC20/ERC20.sol",
 ];
 
