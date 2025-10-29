@@ -1,7 +1,7 @@
 // Export all native gas sender receiver tasks
-export { deployEtherSenderReceiver } from "./deployEtherSenderReceiver";
-export { sendEther } from "./sendEther";
-export { estimateEtherFee } from "./estimateEtherFee";
+export { deployTokenSenderReceiver } from "./deployTokenSenderReceiver";
+export { sendTokens } from "./sendTokens";
+export { estimateFee } from "./estimateFee";
 
 // Export types and utilities
 export type * from "./types";
