@@ -91,6 +91,82 @@ npx env-enc remove VARIABLE_NAME
 - Your encryption password is required each time you start a new terminal session
 - Never commit your `.env.enc` file to version control
 
+## Adding New Networks
+
+The network configuration system uses a single source of truth architecture that automatically generates TypeScript types and Hardhat network configurations from the network data.
+
+### Adding a Network
+
+To add a new CCIP-supported network, add the network configuration to the `configData` object in `config/networks.ts`:
+
+```typescript
+export const configData = {
+  // ... existing networks
+  newNetwork: {
+    chainFamily: "evm", // or "svm" for non-EVM chains
+    chainId: 12345,
+    chainSelector: "1234567890123456789",
+    router: "0xRouterAddress",
+    rmnProxy: "0xRMNProxyAddress",
+    tokenAdminRegistry: "0xTokenAdminRegistryAddress", 
+    registryModuleOwnerCustom: "0xRegistryModuleOwnerAddress",
+    link: "0xLinkTokenAddress",
+    confirmations: 2,
+    nativeCurrencySymbol: "NEW",
+    chainType: "l1",
+  }
+};
+```
+
+The network becomes available in:
+- All task `--network` options
+- TypeScript type checking (`Chains` and `EVMChains` types)
+- Hardhat network configuration
+- Cross-chain destination options
+- Network validation throughout all tasks
+
+### CCIP Configuration Sources
+
+Obtain the required addresses and chain selectors from the official CCIP directories:
+
+- **Mainnet Networks**: [https://docs.chain.link/ccip/directory/mainnet](https://docs.chain.link/ccip/directory/mainnet)
+- **Testnet Networks**: [https://docs.chain.link/ccip/directory/testnet](https://docs.chain.link/ccip/directory/testnet)
+
+Required information from these directories:
+- Router contract addresses
+- Chain selectors (unique CCIP identifiers)
+- RMN Proxy addresses
+- Token Admin Registry addresses
+- LINK token addresses
+
+### Environment Variable
+
+Set the RPC URL environment variable:
+
+```bash
+npx env-enc set NEW_NETWORK_RPC_URL
+```
+
+### Example: Adding Optimism Sepolia
+
+```typescript
+optimismSepolia: {
+  chainFamily: "evm",
+  chainId: 11155420,
+  chainSelector: "5224473277236331295",
+  router: "0x114A20A10b43D4115e5aeef7345a1A71d2a60C57",
+  rmnProxy: "0x...",
+  tokenAdminRegistry: "0x...",
+  registryModuleOwnerCustom: "0x...",
+  link: "0x...",
+  confirmations: 2,
+  nativeCurrencySymbol: "ETH",
+  chainType: "op",
+}
+```
+
+All tasks will support `--network optimismSepolia` after adding this configuration.
+
 ### Example Usage
 
 ```bash
@@ -113,6 +189,7 @@ npx hardhat transferTokens --tokenaddress 0x123... --amount 1000 --destinationch
 - [Supported Networks](#supported-networks)
 - [Network Configuration](#network-configuration)
 - [Environment Variable Setup](#environment-variable-setup)
+- [Adding New Networks](#adding-new-networks)
 - [Example Usage](#example-usage)
 
 **EOA**:
@@ -1568,79 +1645,3 @@ npx hardhat applyChainUpdatesFromSafe \
 - **Network Configuration**:
   - Chain selectors and other network details are automatically fetched from the network configuration.
   - The task validates all addresses and chain configurations before creating the Safe transaction.
-
-## Adding New Networks
-
-The network configuration system uses a single source of truth architecture that automatically generates TypeScript types and Hardhat network configurations from the network data.
-
-### Adding a Network
-
-To add a new CCIP-supported network, add the network configuration to the `configData` object in `config/networks.ts`:
-
-```typescript
-export const configData = {
-  // ... existing networks
-  newNetwork: {
-    chainFamily: "evm", // or "svm" for non-EVM chains
-    chainId: 12345,
-    chainSelector: "1234567890123456789",
-    router: "0xRouterAddress",
-    rmnProxy: "0xRMNProxyAddress",
-    tokenAdminRegistry: "0xTokenAdminRegistryAddress", 
-    registryModuleOwnerCustom: "0xRegistryModuleOwnerAddress",
-    link: "0xLinkTokenAddress",
-    confirmations: 2,
-    nativeCurrencySymbol: "NEW",
-    chainType: "l1",
-  }
-};
-```
-
-The network becomes available in:
-- All task `--network` options
-- TypeScript type checking (`Chains` and `EVMChains` types)
-- Hardhat network configuration
-- Cross-chain destination options
-- Network validation throughout all tasks
-
-### CCIP Configuration Sources
-
-Obtain the required addresses and chain selectors from the official CCIP directories:
-
-- **Mainnet Networks**: [https://docs.chain.link/ccip/directory/mainnet](https://docs.chain.link/ccip/directory/mainnet)
-- **Testnet Networks**: [https://docs.chain.link/ccip/directory/testnet](https://docs.chain.link/ccip/directory/testnet)
-
-Required information from these directories:
-- Router contract addresses
-- Chain selectors (unique CCIP identifiers)
-- RMN Proxy addresses
-- Token Admin Registry addresses
-- LINK token addresses
-
-### Environment Variable
-
-Set the RPC URL environment variable:
-
-```bash
-npx env-enc set NEW_NETWORK_RPC_URL
-```
-
-### Example: Adding Optimism Sepolia
-
-```typescript
-optimismSepolia: {
-  chainFamily: "evm",
-  chainId: 11155420,
-  chainSelector: "5224473277236331295",
-  router: "0x114A20A10b43D4115e5aeef7345a1A71d2a60C57",
-  rmnProxy: "0x...",
-  tokenAdminRegistry: "0x...",
-  registryModuleOwnerCustom: "0x...",
-  link: "0x...",
-  confirmations: 2,
-  nativeCurrencySymbol: "ETH",
-  chainType: "op",
-}
-```
-
-All tasks will support `--network optimismSepolia` after adding this configuration.
