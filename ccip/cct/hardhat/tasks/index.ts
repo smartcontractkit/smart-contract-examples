@@ -2,13 +2,13 @@ import { deployToken } from "./deployToken";
 import { deployTokenPool } from "./deployTokenPool";
 import { mintTokens } from "./mintTokens";
 import { checkTokenBalance } from "./checkTokenBalance";
-import {claimAdmin} from "./claimAdmin";
-import {acceptAdminRole} from "./acceptAdminRole";
+import { claimAdmin } from "./claimAdmin";
+import { acceptAdminRole } from "./acceptAdminRole";
 import { transferTokenAdminRole } from "./transferTokenAdminRole";
 import { getPoolConfig } from "./getPoolConfig";
 import { setPool } from "./setPool";
 import { applyChainUpdates } from "./applyChainUpdates";
-import {transferTokens} from "./transferTokens";
+import { transferTokens } from "./transferTokens";
 import { updateAllowList } from "./updateAllowList";
 import { getCurrentRateLimits } from "./getCurrentRateLimits";
 import { updateRateLimiters } from "./updateRateLimiters";
@@ -18,11 +18,11 @@ import { removeRemotePool } from "./removeRemotePool";
 import { safeMultisigTasks } from "./safe-multisig";
 
 export const tasks = [
-    deployToken, 
-    deployTokenPool, 
-    mintTokens, 
+    deployToken,
+    deployTokenPool,
+    mintTokens,
     checkTokenBalance,
-    claimAdmin, 
+    claimAdmin,
     acceptAdminRole,
     transferTokenAdminRole,
     getPoolConfig,
@@ -39,17 +39,15 @@ export const tasks = [
 ];
 
 export const npmFilesToBuild = [
-      "@chainlink/contracts/src/v0.8/shared/token/ERC20/BurnMintERC20.sol",
-      "@chainlink/contracts-ccip/contracts/pools/BurnMintTokenPool.sol",
-      "@chainlink/contracts-ccip/contracts/pools/LockReleaseTokenPool.sol",
-      "@chainlink/contracts-ccip/contracts/pools/TokenPool.sol",
-      "@chainlink/contracts-ccip/contracts/tokenAdminRegistry/RegistryModuleOwnerCustom.sol",
-      "@chainlink/contracts-ccip/contracts/tokenAdminRegistry/TokenAdminRegistry.sol",
-      "@chainlink/contracts-ccip/contracts/interfaces/IRouterClient.sol",
-      "@chainlink/contracts/src/v0.8/shared/access/OwnerIsCreator.sol",
-      "@chainlink/contracts-ccip/contracts/libraries/RateLimiter.sol",
-      "@chainlink/contracts-ccip/contracts/libraries/Client.sol",
-      "@openzeppelin/contracts/token/ERC20/ERC20.sol",
+    "@chainlink/contracts/src/v0.8/shared/token/ERC20/BurnMintERC20.sol",
+    "@chainlink/contracts-ccip/contracts/pools/BurnMintTokenPool.sol",
+    "@chainlink/contracts-ccip/contracts/pools/LockReleaseTokenPool.sol",
+    "@chainlink/contracts-ccip/contracts/pools/TokenPool.sol",
+    "@chainlink/contracts-ccip/contracts/tokenAdminRegistry/RegistryModuleOwnerCustom.sol",
+    "@chainlink/contracts-ccip/contracts/tokenAdminRegistry/TokenAdminRegistry.sol",
+    "@chainlink/contracts-ccip/contracts/interfaces/IRouterClient.sol",
+    "@chainlink/contracts/src/v0.8/shared/access/OwnerIsCreator.sol",
+    "@chainlink/contracts-ccip/contracts/libraries/RateLimiter.sol",
+    "@chainlink/contracts-ccip/contracts/libraries/Client.sol",
+    "@openzeppelin/contracts/token/ERC20/ERC20.sol",
 ];
-
-console.log("✅ Tasks loaded from /tasks/index.ts");

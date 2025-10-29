@@ -23,14 +23,14 @@ All tasks in this project use Hardhat's global options. The most important one i
 
 The following networks are configured and available for use:
 
-| Network Name      | Description              | Environment Variable         | Type    |
-| ----------------- | ------------------------ | ---------------------------- | ------- |
-| `avalancheFuji`   | Avalanche Fuji Testnet   | `AVALANCHE_FUJI_RPC_URL`     | EVM     |
-| `arbitrumSepolia` | Arbitrum Sepolia Testnet | `ARBITRUM_SEPOLIA_RPC_URL`   | EVM     |
-| `ethereumSepolia` | Ethereum Sepolia Testnet | `ETHEREUM_SEPOLIA_RPC_URL`   | EVM     |
-| `baseSepolia`     | Base Sepolia Testnet     | `BASE_SEPOLIA_RPC_URL`       | EVM     |
-| `polygonAmoy`     | Polygon Amoy Testnet     | `POLYGON_AMOY_RPC_URL`       | EVM     |
-| `solanaDevnet`    | Solana Devnet            | N/A (destination only)       | Non-EVM |
+| Network Name      | Description              | Environment Variable       | Type    |
+| ----------------- | ------------------------ | -------------------------- | ------- |
+| `avalancheFuji`   | Avalanche Fuji Testnet   | `AVALANCHE_FUJI_RPC_URL`   | EVM     |
+| `arbitrumSepolia` | Arbitrum Sepolia Testnet | `ARBITRUM_SEPOLIA_RPC_URL` | EVM     |
+| `ethereumSepolia` | Ethereum Sepolia Testnet | `ETHEREUM_SEPOLIA_RPC_URL` | EVM     |
+| `baseSepolia`     | Base Sepolia Testnet     | `BASE_SEPOLIA_RPC_URL`     | EVM     |
+| `polygonAmoy`     | Polygon Amoy Testnet     | `POLYGON_AMOY_RPC_URL`     | EVM     |
+| `solanaDevnet`    | Solana Devnet            | N/A (destination only)     | Non-EVM |
 
 ### Network Configuration
 
@@ -85,6 +85,13 @@ npx env-enc remove VARIABLE_NAME
 - `BASE_SEPOLIA_RPC_URL`: RPC URL for Base Sepolia testnet
 - `POLYGON_AMOY_RPC_URL`: RPC URL for Polygon Amoy testnet
 
+**Optional (for contract verification):**
+
+- `ETHERSCAN_API_KEY`: Single API key for all Etherscan-compatible explorers (Etherscan V2)
+  - Works across Ethereum, Arbitrum, Base, Polygon, and other Etherscan-compatible networks
+  - Get your API key from [Etherscan](https://etherscan.io/apis)
+  - No need for separate API keys per network (Etherscan V2 improvement)
+
 **Security Notes:**
 
 - The `.env.enc` file should be included in `.gitignore`
@@ -108,22 +115,19 @@ export const configData = {
     chainSelector: "1234567890123456789",
     router: "0xRouterAddress",
     rmnProxy: "0xRMNProxyAddress",
-    tokenAdminRegistry: "0xTokenAdminRegistryAddress", 
+    tokenAdminRegistry: "0xTokenAdminRegistryAddress",
     registryModuleOwnerCustom: "0xRegistryModuleOwnerAddress",
     link: "0xLinkTokenAddress",
     confirmations: 2,
     nativeCurrencySymbol: "NEW",
-    chainType: "l1",
-  }
+    // chainType auto-defaults to "l1" for most chains, "op" for Base/Optimism
+  },
 };
 ```
 
 The network becomes available in:
+
 - All task `--network` options
-- TypeScript type checking (`Chains` and `EVMChains` types)
-- Hardhat network configuration
-- Cross-chain destination options
-- Network validation throughout all tasks
 
 ### CCIP Configuration Sources
 
@@ -133,6 +137,7 @@ Obtain the required addresses and chain selectors from the official CCIP directo
 - **Testnet Networks**: [https://docs.chain.link/ccip/directory/testnet](https://docs.chain.link/ccip/directory/testnet)
 
 Required information from these directories:
+
 - Router contract addresses
 - Chain selectors (unique CCIP identifiers)
 - RMN Proxy addresses
@@ -146,6 +151,35 @@ Set the RPC URL environment variable:
 ```bash
 npx env-enc set NEW_NETWORK_RPC_URL
 ```
+
+### Contract Verification (Optional)
+
+**Automatic Verification (Natively Supported):**
+Most standard networks are natively supported by Hardhat for contract verification. Check [Hardhat's chain descriptors](https://github.com/NomicFoundation/hardhat/blob/main/v-next/hardhat/src/internal/builtin-plugins/network-manager/chain-descriptors.ts) for the complete list of supported networks.
+
+**Custom Chain Descriptors Required:**
+For networks not natively supported by Hardhat, add a chain descriptor to `hardhat.config.ts`. This is particularly useful for:
+- Newer networks not yet added to Hardhat
+- Private/enterprise chains
+- Custom testnets
+
+```typescript
+chainDescriptors: {
+  12345: { // Your network's chainId
+    name: "New Network",
+    chainType: "generic",
+    blockExplorers: {
+      etherscan: {
+        name: "NewScan",
+        url: "https://newscan.io",
+        apiUrl: "https://api.newscan.io/api",
+      },
+    },
+  },
+}
+```
+
+Note: With Etherscan V2, a single `ETHERSCAN_API_KEY` works across all Etherscan-compatible networks.
 
 ### Example: Adding Optimism Sepolia
 
@@ -161,7 +195,7 @@ optimismSepolia: {
   link: "0x...",
   confirmations: 2,
   nativeCurrencySymbol: "ETH",
-  chainType: "op",
+  // chainType auto-defaults to "op" (detected from "optimism" in name)
 }
 ```
 
