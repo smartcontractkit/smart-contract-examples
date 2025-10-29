@@ -3,6 +3,7 @@ node_modules/
 # Compiler files
 cache/
 out/
+foundry.lock
 
 # Ignores all broadcast logs except specific exclusions
 /broadcast/*/

@@ -9,7 +9,7 @@ import {TokenAdminRegistry} from "@chainlink/contracts-ccip/contracts/tokenAdmin
 contract AcceptAdminRole is Script {
     function run() external {
         // Get the chain name based on the current chain ID
-        string memory chainName = HelperUtils.getChainName(block.chainid);
+        string memory chainName = getChain(block.chainid).chainAlias;
 
         // Construct the path to the deployed token JSON file
         string memory root = vm.projectRoot();

@@ -8,7 +8,7 @@ import {BurnMintERC20} from "@chainlink/contracts/src/v0.8/shared/token/ERC20/Bu
 contract DeployToken is Script {
     function run() external {
         // Get the chain name based on the current chain ID
-        string memory chainName = HelperUtils.getChainName(block.chainid);
+        string memory chainName = getChain(block.chainid).chainAlias;
 
         // Define the path to the config.json file
         string memory root = vm.projectRoot();
@@ -26,11 +26,10 @@ contract DeployToken is Script {
         address deployer = msg.sender;
         address tokenAddress;
 
-        
         BurnMintERC20 token = new BurnMintERC20(name, symbol, decimals, maxSupply, preMint);
         tokenAddress = address(token);
         console.log("Deployed BurnMintERC20 at:", tokenAddress);
-        
+
         // Grant mint and burn roles to the deployer address
         BurnMintERC20(tokenAddress).grantMintAndBurnRoles(deployer);
         console.log("Granted mint and burn roles to:", deployer);

@@ -10,7 +10,7 @@ import {RateLimiter} from "@chainlink/contracts-ccip/contracts/libraries/RateLim
 contract ApplyChainUpdates is Script {
     function run() external {
         // Get the current chain name based on the chain ID
-        string memory chainName = HelperUtils.getChainName(block.chainid);
+        string memory chainName = getChain(block.chainid).chainAlias;
 
         // Construct paths to the configuration and local pool JSON files
         string memory root = vm.projectRoot();
@@ -23,7 +23,7 @@ contract ApplyChainUpdates is Script {
         );
 
         // Get the remote chain name based on the remoteChainId
-        string memory remoteChainName = HelperUtils.getChainName(remoteChainId);
+        string memory remoteChainName = getChain(remoteChainId).chainAlias;
         string memory remotePoolPath =
             string.concat(root, "/script/output/deployedTokenPool_", remoteChainName, ".json");
         string memory remoteTokenPath = string.concat(root, "/script/output/deployedToken_", remoteChainName, ".json");
@@ -42,8 +42,7 @@ contract ApplyChainUpdates is Script {
 
         // Fetch the remote network configuration to get the chain selector
         HelperConfig helperConfig = new HelperConfig();
-        HelperConfig.NetworkConfig memory remoteNetworkConfig =
-            HelperUtils.getNetworkConfig(helperConfig, remoteChainId);
+        HelperConfig.NetworkConfig memory remoteNetworkConfig = helperConfig.getNetworkConfig(remoteChainId);
 
         uint64 remoteChainSelector = remoteNetworkConfig.chainSelector;
 

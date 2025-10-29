@@ -26,6 +26,10 @@ contract HelperConfig is Script {
             activeNetworkConfig = getAvalancheFujiConfig();
         } else if (block.chainid == 84532) {
             activeNetworkConfig = getBaseSepoliaConfig();
+        } else if (block.chainid == 80002) {
+            activeNetworkConfig = getPolygonAmoyConfig();
+        } else {
+            revert("Unsupported network");
         }
     }
 
@@ -83,5 +87,35 @@ contract HelperConfig is Script {
             nativeCurrencySymbol: "ETH"
         });
         return baseSepoliaConfig;
+    }
+
+    function getPolygonAmoyConfig() public pure returns (NetworkConfig memory) {
+        NetworkConfig memory polygonAmoyConfig = NetworkConfig({
+            chainSelector: 16281711391670634445,
+            router: 0x9C32fCB86BF0f4a1A8921a9Fe46de3198bb884B2,
+            rmnProxy: 0x7c1e545A40750Ee8761282382D51E017BAC68CBB,
+            tokenAdminRegistry: 0x1e73f6842d7afDD78957ac143d1f315404Dd9e5B,
+            registryModuleOwnerCustom: 0x84ad5890A63957C960e0F19b0448A038a574936B,
+            link: 0x0Fd9e8d3aF1aaee056EB9e802c3A762a667b1904,
+            confirmations: 2,
+            nativeCurrencySymbol: "POL"
+        });
+        return polygonAmoyConfig;
+    }
+
+    function getNetworkConfig(uint256 chainId) public pure returns (NetworkConfig memory) {
+        if (chainId == 11155111) {
+            return getEthereumSepoliaConfig();
+        } else if (chainId == 421614) {
+            return getArbitrumSepolia();
+        } else if (chainId == 43113) {
+            return getAvalancheFujiConfig();
+        } else if (chainId == 84532) {
+            return getBaseSepoliaConfig();
+        } else if (chainId == 80002) {
+            return getPolygonAmoyConfig();
+        } else {
+            revert("Unsupported chain ID");
+        }
     }
 }

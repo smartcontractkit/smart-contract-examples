@@ -3,7 +3,6 @@ pragma solidity 0.8.24;
 
 import {Script, console} from "forge-std/Script.sol";
 import {HelperConfig} from "./HelperConfig.s.sol";
-import {HelperUtils} from "./utils/HelperUtils.s.sol";
 
 library RateLimiter {
     struct State {
@@ -32,9 +31,8 @@ contract GetCurrentRateLimits is Script {
         // Instantiate HelperConfig
         HelperConfig helperConfig = new HelperConfig();
 
-        // Retrieve the remote network configuration using HelperUtils
-        HelperConfig.NetworkConfig memory remoteNetworkConfig =
-            HelperUtils.getNetworkConfig(helperConfig, remoteChainId);
+        // Retrieve the remote network configuration using HelperConfig
+        HelperConfig.NetworkConfig memory remoteNetworkConfig = helperConfig.getNetworkConfig(remoteChainId);
 
         // Ensure that configurations exist
         require(remoteNetworkConfig.chainSelector != 0, "Remote network configuration not found");

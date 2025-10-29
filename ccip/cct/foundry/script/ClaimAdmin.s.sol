@@ -4,15 +4,15 @@ pragma solidity 0.8.24;
 import {Script, console} from "forge-std/Script.sol";
 import {HelperUtils} from "./utils/HelperUtils.s.sol"; // Utility functions for JSON parsing and chain info
 import {HelperConfig} from "./HelperConfig.s.sol"; // Network configuration helper
-import {RegistryModuleOwnerCustom} from
-    "@chainlink/contracts-ccip/contracts/tokenAdminRegistry/RegistryModuleOwnerCustom.sol";
+import {
+    RegistryModuleOwnerCustom
+} from "@chainlink/contracts-ccip/contracts/tokenAdminRegistry/RegistryModuleOwnerCustom.sol";
 import {BurnMintERC20} from "@chainlink/contracts/src/v0.8/shared/token/ERC20/BurnMintERC20.sol";
-
 
 contract ClaimAdmin is Script {
     function run() external {
         // Get the chain name based on the current chain ID
-        string memory chainName = HelperUtils.getChainName(block.chainid);
+        string memory chainName = getChain(block.chainid).chainAlias;
 
         // Define paths to the necessary JSON files
         string memory root = vm.projectRoot();
@@ -32,9 +32,9 @@ contract ClaimAdmin is Script {
         require(registryModuleOwnerCustom != address(0), "Registry module owner custom is not defined for this network");
 
         vm.startBroadcast();
-        
+
         claimAdminWithCCIPAdmin(tokenAddress, tokenAdmin, registryModuleOwnerCustom);
-        
+
         vm.stopBroadcast();
     }
 
@@ -52,14 +52,11 @@ contract ClaimAdmin is Script {
         console.log("Current token admin:", tokenContractCCIPAdmin);
 
         // Ensure the CCIP admin matches the expected token admin address
-        require(
-            tokenContractCCIPAdmin == tokenAdmin, "CCIP admin of token doesn't match the token admin address."
-        );
+        require(tokenContractCCIPAdmin == tokenAdmin, "CCIP admin of token doesn't match the token admin address.");
 
         // Register the admin via getCCIPAdmin() function
         console.log("Claiming admin of the token via getCCIPAdmin() for CCIP admin:", tokenAdmin);
         registryContract.registerAdminViaGetCCIPAdmin(tokenAddress);
         console.log("Admin claimed successfully for token:", tokenAddress);
     }
-
 }

@@ -16,7 +16,7 @@ contract TransferTokens is Script {
 
     function run() external {
         // Get the chain name based on the current chain ID
-        string memory chainName = HelperUtils.getChainName(block.chainid);
+        string memory chainName = getChain(block.chainid).chainAlias;
 
         // Construct paths to the configuration and token JSON files
         string memory root = vm.projectRoot();
@@ -41,8 +41,7 @@ contract TransferTokens is Script {
         (, address router,,,, address link,,) = helperConfig.activeNetworkConfig();
 
         // Retrieve the remote network configuration
-        HelperConfig.NetworkConfig memory remoteNetworkConfig =
-            HelperUtils.getNetworkConfig(helperConfig, destinationChainId);
+        HelperConfig.NetworkConfig memory remoteNetworkConfig = helperConfig.getNetworkConfig(destinationChainId);
         uint64 destinationChainSelector = remoteNetworkConfig.chainSelector;
 
         require(tokenAddress != address(0), "Invalid token address");

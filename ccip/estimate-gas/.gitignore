@@ -27,4 +27,7 @@ out/
 # Docs
 docs/
 
+# Foundry lock file
+foundry.lock
+
 

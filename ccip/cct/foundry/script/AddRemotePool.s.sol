@@ -2,15 +2,13 @@
 pragma solidity 0.8.24;
 
 import {Script, console} from "forge-std/Script.sol";
-import {HelperUtils} from "./utils/HelperUtils.s.sol"; // Utility functions for JSON parsing and chain info
 import {HelperConfig} from "./HelperConfig.s.sol"; // Network configuration helper
 import {TokenPool} from "@chainlink/contracts-ccip/contracts/pools/TokenPool.sol";
 
 contract AddRemotePool is Script {
     function run(address poolAddress, uint256 remoteChainId, address remotePoolAddress) external {
         HelperConfig helperConfig = new HelperConfig();
-        HelperConfig.NetworkConfig memory remoteNetworkConfig =
-            HelperUtils.getNetworkConfig(helperConfig, remoteChainId);
+        HelperConfig.NetworkConfig memory remoteNetworkConfig = helperConfig.getNetworkConfig(remoteChainId);
 
         // Validate that configurations exist
         require(remoteNetworkConfig.chainSelector != 0, "Remote network configuration not found");

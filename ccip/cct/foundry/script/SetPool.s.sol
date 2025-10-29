@@ -10,7 +10,7 @@ import {TokenAdminRegistry} from "@chainlink/contracts-ccip/contracts/tokenAdmin
 contract SetPool is Script {
     function run() external {
         // Get the chain name based on the current chain ID
-        string memory chainName = HelperUtils.getChainName(block.chainid);
+        string memory chainName = getChain(block.chainid).chainAlias;
 
         // Construct paths to the JSON files containing deployed token and pool addresses
         string memory root = vm.projectRoot();

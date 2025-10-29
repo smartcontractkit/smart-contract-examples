@@ -16,8 +16,4 @@ remappings = [
 
 fs_permissions = [{ access = "read-write", path = "./" }]
 
-[etherscan]
-avalanche-fuji = { key = "${ETHERSCAN_API_KEY}", chain = 43113, url = "https://api-testnet.snowtrace.io/api" }
-arbitrum-sepolia = { key = "${ARBISCAN_API_KEY}", chain = 421613, url = "https://api-sepolia.arbiscan.io/api" }
-
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
