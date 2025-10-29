@@ -28,7 +28,7 @@ import {
 } from "./utils";
 
 /**
- * Task-specific types for sendEther
+ * Task-specific types for sendTokens
  */
 interface SendParams {
   readonly contract: string;
@@ -63,9 +63,9 @@ interface EstimateResult {
   readonly destinationChain: Chains;
 }
 
-export const sendEther = task(
-  "sendEther",
-  "Send ETH cross-chain using EtherSenderReceiver contract"
+export const sendTokens = task(
+  "sendTokens",
+  "Send native tokens cross-chain using EtherSenderReceiver contract"
 )
   .addOption({
     name: "contract",
@@ -84,7 +84,7 @@ export const sendEther = task(
   })
   .addOption({
     name: "amount",
-    description: "Amount of ETH to send (in ETH units, e.g., 0.1)",
+    description: "Amount of native tokens to send (in native token units, e.g., 0.1)",
     defaultValue: "",
   })
   .addOption({
@@ -128,21 +128,21 @@ export const sendEther = task(
       const validatedFeeToken = validateFeeToken(feetoken, "feetoken");
       const validatedGasLimit = validateGasLimit(gaslimit, "gaslimit");
 
-      logger.info(`🚀 Sending ETH cross-chain from ${typedNetworkName} to ${validatedDestinationChain}...`);
-      
-      // ✅ Log gas limit behavior
-      if (validatedGasLimit === 0n) {
-        logger.info(`⚡ Gas limit: 0 (receiver will get wrapped native tokens only - no ccipReceive call)`);
-      } else {
-        logger.info(`⚡ Gas limit: ${validatedGasLimit} (receiver will get native ETH via ccipReceive)`);
-      }
-
       // ✅ Get network configurations
       const sourceConfig = getEVMNetworkConfig(typedNetworkName);
       if (!sourceConfig) {
         throw new NetworkError(`Network ${typedNetworkName} not found in config`, {
           networkName: typedNetworkName
         });
+      }
+
+      logger.info(`🚀 Sending ${sourceConfig.nativeCurrencySymbol} cross-chain from ${typedNetworkName} to ${validatedDestinationChain}...`);
+      
+      // ✅ Log gas limit behavior
+      if (validatedGasLimit === 0n) {
+        logger.info(`⚡ Gas limit: 0 (receiver will get wrapped native tokens only - no ccipReceive call)`);
+      } else {
+        logger.info(`⚡ Gas limit: ${validatedGasLimit} (receiver will get native ${sourceConfig.nativeCurrencySymbol} via ccipReceive)`);
       }
 
       const destConfig = configData[validatedDestinationChain];
@@ -154,7 +154,7 @@ export const sendEther = task(
 
       // ✅ Parse amount
       const amountWei = parseEther(validatedAmount);
-      logger.info(`💰 Amount: ${validatedAmount} ETH (${amountWei} wei)`);
+      logger.info(`💰 Amount: ${validatedAmount} ${sourceConfig.nativeCurrencySymbol} (${amountWei} wei)`);
 
       // ✅ Get wallet and clients
       const [wallet] = await viem.getWalletClients();
@@ -215,11 +215,11 @@ export const sendEther = task(
 
           // ✅ Show clear wallet costs for estimate-only mode
           if (validatedFeeToken === "native") {
-            const walletEthCost = formatEther(amountWei + fee);
-            logger.info(`   Wallet ETH Cost: ${walletEthCost} ${sourceConfig.nativeCurrencySymbol}`);
-            logger.info(`     (${validatedAmount} ETH transfer + ${feeFormatted} ${feeTokenSymbol} fee)`);
+            const walletNativeCost = formatEther(amountWei + fee);
+            logger.info(`   Wallet ${sourceConfig.nativeCurrencySymbol} Cost: ${walletNativeCost} ${sourceConfig.nativeCurrencySymbol}`);
+            logger.info(`     (${validatedAmount} ${sourceConfig.nativeCurrencySymbol} transfer + ${feeFormatted} ${feeTokenSymbol} fee)`);
           } else {
-            logger.info(`   Wallet ETH Cost: ${validatedAmount} ETH (transfer only)`);
+            logger.info(`   Wallet ${sourceConfig.nativeCurrencySymbol} Cost: ${validatedAmount} ${sourceConfig.nativeCurrencySymbol} (transfer only)`);
             logger.info(`   Wallet ${feeTokenSymbol} Cost: ${feeFormatted} ${feeTokenSymbol} (fee only)`);
           }
 
@@ -300,8 +300,8 @@ export const sendEther = task(
         logger.info(`   Block: ${receipt.blockNumber}`);
         logger.info(`   Gas Used: ${receipt.gasUsed}`);
         logger.info(`   From: ${typedNetworkName} → To: ${validatedDestinationChain}`);
-        logger.info(`   Amount: ${validatedAmount} ETH`);
-        logger.info(`   Destination Contract: ${validatedReceiver}`);
+        logger.info(`   Amount: ${validatedAmount} ${sourceConfig.nativeCurrencySymbol}`);
+        logger.info(`   Destination Address: ${validatedReceiver}`);
         logger.info(`   Final Recipient: ${wallet.account.address} (sender)`);
         logger.info(`   Fee: ${feeFormatted} ${feeTokenSymbol}`);
 
@@ -327,7 +327,7 @@ export const sendEther = task(
         }
 
         logger.error(`❌ Transaction failed:`, error);
-        throw new ContractError(`Failed to send cross-chain ETH transfer`, {
+        throw new ContractError(`Failed to send cross-chain native token transfer`, {
           sourceChain: typedNetworkName,
           destinationChain: validatedDestinationChain,
           amount: validatedAmount,

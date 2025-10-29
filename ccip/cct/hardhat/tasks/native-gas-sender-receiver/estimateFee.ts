@@ -26,7 +26,7 @@ import {
 } from "./utils";
 
 /**
- * Task-specific types for estimateEtherFee
+ * Task-specific types for estimateFee
  */
 interface EstimateParams {
   readonly contract: string;
@@ -50,9 +50,9 @@ interface EstimateResult {
   readonly destinationChain: Chains;
 }
 
-export const estimateEtherFee = task(
-  "estimateEtherFee",
-  "Estimate fees for cross-chain ETH transfer"
+export const estimateFee = task(
+  "estimateFee",
+  "Estimate fees for cross-chain native token transfer"
 )
   .addOption({
     name: "contract",
@@ -66,7 +66,7 @@ export const estimateEtherFee = task(
   })
   .addOption({
     name: "amount",
-    description: "Amount of ETH to send (in ETH units, e.g., 0.1)",
+    description: "Amount of native tokens to send (in native token units, e.g., 0.1)",
     defaultValue: "",
   })
   .addOption({
@@ -110,25 +110,25 @@ export const estimateEtherFee = task(
       const validatedReceiver = validateAddress(receiver, "receiver");
       const validatedGasLimit = validateGasLimit(gaslimit, "gaslimit");
 
-      logger.info(`🔍 Estimating cross-chain ETH transfer fees...`);
-      logger.info(`   From: ${typedNetworkName}`);
-      logger.info(`   To: ${validatedDestinationChain}`);
-      logger.info(`   Amount: ${validatedAmount} ETH`);
-      logger.info(`   Destination Contract: ${validatedReceiver}`);
-      
-      // ✅ Log gas limit behavior
-      if (validatedGasLimit === 0n) {
-        logger.info(`   Gas limit: 0 (receiver will get wrapped native tokens only - no ccipReceive call)`);
-      } else {
-        logger.info(`   Gas limit: ${validatedGasLimit} (receiver will get native ETH via ccipReceive)`);
-      }
-
       // ✅ Get network configurations
       const sourceConfig = getEVMNetworkConfig(typedNetworkName);
       if (!sourceConfig) {
         throw new NetworkError(`Network ${typedNetworkName} not found in config`, {
           networkName: typedNetworkName
         });
+      }
+
+      logger.info(`🔍 Estimating cross-chain native token transfer fees...`);
+      logger.info(`   From: ${typedNetworkName}`);
+      logger.info(`   To: ${validatedDestinationChain}`);
+      logger.info(`   Amount: ${validatedAmount} ${sourceConfig.nativeCurrencySymbol}`);
+      logger.info(`   Destination Address: ${validatedReceiver}`);
+      
+      // ✅ Log gas limit behavior
+      if (validatedGasLimit === 0n) {
+        logger.info(`   Gas limit: 0 (receiver will get wrapped native tokens only - no ccipReceive call)`);
+      } else {
+        logger.info(`   Gas limit: ${validatedGasLimit} (receiver will get native ${sourceConfig.nativeCurrencySymbol} via ccipReceive)`);
       }
 
       const destConfig = configData[validatedDestinationChain];
@@ -180,16 +180,16 @@ export const estimateEtherFee = task(
 
         // ✅ Display results with clear separation
         logger.info(`📊 Fee Estimation Results:`);
-        logger.info(`   Transfer Amount: ${validatedAmount} ETH`);
+        logger.info(`   Transfer Amount: ${validatedAmount} ${sourceConfig.nativeCurrencySymbol}`);
         logger.info(`   CCIP Fee: ${feeFormatted} ${feeTokenSymbol}`);
         
         // ✅ Show wallet costs clearly based on fee token
         if (validatedFeeToken === "native") {
-          const walletEthCost = formatEther(amountWei + fee);
-          logger.info(`   Wallet ETH Cost: ${walletEthCost} ${sourceConfig.nativeCurrencySymbol}`);
-          logger.info(`     (${validatedAmount} ETH transfer + ${feeFormatted} ${feeTokenSymbol} fee)`);
+          const walletNativeCost = formatEther(amountWei + fee);
+          logger.info(`   Wallet ${sourceConfig.nativeCurrencySymbol} Cost: ${walletNativeCost} ${sourceConfig.nativeCurrencySymbol}`);
+          logger.info(`     (${validatedAmount} ${sourceConfig.nativeCurrencySymbol} transfer + ${feeFormatted} ${feeTokenSymbol} fee)`);
         } else {
-          logger.info(`   Wallet ETH Cost: ${validatedAmount} ETH (transfer only)`);
+          logger.info(`   Wallet ${sourceConfig.nativeCurrencySymbol} Cost: ${validatedAmount} ${sourceConfig.nativeCurrencySymbol} (transfer only)`);
           logger.info(`   Wallet ${feeTokenSymbol} Cost: ${feeFormatted} ${feeTokenSymbol} (fee only)`);
         }
 

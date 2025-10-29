@@ -29,13 +29,13 @@ interface DeployResult {
  * Task to deploy an EtherSenderReceiver contract with optional verification.
  *
  * Example:
- * npx hardhat deployEtherSenderReceiver \
+ * npx hardhat deployTokenSenderReceiver \
  *   --verifycontract \
  *   --network avalancheFuji
  */
-export const deployEtherSenderReceiver = task(
-  "deployEtherSenderReceiver",
-  "Deploys an EtherSenderReceiver contract for cross-chain ETH transfers"
+export const deployTokenSenderReceiver = task(
+  "deployTokenSenderReceiver",
+  "Deploys an EtherSenderReceiver contract for cross-chain native token transfers"
 )
   .addFlag({
     name: "verifycontract",

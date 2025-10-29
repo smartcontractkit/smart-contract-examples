@@ -16,10 +16,10 @@ import { setRateLimitAdmin } from "./setRateLimitAdmin";
 import { addRemotePool } from "./addRemotePool";
 import { removeRemotePool } from "./removeRemotePool";
 import { safeMultisigTasks } from "./safe-multisig";
-import { 
-  deployEtherSenderReceiver,
-  sendEther,
-  estimateEtherFee
+import {
+  deployTokenSenderReceiver,
+  sendTokens,
+  estimateFee
 } from "./native-gas-sender-receiver";
 
 export const tasks = [
@@ -41,9 +41,9 @@ export const tasks = [
     addRemotePool,
     removeRemotePool,
     // Native Gas Sender Receiver tasks
-    deployEtherSenderReceiver,
-    sendEther,
-    estimateEtherFee,
+    deployTokenSenderReceiver,
+    sendTokens,
+    estimateFee,
     ...safeMultisigTasks
 ];
 

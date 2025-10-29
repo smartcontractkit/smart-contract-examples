@@ -1,87 +1,152 @@
 # Native Gas Sender Receiver Tasks
 
-This folder contains Hardhat tasks for deploying and interacting with the Chainlink CCIP `EtherSenderReceiver` contract, which enables cross-chain native ETH transfers.
+This folder contains Hardhat tasks for deploying and interacting with the Chainlink CCIP `EtherSenderReceiver` contract, which enables cross-chain native token transfers (ETH/WETH, AVAX/WAVAX, MATIC/WMATIC, etc.).
 
-## Available Tasks
+## Setup for Testing
 
-### `deployEtherSenderReceiver`
-Deploy the EtherSenderReceiver contract on a network.
+### Prerequisites
 
-```bash
-npx hardhat deployEtherSenderReceiver --network ethereumSepolia --verifycontract
-```
+1. **Install dependencies:**
 
-**Example Output:**
-```
-✅ Tasks loaded from /tasks/index.ts
-🚀 Deploying EtherSenderReceiver on ethereumSepolia...
-📍 Using CCIP Router: 0x0BF3dE8c5D3e8A2B34D2BEeB17ABfCeBaf363A59
-⏳ Deployment tx: 0x8217cb99b9f8eff22a51f1e834205afc1293c8303e4887f329cc7825972335c6
-   Waiting for 3 confirmation(s)...
-✅ EtherSenderReceiver deployed at: 0x26153D479bdf325f7DB482e27982d8fD1C3Bb0b8
-🔍 Verifying contract...
+   ```bash
+   npm install
+   ```
 
-📤 Submitted source code for verification on Etherscan:
-  @chainlink/contracts-ccip/contracts/applications/EtherSenderReceiver.sol:EtherSenderReceiver
-  Address: 0x26153D479bdf325f7DB482e27982d8fD1C3Bb0b8
+2. **Set up encrypted environment variables:**
 
-⏳ Waiting for verification result...
+   ```bash
+   # Set encryption password (required at start of each session)
+   npx env-enc set-pw
 
-✅ Contract verified successfully on Etherscan!
-  Explorer: https://sepolia.etherscan.io/address/0x26153D479bdf325f7DB482e27982d8fD1C3Bb0b8#code
+   # Set environment variables (interactive prompts)
+   npx env-enc set
+   ```
 
-🎉 Deployment completed successfully!
-📋 Contract Information:
-   Address: 0x26153D479bdf325f7DB482e27982d8fD1C3Bb0b8
-   Network: ethereumSepolia (Chain ID: 11155111)
-   Version: EtherSenderReceiver 1.5.0
-   Router: 0x0BF3dE8c5D3e8A2B34D2BEeB17ABfCeBaf363A59
-   WETH: 0x097D90c9d3E0B50Ca60e1ae45F6A81010f9FB534
-   Verified: ✅ Yes
-```
+### Required Environment Variables
 
-**Arbitrum Sepolia:**
-```bash
-npx hardhat deployEtherSenderReceiver --network arbitrumSepolia --verifycontract
-```
+For testing with **Ethereum Sepolia** and **Arbitrum Sepolia**, you'll need:
 
-**Example Output:**
-```
-✅ Tasks loaded from /tasks/index.ts
-🚀 Deploying EtherSenderReceiver on arbitrumSepolia...
-📍 Using CCIP Router: 0x2a9C5afB0d0e4BAb2BCdaE109EC4b0c4Be15a165
-⏳ Deployment tx: 0x480e315f1a88d4996fc49bda7a6df348a919e277b6252a34714bcf3288e422f9
-   Waiting for 2 confirmation(s)...
-✅ EtherSenderReceiver deployed at: 0x3EAC47F1EBacBd2Eb1f1B872092a01774098A3a2
-🔍 Verifying contract...
+| Variable                   | Description                                  | Example                                  |
+| -------------------------- | -------------------------------------------- | ---------------------------------------- |
+| `PRIVATE_KEY`              | Your wallet private key (with testnet funds) | `0x1234...`                              |
+| `ETHEREUM_SEPOLIA_RPC_URL` | Ethereum Sepolia RPC endpoint                | `https://rpc.sepolia.org`                |
+| `ARBITRUM_SEPOLIA_RPC_URL` | Arbitrum Sepolia RPC endpoint                | `https://sepolia-rollup.arbitrum.io/rpc` |
+| `ETHERSCAN_API_KEY`        | Etherscan API key for contract verification  | `ABC123...`                              |
+| `ARBISCAN_API_KEY`         | Arbiscan API key for contract verification   | `DEF456...`                              |
 
-📤 Submitted source code for verification on Arbiscan:
-  @chainlink/contracts-ccip/contracts/applications/EtherSenderReceiver.sol:EtherSenderReceiver
-  Address: 0x3EAC47F1EBacBd2Eb1f1B872092a01774098A3a2
+### Setting Environment Variables
 
-⏳ Waiting for verification result...
-
-✅ Contract verified successfully on Arbiscan!
-  Explorer: https://sepolia.arbiscan.io/address/0x3EAC47F1EBacBd2Eb1f1B872092a01774098A3a2#code
-
-🎉 Deployment completed successfully!
-📋 Contract Information:
-   Address: 0x3EAC47F1EBacBd2Eb1f1B872092a01774098A3a2
-   Network: arbitrumSepolia (Chain ID: 421614)
-   Version: EtherSenderReceiver 1.5.0
-   Router: 0x2a9C5afB0d0e4BAb2BCdaE109EC4b0c4Be15a165
-   WETH: 0xE591bf0A0CF924A0674d7792db046B23CEbF5f34
-   Verified: ✅ Yes
-```
-
-### `sendEther`
-Send ETH cross-chain using the deployed contract.
-
-#### Sending to EtherSenderReceiver Contract (Default)
-When sending to an EtherSenderReceiver contract, the receiver gets native ETH via ccipReceive:
+When you run `npx env-enc set`, you'll be prompted to enter each variable:
 
 ```bash
-npx hardhat sendEther \
+$ npx env-enc set
+? Variable name: PRIVATE_KEY
+? Variable value: [hidden] 0x1234567890abcdef...
+✓ Variable PRIVATE_KEY saved
+
+? Variable name: ETHEREUM_SEPOLIA_RPC_URL
+? Variable value: https://rpc.sepolia.org
+✓ Variable ETHEREUM_SEPOLIA_RPC_URL saved
+
+? Variable name: ARBITRUM_SEPOLIA_RPC_URL
+? Variable value: https://sepolia-rollup.arbitrum.io/rpc
+✓ Variable ARBITRUM_SEPOLIA_RPC_URL saved
+
+? Variable name: ETHERSCAN_API_KEY
+? Variable value: [hidden] ABC123...
+✓ Variable ETHERSCAN_API_KEY saved
+
+? Variable name: ARBISCAN_API_KEY
+? Variable value: [hidden] DEF456...
+✓ Variable ARBISCAN_API_KEY saved
+
+? Variable name: [Press Enter to finish]
+```
+
+### Verify Setup
+
+Check your encrypted variables:
+
+```bash
+npx env-enc view
+```
+
+### Security Notes
+
+- **Password Protection**: Your `.env.enc` file is encrypted and safe to commit to git
+- **Session Management**: Set password with `npx env-enc set-pw` at the start of each session
+- **Private Key Safety**: Never commit unencrypted private keys or share them
+
+## Core Concepts
+
+### What is EtherSenderReceiver?
+
+The `EtherSenderReceiver` contract enables cross-chain transfers of native tokens (ETH, AVAX, MATIC, etc.) by:
+
+1. **Wrapping** native tokens to wrapped tokens (ETH→WETH, AVAX→WAVAX, etc.) for CCIP transfer
+2. **Sending** wrapped tokens cross-chain via CCIP
+3. **Unwrapping** wrapped tokens back to native tokens on the destination (when using `ccipReceive`)
+
+### Two Bridging Scenarios
+
+#### Scenario 1: Same Ecosystem Bridging (`gasLimit > 0`)
+
+- **Use Case**: Bridge native tokens within the same ecosystem (ETH ↔ ETH, AVAX ↔ AVAX)
+- **Example**: Send ETH from Ethereum → receive ETH on Arbitrum
+- **Receiver**: EtherSenderReceiver contract on destination chain
+- **Process**: Wrap → Send → Unwrap via `ccipReceive`
+- **Gas Allocation**: `gasLimit > 0` allocates gas for `ccipReceive` execution to unwrap tokens
+- **Result**: Recipient gets native tokens on destination chain
+
+#### Scenario 2: Cross-Ecosystem Token Bridging (`gasLimit = 0`)
+
+- **Use Case**: Bridge wrapped tokens from one ecosystem to another ecosystem
+- **Example**: Send WXYZ from Chain XYZ → receive WXYZ on Ethereum (different token ecosystems)
+- **Receiver**: Any address (EOA, simple contract, etc.) on destination chain
+- **Process**: Wrap native XYZ → WXYZ, send WXYZ directly to recipient
+- **Gas Allocation**: `gasLimit = 0` because no `ccipReceive` call needed (just token transfer)
+- **Requirements**: WXYZ token pools must be configured on destination chain
+- **Result**: Recipient gets foreign wrapped tokens directly
+
+### When to Use Each Scenario
+
+| Scenario            | Use When                                 | Example    | Recipient Gets         | CCIP Fees                    |
+| ------------------- | ---------------------------------------- | ---------- | ---------------------- | ---------------------------- |
+| **Same Ecosystem**  | Bridging within same token system        | ETH → ETH  | Native tokens          | Higher (gas for ccipReceive) |
+| **Cross-Ecosystem** | Bridging between different token systems | XYZ → WXYZ | Foreign wrapped tokens | Lower (no ccipReceive)       |
+
+### Testing Simplification
+
+For testing purposes, we use **WETH on both chains** to simulate the cross-ecosystem bridging concept, but in reality:
+
+- **Chain XYZ** would have its own native token `XYZ` and wrapped token `WXYZ`
+- **Ethereum** would receive `WXYZ` tokens (not `WETH`)
+- **Token pools** would be configured to support `WXYZ` on Ethereum
+
+## Use Case 1: Native Token Delivery
+
+### Overview
+
+When recipients need native tokens (ETH, AVAX, MATIC), deploy EtherSenderReceiver contracts on both chains. The destination contract automatically unwraps wrapped tokens back to native tokens via `ccipReceive`.
+
+### Step 1: Deploy Contracts
+
+Deploy EtherSenderReceiver contracts on both source and destination chains:
+
+```bash
+# Deploy on Ethereum Sepolia
+npx hardhat deployTokenSenderReceiver --network ethereumSepolia --verifycontract
+
+# Deploy on Arbitrum Sepolia
+npx hardhat deployTokenSenderReceiver --network arbitrumSepolia --verifycontract
+```
+
+### Step 2: Send Native Tokens
+
+Send tokens between EtherSenderReceiver contracts (default `gasLimit=200000`):
+
+```bash
+npx hardhat sendTokens \
   --contract 0x26153D479bdf325f7DB482e27982d8fD1C3Bb0b8 \
   --destinationchain arbitrumSepolia \
   --receiver 0x3EAC47F1EBacBd2Eb1f1B872092a01774098A3a2 \
@@ -91,6 +156,7 @@ npx hardhat sendEther \
 ```
 
 **Example Output:**
+
 ```
 ✅ Tasks loaded from /tasks/index.ts
 🚀 Sending ETH cross-chain from ethereumSepolia to arbitrumSepolia...
@@ -115,8 +181,9 @@ npx hardhat sendEther \
 ```
 
 **Estimate-Only Mode:**
+
 ```bash
-npx hardhat sendEther \
+npx hardhat sendTokens \
   --contract 0x26153D479bdf325f7DB482e27982d8fD1C3Bb0b8 \
   --destinationchain arbitrumSepolia \
   --receiver 0x3EAC47F1EBacBd2Eb1f1B872092a01774098A3a2 \
@@ -127,6 +194,7 @@ npx hardhat sendEther \
 ```
 
 **Example Output:**
+
 ```
 🚀 Sending ETH cross-chain from ethereumSepolia to arbitrumSepolia...
 💰 Amount: 0.001 ETH (1000000000000000 wei)
@@ -139,8 +207,9 @@ npx hardhat sendEther \
 ```
 
 **LINK Fee Payment:**
+
 ```bash
-npx hardhat sendEther \
+npx hardhat sendTokens \
   --contract 0x26153D479bdf325f7DB482e27982d8fD1C3Bb0b8 \
   --destinationchain arbitrumSepolia \
   --receiver 0x3EAC47F1EBacBd2Eb1f1B872092a01774098A3a2 \
@@ -150,6 +219,7 @@ npx hardhat sendEther \
 ```
 
 **Example Output:**
+
 ```
 🚀 Sending ETH cross-chain from ethereumSepolia to arbitrumSepolia...
 💰 Amount: 0.001 ETH (1000000000000000 wei)
@@ -177,8 +247,9 @@ npx hardhat sendEther \
 ```
 
 **Wrapped Native Fee Payment (WETH):**
+
 ```bash
-npx hardhat sendEther \
+npx hardhat sendTokens \
   --contract 0x26153D479bdf325f7DB482e27982d8fD1C3Bb0b8 \
   --destinationchain arbitrumSepolia \
   --receiver 0x3EAC47F1EBacBd2Eb1f1B872092a01774098A3a2 \
@@ -188,6 +259,7 @@ npx hardhat sendEther \
 ```
 
 **Example Output:**
+
 ```
 🚀 Sending ETH cross-chain from ethereumSepolia to arbitrumSepolia...
 💰 Amount: 0.001 ETH (1000000000000000 wei)
@@ -214,281 +286,178 @@ npx hardhat sendEther \
 👉 Track cross-chain status: https://ccip.chain.link/tx/0x634ac812632e8ccb95e15dc1d600a483d5afb003ead0d96b87b3adf3ed7e3cfd
 ```
 
-#### Sending to EOA/Simple Contract (Gas Limit 0)
-When sending to an EOA or simple contract that doesn't implement ccipReceive, use `--gaslimit 0` for significant fee savings. The receiver gets wrapped native tokens only:
+## Use Case 2: Cross-Ecosystem Token Bridging
+
+### Overview
+
+When bridging wrapped tokens from one blockchain ecosystem to another blockchain ecosystem (e.g., WXYZ from Chain XYZ → WXYZ on Ethereum), you send wrapped tokens directly to any address without needing EtherSenderReceiver contracts on the destination. Since we're only making token transfers without triggering `ccipReceive` on the destination, we don't need to account for gas limit for calling `ccipReceive`, hence `gasLimit=0` makes CCIP fees cheaper.
+
+### Real-World Example
+
+**Scenario**: You have a blockchain "XYZ Chain" with:
+
+- Native token: `XYZ`
+- Wrapped native: `WXYZ`
+
+You want to bridge `WXYZ` tokens to Ethereum where `WXYZ` is also supported (via token pools).
+
+**Process**:
+
+1. **Source (XYZ Chain)**: Use EtherSenderReceiver to wrap `XYZ → WXYZ`
+2. **CCIP Transfer**: Send `WXYZ` tokens cross-chain
+3. **Destination (Ethereum)**: Recipient receives `WXYZ` tokens directly (not `WETH`)
+
+### Testing Simplification
+
+For testing, we use **Arbitrum Sepolia → Ethereum Sepolia** with WETH to simulate this concept, but the principle is the same for any cross-ecosystem bridging scenario.
+
+### Requirements
+
+**Token Pool Configuration**: The destination chain must have token pools configured to support the foreign wrapped token (WXYZ in our example). This is handled by CCIP's token pool infrastructure.
+
+### Test Example: Arbitrum → Ethereum (WETH Simulation)
+
+**Native Fee Payment:**
 
 ```bash
-npx hardhat sendEther \
-  --contract 0x26153D479bdf325f7DB482e27982d8fD1C3Bb0b8 \
-  --destinationchain arbitrumSepolia \
+npx hardhat sendTokens \
+  --contract 0x3EAC47F1EBacBd2Eb1f1B872092a01774098A3a2 \
+  --destinationchain ethereumSepolia \
   --receiver 0x9d087fc03ae39b088326b67fa3c788236645b717 \
   --amount 0.001 \
   --feetoken native \
   --gaslimit 0 \
-  --network ethereumSepolia
+  --network arbitrumSepolia
 ```
 
-**Example Output:**
+**Actual Test Results:**
+
 ```
 ✅ Tasks loaded from /tasks/index.ts
-🚀 Sending ETH cross-chain from ethereumSepolia to arbitrumSepolia...
+🚀 Sending ETH cross-chain from arbitrumSepolia to ethereumSepolia...
 ⚡ Gas limit: 0 (receiver will get wrapped native tokens only - no ccipReceive call)
 💰 Amount: 0.001 ETH (1000000000000000 wei)
 🔍 Estimating fees...
-💸 Estimated fee: 0.000089234567891234 ETH
-🛡️  Fee with 10% buffer: 0.000098158024680257 ETH
+💸 Estimated fee: 0.000122394174768242 ETH
+🛡️  Fee with 10% buffer: 0.000134633592245066 ETH
 📤 Sending cross-chain transaction...
-⏳ Transaction sent: 0x1a2b3c4d5e6f7890abcdef1234567890abcdef1234567890abcdef1234567890
-   Waiting for 3 confirmation(s)...
+⏳ Transaction sent: 0x023c301d7d4ffe3f209190a4dd4f5d4b897f089280137cd42f74ddf17ed282c9
+   Waiting for 2 confirmation(s)...
 🎉 Cross-chain transfer completed successfully!
 📋 Transaction Summary:
-   Hash: 0x1a2b3c4d5e6f7890abcdef1234567890abcdef1234567890abcdef1234567890
-   Block: 9512000
-   Gas Used: 180000
-   From: ethereumSepolia → To: arbitrumSepolia
+   Hash: 0x023c301d7d4ffe3f209190a4dd4f5d4b897f089280137cd42f74ddf17ed282c9
+   Block: 209499039
+   Gas Used: 228315
+   From: arbitrumSepolia → To: ethereumSepolia
    Amount: 0.001 ETH
-   Destination Contract: 0x9d087fc03ae39b088326b67fa3c788236645b717
-   Final Recipient: 0x9d087fc03ae39b088326b67fa3c788236645b717 (receiver gets WETH)
-   Fee: 0.000089234567891234 ETH
-👉 Track cross-chain status: https://ccip.chain.link/tx/0x1a2b3c4d5e6f7890abcdef1234567890abcdef1234567890abcdef1234567890
+   Destination Address: 0x9d087fc03ae39b088326b67fa3c788236645b717
+   Final Recipient: 0x9d087fc03ae39b088326b67fa3c788236645b717 (sender)
+   Fee: 0.000122394174768242 ETH
+👉 Track cross-chain status: https://ccip.chain.link/tx/0x023c301d7d4ffe3f209190a4dd4f5d4b897f089280137cd42f74ddf17ed282c9
 ```
 
-### `estimateEtherFee`
-Estimate fees for cross-chain ETH transfers with different fee token options.
+**LINK Fee Payment:**
 
-#### Standard Transfer to EtherSenderReceiver Contract
-
-**Native Fee (ETH):**
 ```bash
-npx hardhat estimateEtherFee \
-  --contract 0x26153D479bdf325f7DB482e27982d8fD1C3Bb0b8 \
-  --destinationchain arbitrumSepolia \
-  --receiver 0x3EAC47F1EBacBd2Eb1f1B872092a01774098A3a2 \
-  --amount 0.01 \
-  --feetoken native \
-  --network ethereumSepolia
-```
-
-**Example Output:**
-```
-🔍 Estimating cross-chain ETH transfer fees...
-   From: ethereumSepolia
-   To: arbitrumSepolia
-   Amount: 0.01 ETH
-   Destination Contract: 0x3EAC47F1EBacBd2Eb1f1B872092a01774098A3a2
-💸 Calculating fees...
-📊 Fee Estimation Results:
-   Transfer Amount: 0.01 ETH
-   CCIP Fee: 0.00021508638013175 ETH
-   Wallet ETH Cost: 0.01021508638013175 ETH
-     (0.01 ETH transfer + 0.00021508638013175 ETH fee)
-💰 Wallet Balance Check:
-   ETH Balance: 572.728461876833496011 ETH ✅ Sufficient (need 0.01021508638013175 ETH)
-```
-
-**LINK Fee:**
-```bash
-npx hardhat estimateEtherFee \
-  --contract 0x26153D479bdf325f7DB482e27982d8fD1C3Bb0b8 \
-  --destinationchain arbitrumSepolia \
-  --receiver 0x3EAC47F1EBacBd2Eb1f1B872092a01774098A3a2 \
-  --amount 0.01 \
-  --feetoken link \
-  --network ethereumSepolia
-```
-
-**Example Output:**
-```
-🔍 Estimating cross-chain ETH transfer fees...
-   From: ethereumSepolia
-   To: arbitrumSepolia
-   Amount: 0.01 ETH
-   Destination Contract: 0x3EAC47F1EBacBd2Eb1f1B872092a01774098A3a2
-💸 Calculating fees...
-📊 Fee Estimation Results:
-   Transfer Amount: 0.01 ETH
-   CCIP Fee: 0.046077938353863807 LINK
-   Wallet ETH Cost: 0.01 ETH (transfer only)
-   Wallet LINK Cost: 0.046077938353863807 LINK (fee only)
-💰 Wallet Balance Check:
-   ETH Balance: 572.728461876833496011 ETH ✅ Sufficient (need 0.01 ETH)
-   LINK Balance: 1098.659022304879598633 LINK ✅ Sufficient (need 0.046077938353863807 LINK)
-```
-
-**Wrapped Native Fee (WETH):**
-```bash
-npx hardhat estimateEtherFee \
-  --contract 0x26153D479bdf325f7DB482e27982d8fD1C3Bb0b8 \
-  --destinationchain arbitrumSepolia \
-  --receiver 0x3EAC47F1EBacBd2Eb1f1B872092a01774098A3a2 \
-  --amount 0.01 \
-  --feetoken wrappedNative \
-  --network ethereumSepolia
-```
-
-**Example Output:**
-```
-🔍 Estimating cross-chain ETH transfer fees...
-   From: ethereumSepolia
-   To: arbitrumSepolia
-   Amount: 0.01 ETH
-   Destination Contract: 0x3EAC47F1EBacBd2Eb1f1B872092a01774098A3a2
-💸 Calculating fees...
-📊 Fee Estimation Results:
-   Transfer Amount: 0.01 ETH
-   CCIP Fee: 0.000214217304305138 WETH
-   Wallet ETH Cost: 0.01 ETH (transfer only)
-   Wallet WETH Cost: 0.000214217304305138 WETH (fee only)
-💰 Wallet Balance Check:
-   ETH Balance: 572.728461876833496011 ETH ✅ Sufficient (need 0.01 ETH)
-   WETH Balance: 0.999379097222222223 WETH ✅ Sufficient (need 0.000214217304305138 WETH)
-```
-
-**Arbitrum Sepolia Examples:**
-
-**Native Fee (ETH) - L2 to L1:**
-```bash
-npx hardhat estimateEtherFee \
+npx hardhat sendTokens \
   --contract 0x3EAC47F1EBacBd2Eb1f1B872092a01774098A3a2 \
   --destinationchain ethereumSepolia \
-  --receiver 0x26153D479bdf325f7DB482e27982d8fD1C3Bb0b8 \
-  --amount 0.01 \
-  --feetoken native \
-  --network arbitrumSepolia
-```
-
-**Example Output:**
-```
-🔍 Estimating cross-chain ETH transfer fees...
-   From: arbitrumSepolia
-   To: ethereumSepolia
-   Amount: 0.01 ETH
-   Destination Contract: 0x26153D479bdf325f7DB482e27982d8fD1C3Bb0b8
-💸 Calculating fees...
-📊 Fee Estimation Results:
-   Transfer Amount: 0.01 ETH
-   CCIP Fee: 0.000121991673255842 ETH
-   Wallet ETH Cost: 0.010121991673255842 ETH
-     (0.01 ETH transfer + 0.000121991673255842 ETH fee)
-💰 Wallet Balance Check:
-   ETH Balance: 102.12032631554766 ETH ✅ Sufficient (need 0.010121991673255842 ETH)
-```
-
-**LINK Fee - L2 to L1:**
-```bash
-npx hardhat estimateEtherFee \
-  --contract 0x3EAC47F1EBacBd2Eb1f1B872092a01774098A3a2 \
-  --destinationchain ethereumSepolia \
-  --receiver 0x26153D479bdf325f7DB482e27982d8fD1C3Bb0b8 \
-  --amount 0.01 \
-  --feetoken link \
-  --network arbitrumSepolia
-```
-
-**Example Output:**
-```
-🔍 Estimating cross-chain ETH transfer fees...
-   From: arbitrumSepolia
-   To: ethereumSepolia
-   Amount: 0.01 ETH
-   Destination Contract: 0x26153D479bdf325f7DB482e27982d8fD1C3Bb0b8
-💸 Calculating fees...
-📊 Fee Estimation Results:
-   Transfer Amount: 0.01 ETH
-   CCIP Fee: 0.024484789571788002 LINK
-   Wallet ETH Cost: 0.01 ETH (transfer only)
-   Wallet LINK Cost: 0.024484789571788002 LINK (fee only)
-💰 Wallet Balance Check:
-   ETH Balance: 102.12032631554766 ETH ✅ Sufficient (need 0.01 ETH)
-   LINK Balance: 68.196830889211063701 LINK ✅ Sufficient (need 0.024484789571788002 LINK)
-```
-
-**Wrapped Native Fee (WETH) - Shows Insufficient Balance:**
-```bash
-npx hardhat estimateEtherFee \
-  --contract 0x3EAC47F1EBacBd2Eb1f1B872092a01774098A3a2 \
-  --destinationchain ethereumSepolia \
-  --receiver 0x26153D479bdf325f7DB482e27982d8fD1C3Bb0b8 \
-  --amount 0.01 \
-  --feetoken wrappedNative \
-  --network arbitrumSepolia
-```
-
-**Example Output:**
-```
-🔍 Estimating cross-chain ETH transfer fees...
-   From: arbitrumSepolia
-   To: ethereumSepolia
-   Amount: 0.01 ETH
-   Destination Contract: 0x26153D479bdf325f7DB482e27982d8fD1C3Bb0b8
-💸 Calculating fees...
-📊 Fee Estimation Results:
-   Transfer Amount: 0.01 ETH
-   CCIP Fee: 0.000121991673255842 WETH
-   Wallet ETH Cost: 0.01 ETH (transfer only)
-   Wallet WETH Cost: 0.000121991673255842 WETH (fee only)
-💰 Wallet Balance Check:
-   ETH Balance: 102.12032631554766 ETH ✅ Sufficient (need 0.01 ETH)
-   WETH Balance: 0 WETH ❌ Insufficient (need 0.000121991673255842 WETH)
-⚠️  Please ensure you have sufficient balances before sending!
-```
-
-#### Optimized Transfer to EOA/Simple Contract (Gas Limit 0)
-
-**Native Fee with Gas Limit 0:**
-```bash
-npx hardhat estimateEtherFee \
-  --contract 0x26153D479bdf325f7DB482e27982d8fD1C3Bb0b8 \
-  --destinationchain arbitrumSepolia \
   --receiver 0x9d087fc03ae39b088326b67fa3c788236645b717 \
-  --amount 0.01 \
-  --feetoken native \
+  --amount 0.001 \
+  --feetoken link \
   --gaslimit 0 \
+  --network arbitrumSepolia
+```
+
+**Actual LINK Fee Results:**
+
+```
+✅ Tasks loaded from /tasks/index.ts
+🚀 Sending ETH cross-chain from arbitrumSepolia to ethereumSepolia...
+⚡ Gas limit: 0 (receiver will get wrapped native tokens only - no ccipReceive call)
+💰 Amount: 0.001 ETH (1000000000000000 wei)
+🔍 Estimating fees...
+💸 Estimated fee: 0.024574550690792038 LINK
+🛡️  Fee with 10% buffer: 0.027032005759871241 LINK
+🔓 Approving LINK for fee payment...
+⏳ Approval tx: 0x2d740424bd2c09a2b9fff198d24473572c1d36712848f166a376fd8005b0f843
+   Waiting for 2 confirmation(s)...
+✅ LINK approval confirmed
+📤 Sending cross-chain transaction...
+⏳ Transaction sent: 0x695d4be32dcbcbafabfdb57158112a02503af489d3c31a356ee76c55316d50e2
+   Waiting for 2 confirmation(s)...
+🎉 Cross-chain transfer completed successfully!
+📋 Transaction Summary:
+   Hash: 0x695d4be32dcbcbafabfdb57158112a02503af489d3c31a356ee76c55316d50e2
+   Block: 209499981
+   Gas Used: 238784
+   From: arbitrumSepolia → To: ethereumSepolia
+   Amount: 0.001 ETH
+   Destination Address: 0x9d087fc03ae39b088326b67fa3c788236645b717
+   Final Recipient: 0x9d087fc03ae39b088326b67fa3c788236645b717 (sender)
+   Fee: 0.024574550690792038 LINK
+👉 Track cross-chain status: https://ccip.chain.link/tx/0x695d4be32dcbcbafabfdb57158112a02503af489d3c31a356ee76c55316d50e2
+```
+
+**Cross-Ecosystem Bridging Explanation:**
+
+In a real cross-ecosystem scenario (e.g., Chain XYZ → Ethereum):
+
+1. **Source (Chain XYZ)**: Native `XYZ` is wrapped to `WXYZ` and sent via CCIP
+2. **CCIP Transfer**: `WXYZ` tokens are transferred cross-chain
+3. **Destination (Ethereum)**: Recipient receives `WXYZ` tokens directly (foreign wrapped tokens)
+4. **No Unwrapping**: `gasLimit=0` because no `ccipReceive` needed - just token delivery
+5. **Result**: Ethereum recipient now has `WXYZ` tokens from Chain XYZ ecosystem
+
+**Why gasLimit=0 Works**: Since we're delivering foreign wrapped tokens directly (not unwrapping to native), no contract execution is needed on the destination, making CCIP fees cheaper.
+
+### Fee Estimation
+
+Use `estimateFee` to calculate costs before sending:
+
+```bash
+# Estimate fees for native token delivery (gasLimit=200000 default)
+npx hardhat estimateFee \
+  --contract 0x26153D479bdf325f7DB482e27982d8fD1C3Bb0b8 \
+  --destinationchain arbitrumSepolia \
+  --receiver 0x3EAC47F1EBacBd2Eb1f1B872092a01774098A3a2 \
+  --amount 0.001 \
+  --feetoken native \
   --network ethereumSepolia
 ```
 
-**Example Output:**
-```
-🔍 Estimating cross-chain ETH transfer fees...
-   From: ethereumSepolia
-   To: arbitrumSepolia
-   Amount: 0.01 ETH
-   Destination Contract: 0x9d087fc03ae39b088326b67fa3c788236645b717
-   Gas limit: 0 (receiver will get wrapped native tokens only - no ccipReceive call)
-💸 Calculating fees...
-📊 Fee Estimation Results:
-   Transfer Amount: 0.01 ETH
-   CCIP Fee: 0.000089234567891234 ETH
-   Wallet ETH Cost: 0.010089234567891234 ETH
-     (0.01 ETH transfer + 0.000089234567891234 ETH fee)
-💰 Wallet Balance Check:
-   ETH Balance: 572.728461876833496011 ETH ✅ Sufficient (need 0.010089234567891234 ETH)
-```
+## Fee Token Options
 
-**Note:** Using `--gaslimit 0` can reduce fees by ~60% compared to standard transfers, as no gas is allocated for ccipReceive execution. The receiver gets wrapped native tokens (WETH) instead of native ETH.
+CCIP accepts fees in 3 different modes, allowing you to choose the fee token of your preference:
 
-## Features
+### 1. Native Token Fees (`--feetoken native`)
 
-- ✅ **Cross-chain ETH transfers** - Send native ETH between supported CCIP chains
-- ✅ **Fee estimation** - Get accurate cost estimates before sending
-- ✅ **Dual fee payment** - Pay fees in native tokens or LINK
-- ✅ **Contract verification** - Automatic Etherscan verification
-- ✅ **Balance validation** - Validate sufficient funds before transfers
-- ✅ **Error handling** - Comprehensive validation and error messages
+- **Payment**: Pay fees in the chain's native token (ETH, AVAX, MATIC)
+- **Process**: Direct payment, no approval required
+- **Use when**: You have sufficient native tokens and want simplicity
+
+### 2. LINK Token Fees (`--feetoken link`)
+
+- **Payment**: Pay fees in LINK tokens
+- **Process**: Requires ERC20 approval before transfer
+- **Use when**: You prefer to hold native tokens and have LINK available
+
+### 3. Wrapped Native Fees (`--feetoken wrappedNative`)
+
+- **Payment**: Pay fees in wrapped native tokens (WETH, WAVAX, WMATIC)
+- **Process**: Requires ERC20 approval before transfer
+- **Use when**: You have wrapped tokens from DeFi activities
+
+All three options work with both native delivery (gasLimit > 0) and wrapped delivery (gasLimit = 0) modes.
 
 ## Supported Networks
 
-- Avalanche Fuji
-- Ethereum Sepolia
-- Arbitrum Sepolia
-- Base Sepolia
-- Polygon Amoy
+The tasks work on all CCIP-supported testnet and mainnet networks:
 
-## Contract Details
+- **Ethereum Sepolia** / Ethereum Mainnet
+- **Arbitrum Sepolia** / Arbitrum One
+- **Avalanche Fuji** / Avalanche Mainnet
+- **Base Sepolia** / Base Mainnet
+- **Polygon Amoy** / Polygon Mainnet
 
-The `EtherSenderReceiver` contract:
-- Wraps native ETH to WETH for CCIP transfer
-- Automatically unwraps WETH back to native ETH on destination
-- Handles fee payments in native tokens or LINK
-- Provides graceful error recovery for failed transfers
-- Is ownerless and permissionless by design
+Each network automatically uses its native token pair (ETH/WETH, AVAX/WAVAX, MATIC/WMATIC, etc.).
