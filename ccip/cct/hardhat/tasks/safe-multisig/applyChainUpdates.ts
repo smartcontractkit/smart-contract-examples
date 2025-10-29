@@ -1,6 +1,6 @@
 import { task } from "hardhat/config";
 import { HardhatRuntimeEnvironment } from "hardhat/types/hre";
-import { Chains, TokenPoolContractName, logger, getEVMNetworkConfig, configData } from "../../config";
+import { Chains, TokenPoolContractName, logger, getEVMNetworkConfig, validateNetworkName, configData } from "../../config";
 import {
   MetaTransactionData,
   SafeTransaction,
@@ -138,7 +138,7 @@ export const applyChainUpdatesFromSafe = task(
       // ⚙️ Connect to network and get viem client
       const networkConnection = await hre.network.connect();
       const { viem } = networkConnection;
-      const networkName = networkConnection.networkName as Chains;
+      const networkName = validateNetworkName(networkConnection.networkName);
       const publicClient = await viem.getPublicClient();
 
       // ⚙️ Validate network config

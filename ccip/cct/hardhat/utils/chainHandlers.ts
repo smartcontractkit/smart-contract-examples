@@ -1,6 +1,6 @@
 import { CHAIN_FAMILY } from "../config/types";
 import bs58 from "bs58";
-import { configData } from "../config";
+import { configData } from "../config"; // Now points to NETWORKS from networks.config.ts
 import { isAddress, encodeAbiParameters, decodeAbiParameters, parseAbiParameters } from "viem";
 
 /**
@@ -145,24 +145,6 @@ export function getChainHandler(chainFamily: CHAIN_FAMILY): ChainAddressHandler 
 }
 
 /**
- * Validates an address for a specific chain type
- * @param address - The address to validate
- * @param chainFamily - The chain type
- * @returns true if the address is valid for the chain type
- */
-export function validateChainAddress(
-  address: string,
-  chainFamily: CHAIN_FAMILY
-): boolean {
-  try {
-    const handler = getChainHandler(chainFamily);
-    return handler.validateAddress(address);
-  } catch (error) {
-    return false;
-  }
-}
-
-/**
  * Validates an address for a specific chain type, throwing an error if invalid
  * @param address - The address to validate
  * @param chainFamily - The chain type
@@ -195,33 +177,7 @@ export function prepareChainAddressData(
   return handler.prepareAddressData(address);
 }
 
-/**
- * Converts an address to hex format for a specific chain type
- * @param address - The address to convert
- * @param chainFamily - The chain type
- * @returns Hex representation of the address
- * @throws {InvalidAddressError} If the address is invalid
- * @throws {UnsupportedChainFamilyError} If the chain type is not supported
- */
-export function convertChainAddressToHex(
-  address: string,
-  chainFamily: CHAIN_FAMILY
-): string {
-  const handler = getChainHandler(chainFamily);
-  if (!handler.validateAddress(address)) {
-    throw new InvalidAddressError(address, chainFamily);
-  }
-  return handler.toHex(address);
-}
 
-/**
- * Type guard to check if a string is a valid CHAIN_FAMILY
- * @param chainFamily - The string to check
- * @returns true if the string is a valid CHAIN_FAMILY
- */
-export function isValidChainFamily(chainFamily: string): chainFamily is CHAIN_FAMILY {
-  return chainFamily === "evm" || chainFamily === "svm";
-}
 
 /**
  * Interface for chain configuration lookup result
@@ -294,24 +250,3 @@ export function decodeChainAddress(
   }
 }
 
-/**
- * Decodes an address by first looking up the chain type from the selector
- * @param encodedAddress - The encoded address data
- * @param chainSelector - The chain selector
- * @param hre - Hardhat runtime environment
- * @returns The decoded address string or "UNKNOWN_CHAIN" if chain not found
- */
-export function decodeAddressByChainSelector(
-  encodedAddress: string,
-  chainSelector: string | bigint
-): string {
-  try {
-    const chainInfo = getChainInfoBySelector(chainSelector);
-    if (!chainInfo) {
-      return "UNKNOWN_CHAIN";
-    }
-    return decodeChainAddress(encodedAddress, chainInfo.chainFamily);
-  } catch (error) {
-    return "DECODE_ERROR";
-  }
-}

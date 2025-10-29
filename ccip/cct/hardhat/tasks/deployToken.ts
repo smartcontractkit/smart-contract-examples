@@ -6,6 +6,7 @@ import {
   TokenContractName,
   logger,
   getEVMNetworkConfig,
+  validateNetworkName,
 } from "../config";
 
 /**
@@ -73,7 +74,7 @@ export const deployToken = task("deployToken", "Deploys a BurnMintERC20 token wi
       // Connect to network first to get network connection details
       const networkConnection = await hre.network.connect();
       const { viem } = networkConnection;
-      const networkName = networkConnection.networkName as Chains;
+      const networkName = validateNetworkName(networkConnection.networkName);
 
       const evmNetworkConfig = getEVMNetworkConfig(networkName);
       if (!evmNetworkConfig)

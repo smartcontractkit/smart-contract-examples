@@ -6,6 +6,7 @@ import {
   logger,
   configData,
   getEVMNetworkConfig,
+  validateNetworkName,
   CCIPContractName
 } from "../config";
 import { CHAIN_FAMILY } from "../config/types";
@@ -138,7 +139,7 @@ export const applyChainUpdates = task(
       // Connect to network first
       const networkConnection = await hre.network.connect();
       const { viem } = networkConnection;
-      const networkName = networkConnection.networkName as Chains;
+      const networkName = validateNetworkName(networkConnection.networkName);
 
       logger.info("=== Starting Chain Update Configuration ===");
       logger.info(`🔹 Local network: ${networkName}`);

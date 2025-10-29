@@ -1,95 +1,24 @@
+import type { configData } from "./networks";
+
 export type CHAIN_FAMILY = "evm" | "svm";
+export type Chains = keyof typeof configData;
+export type EVMChains = {
+  [K in Chains]: (typeof configData)[K] extends { chainFamily: "evm" } ? K : never;
+}[Chains];
 
-/**
- * Type guard to check if a string is a valid CHAIN_FAMILY
- * @param value - The string to check
- * @returns true if the string is a valid CHAIN_FAMILY
- */
-export function isChainType(value: string): value is CHAIN_FAMILY {
-  return value === "evm" || value === "svm";
-}
-
-export interface ChainConfig {
-  chainId?: number | string; // Allow string for non-EVM chains like Solana
-  chainSelector: string;
-  router?: string; // Optional for non-EVM chains
-  rmnProxy?: string; // Optional for non-EVM chains
-  tokenAdminRegistry?: string; // Optional for non-EVM chains
-  registryModuleOwnerCustom?: string; // Optional for non-EVM chains
-  link?: string; // Optional for non-EVM chains
-  confirmations: number;
-  nativeCurrencySymbol: string;
-  chainFamily: CHAIN_FAMILY;
-}
-
-// Specific type for EVM chains used by Hardhat
-export interface EVMChainConfig {
-  chainId: number; // Strict number type for EVM chains
-  chainSelector: string;
-  router: string;
-  rmnProxy: string;
-  tokenAdminRegistry: string;
-  registryModuleOwnerCustom: string;
-  link: string;
-  confirmations: number;
-  nativeCurrencySymbol: string;
-  chainType: string;
-  type: string;
-}
-
-export enum Chains {
-  avalancheFuji = "avalancheFuji",
-  arbitrumSepolia = "arbitrumSepolia",
-  ethereumSepolia = "ethereumSepolia",
-  baseSepolia = "baseSepolia",
-  solanaDevnet = "solanaDevnet",
-  polygonAmoy = "polygonAmoy",
-}
-
-// EVM-only chains for Hardhat networks
-export enum EVMChains {
-  avalancheFuji = "avalancheFuji",
-  arbitrumSepolia = "arbitrumSepolia",
-  ethereumSepolia = "ethereumSepolia",
-  baseSepolia = "baseSepolia",
-  polygonAmoy = "polygonAmoy",
-}
-
-export type Configs = {
-  [key in Chains]: ChainConfig;
-};
-
-export interface NetworkConfig extends EVMChainConfig {
+export interface NetworkConfig {
+  type: "http";
+  chainId: number;
   url: string;
+  accounts: string[];
   gasPrice?: number;
   nonce?: number;
-  accounts: string[];
 }
 
 // Use EVMChains for Hardhat networks to ensure type safety
 export type Networks = Partial<{
   [key in EVMChains]: NetworkConfig;
 }>;
-
-type ApiKeyConfig = Partial<{
-  [key in Chains]: string;
-}>;
-
-interface Urls {
-  apiURL: string;
-  browserURL: string;
-}
-
-interface CustomChain {
-  network: string;
-  chainId: number;
-  urls: Urls;
-}
-
-export interface EtherscanConfig {
-  apiKey: ApiKeyConfig;
-  customChains: CustomChain[];
-}
 
 export enum TokenContractName {
   BurnMintERC20 = "BurnMintERC20",

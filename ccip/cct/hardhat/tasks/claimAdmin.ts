@@ -7,6 +7,7 @@ import {
   CCIPContractName,
   logger,
   getEVMNetworkConfig,
+  validateNetworkName,
 } from "../config";
 
 /**
@@ -65,7 +66,7 @@ export const claimAdmin = task("claimAdmin", "Claims the admin of a token via va
       // Connect to network first
       const networkConnection = await hre.network.connect();
       const { viem } = networkConnection;
-      const networkName = networkConnection.networkName as Chains;
+      const networkName = validateNetworkName(networkConnection.networkName);
 
       logger.info(`🎯 Claiming admin for ${tokenaddress} using ${registrationMode} mode`);
 

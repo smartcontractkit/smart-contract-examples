@@ -8,6 +8,7 @@ import {
   TokenPoolContractName,
   logger,
   getEVMNetworkConfig,
+  validateNetworkName,
   configData,
 } from "../config";
 
@@ -166,7 +167,7 @@ export const transferTokens = task("transferTokens", "Transfer tokens cross-chai
       // Connect to network first
       const networkConnection = await hre.network.connect();
       const { viem } = networkConnection;
-      const networkName = networkConnection.networkName as Chains;
+      const networkName = validateNetworkName(networkConnection.networkName);
 
       // ✅ Load network configs
       const networkConfig = getEVMNetworkConfig(networkName);

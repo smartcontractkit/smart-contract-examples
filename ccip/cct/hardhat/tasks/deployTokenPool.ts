@@ -8,6 +8,7 @@ import {
   TokenPoolContractName,
   PoolType,
   getEVMNetworkConfig,
+  validateNetworkName,
   TokenContractName,
 } from "../config";
 
@@ -73,7 +74,7 @@ export const deployTokenPool = task("deployTokenPool", "Deploys a token pool (bu
       // Connect to network first
       const networkConnection = await hre.network.connect();
       const { viem } = networkConnection;
-      const networkName = networkConnection.networkName as Chains;
+      const networkName = validateNetworkName(networkConnection.networkName);
 
       const networkConfig = getEVMNetworkConfig(networkName);
       if (!networkConfig)

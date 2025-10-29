@@ -6,6 +6,7 @@ import {
   CCIPContractName,
   logger,
   getEVMNetworkConfig,
+  validateNetworkName,
   configData,
 } from "../config";
 
@@ -113,7 +114,7 @@ export const updateRateLimiters = task("updateRateLimiters", "Update rate limite
       // Connect to network first
       const networkConnection = await hre.network.connect();
       const { viem } = networkConnection;
-      const networkName = networkConnection.networkName as Chains;
+      const networkName = validateNetworkName(networkConnection.networkName);
       const networkConfig = getEVMNetworkConfig(networkName);
       if (!networkConfig) throw new Error(`Network ${networkName} not found`);
       const { confirmations } = networkConfig;

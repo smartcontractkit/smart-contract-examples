@@ -23,21 +23,22 @@ All tasks in this project use Hardhat's global options. The most important one i
 
 The following networks are configured and available for use:
 
-| Network Name      | Description              | Environment Variable       |
-| ----------------- | ------------------------ | -------------------------- |
-| `avalancheFuji`   | Avalanche Fuji Testnet   | `AVALANCHE_FUJI_RPC_URL`   |
-| `arbitrumSepolia` | Arbitrum Sepolia Testnet | `ARBITRUM_SEPOLIA_RPC_URL` |
-| `sepolia`         | Ethereum Sepolia Testnet | `ETHEREUM_SEPOLIA_RPC_URL` |
-| `baseSepolia`     | Base Sepolia Testnet     | `BASE_SEPOLIA_RPC_URL`     |
-| `polygonAmoy`     | Polygon Amoy Testnet     | `POLYGON_AMOY_RPC_URL`     |
+| Network Name      | Description              | Environment Variable         | Type    |
+| ----------------- | ------------------------ | ---------------------------- | ------- |
+| `avalancheFuji`   | Avalanche Fuji Testnet   | `AVALANCHE_FUJI_RPC_URL`     | EVM     |
+| `arbitrumSepolia` | Arbitrum Sepolia Testnet | `ARBITRUM_SEPOLIA_RPC_URL`   | EVM     |
+| `ethereumSepolia` | Ethereum Sepolia Testnet | `ETHEREUM_SEPOLIA_RPC_URL`   | EVM     |
+| `baseSepolia`     | Base Sepolia Testnet     | `BASE_SEPOLIA_RPC_URL`       | EVM     |
+| `polygonAmoy`     | Polygon Amoy Testnet     | `POLYGON_AMOY_RPC_URL`       | EVM     |
+| `solanaDevnet`    | Solana Devnet            | N/A (destination only)       | Non-EVM |
 
 ### Network Configuration
 
-Network configurations are defined in:
+Network configurations use a **professional single source of truth architecture**:
 
-- **Network settings**: `/config/networks.ts`
-- **Chain parameters**: `/config/config.json`
-- **Contract addresses**: Automatically loaded per network
+- **All network settings**: `/config/networks.ts` (consolidated configuration)
+- **Types auto-generated**: From the network configuration data
+- **Zero maintenance**: No manual enum synchronization needed
 
 To use a network, ensure:
 
@@ -1567,3 +1568,79 @@ npx hardhat applyChainUpdatesFromSafe \
 - **Network Configuration**:
   - Chain selectors and other network details are automatically fetched from the network configuration.
   - The task validates all addresses and chain configurations before creating the Safe transaction.
+
+## Adding New Networks
+
+The network configuration system uses a single source of truth architecture that automatically generates TypeScript types and Hardhat network configurations from the network data.
+
+### Adding a Network
+
+To add a new CCIP-supported network, add the network configuration to the `configData` object in `config/networks.ts`:
+
+```typescript
+export const configData = {
+  // ... existing networks
+  newNetwork: {
+    chainFamily: "evm", // or "svm" for non-EVM chains
+    chainId: 12345,
+    chainSelector: "1234567890123456789",
+    router: "0xRouterAddress",
+    rmnProxy: "0xRMNProxyAddress",
+    tokenAdminRegistry: "0xTokenAdminRegistryAddress", 
+    registryModuleOwnerCustom: "0xRegistryModuleOwnerAddress",
+    link: "0xLinkTokenAddress",
+    confirmations: 2,
+    nativeCurrencySymbol: "NEW",
+    chainType: "l1",
+  }
+};
+```
+
+The network becomes available in:
+- All task `--network` options
+- TypeScript type checking (`Chains` and `EVMChains` types)
+- Hardhat network configuration
+- Cross-chain destination options
+- Network validation throughout all tasks
+
+### CCIP Configuration Sources
+
+Obtain the required addresses and chain selectors from the official CCIP directories:
+
+- **Mainnet Networks**: [https://docs.chain.link/ccip/directory/mainnet](https://docs.chain.link/ccip/directory/mainnet)
+- **Testnet Networks**: [https://docs.chain.link/ccip/directory/testnet](https://docs.chain.link/ccip/directory/testnet)
+
+Required information from these directories:
+- Router contract addresses
+- Chain selectors (unique CCIP identifiers)
+- RMN Proxy addresses
+- Token Admin Registry addresses
+- LINK token addresses
+
+### Environment Variable
+
+Set the RPC URL environment variable:
+
+```bash
+npx env-enc set NEW_NETWORK_RPC_URL
+```
+
+### Example: Adding Optimism Sepolia
+
+```typescript
+optimismSepolia: {
+  chainFamily: "evm",
+  chainId: 11155420,
+  chainSelector: "5224473277236331295",
+  router: "0x114A20A10b43D4115e5aeef7345a1A71d2a60C57",
+  rmnProxy: "0x...",
+  tokenAdminRegistry: "0x...",
+  registryModuleOwnerCustom: "0x...",
+  link: "0x...",
+  confirmations: 2,
+  nativeCurrencySymbol: "ETH",
+  chainType: "op",
+}
+```
+
+All tasks will support `--network optimismSepolia` after adding this configuration.
