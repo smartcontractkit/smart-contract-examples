@@ -4,14 +4,16 @@ pragma solidity 0.8.24;
 import {Script, console} from "forge-std/Script.sol";
 import {HelperUtils} from "./utils/HelperUtils.s.sol"; // Utility functions for JSON parsing and chain info
 import {HelperConfig} from "./HelperConfig.s.sol"; // Network configuration helper
+import {ChainNameResolver} from "./utils/ChainNameResolver.s.sol"; // Chain name resolution utility
 import {BurnMintTokenPool} from "@chainlink/contracts-ccip/contracts/pools/BurnMintTokenPool.sol";
 import {BurnMintERC20} from "@chainlink/contracts/src/v0.8/shared/token/ERC20/BurnMintERC20.sol";
 import {IBurnMintERC20} from "@chainlink/contracts/src/v0.8/shared/token/ERC20/IBurnMintERC20.sol";
 
 contract DeployBurnMintTokenPool is Script {
     function run() external {
+        ChainNameResolver resolver = new ChainNameResolver();
         // Get the chain name based on the current chain ID
-        string memory chainName = getChain(block.chainid).chainAlias;
+        string memory chainName = resolver.getChainNameSafe(block.chainid);
 
         // Construct the path to the deployed token JSON file
         string memory root = vm.projectRoot();

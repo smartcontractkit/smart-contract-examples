@@ -4,6 +4,7 @@ pragma solidity 0.8.24;
 import {Script, console} from "forge-std/Script.sol";
 import {HelperUtils} from "./utils/HelperUtils.s.sol"; // Utility functions for JSON parsing and chain info
 import {HelperConfig} from "./HelperConfig.s.sol"; // Network configuration helper
+import {ChainNameResolver} from "./utils/ChainNameResolver.s.sol"; // Chain name resolution utility
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IRouterClient} from "@chainlink/contracts-ccip/contracts/interfaces/IRouterClient.sol";
 import {Client} from "@chainlink/contracts-ccip/contracts/libraries/Client.sol";
@@ -15,8 +16,9 @@ contract TransferTokens is Script {
     }
 
     function run() external {
+        ChainNameResolver resolver = new ChainNameResolver();
         // Get the chain name based on the current chain ID
-        string memory chainName = getChain(block.chainid).chainAlias;
+        string memory chainName = resolver.getChainNameSafe(block.chainid);
 
         // Construct paths to the configuration and token JSON files
         string memory root = vm.projectRoot();
