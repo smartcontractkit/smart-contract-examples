@@ -3,12 +3,14 @@ pragma solidity 0.8.24;
 
 import {Script, console} from "forge-std/Script.sol";
 import {HelperUtils} from "./utils/HelperUtils.s.sol"; // Utility functions for JSON parsing and chain info
+import {ChainNameResolver} from "./utils/ChainNameResolver.s.sol"; // Chain name resolution utility
 import {BurnMintERC20} from "@chainlink/contracts/src/v0.8/shared/token/ERC20/BurnMintERC20.sol";
 
 contract DeployToken is Script {
     function run() external {
+        ChainNameResolver resolver = new ChainNameResolver();
         // Get the chain name based on the current chain ID
-        string memory chainName = getChain(block.chainid).chainAlias;
+        string memory chainName = resolver.getChainNameSafe(block.chainid);
 
         // Define the path to the config.json file
         string memory root = vm.projectRoot();

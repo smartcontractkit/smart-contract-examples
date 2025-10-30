@@ -4,12 +4,14 @@ pragma solidity 0.8.24;
 import {Script, console} from "forge-std/Script.sol";
 import {HelperUtils} from "./utils/HelperUtils.s.sol"; // Utility functions for JSON parsing and chain info
 import {HelperConfig} from "./HelperConfig.s.sol"; // Network configuration helper
+import {ChainNameResolver} from "./utils/ChainNameResolver.s.sol"; // Chain name resolution utility
 import {TokenAdminRegistry} from "@chainlink/contracts-ccip/contracts/tokenAdminRegistry/TokenAdminRegistry.sol";
 
 contract AcceptAdminRole is Script {
     function run() external {
+        ChainNameResolver resolver = new ChainNameResolver();
         // Get the chain name based on the current chain ID
-        string memory chainName = getChain(block.chainid).chainAlias;
+        string memory chainName = resolver.getChainNameSafe(block.chainid);
 
         // Construct the path to the deployed token JSON file
         string memory root = vm.projectRoot();

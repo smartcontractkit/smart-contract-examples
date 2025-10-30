@@ -4,13 +4,15 @@ pragma solidity 0.8.24;
 import {Script, console} from "forge-std/Script.sol";
 import {HelperUtils} from "./utils/HelperUtils.s.sol"; // Utility functions for JSON parsing and chain info
 import {HelperConfig} from "./HelperConfig.s.sol"; // Network configuration helper
+import {ChainNameResolver} from "./utils/ChainNameResolver.s.sol"; // Chain name resolution utility
 import {TokenPool} from "@chainlink/contracts-ccip/contracts/pools/TokenPool.sol";
 import {RateLimiter} from "@chainlink/contracts-ccip/contracts/libraries/RateLimiter.sol";
 
 contract ApplyChainUpdates is Script {
     function run() external {
+        ChainNameResolver resolver = new ChainNameResolver();
         // Get the current chain name based on the chain ID
-        string memory chainName = getChain(block.chainid).chainAlias;
+        string memory chainName = resolver.getChainNameSafe(block.chainid);
 
         // Construct paths to the configuration and local pool JSON files
         string memory root = vm.projectRoot();
@@ -23,7 +25,7 @@ contract ApplyChainUpdates is Script {
         );
 
         // Get the remote chain name based on the remoteChainId
-        string memory remoteChainName = getChain(remoteChainId).chainAlias;
+        string memory remoteChainName = resolver.getChainNameSafe(remoteChainId);
         string memory remotePoolPath =
             string.concat(root, "/script/output/deployedTokenPool_", remoteChainName, ".json");
         string memory remoteTokenPath = string.concat(root, "/script/output/deployedToken_", remoteChainName, ".json");
