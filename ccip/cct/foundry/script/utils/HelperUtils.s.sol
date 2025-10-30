@@ -3,42 +3,9 @@ pragma solidity 0.8.24;
 
 import {stdJson} from "forge-std/StdJson.sol";
 import {Vm} from "forge-std/Vm.sol";
-import {HelperConfig} from "../HelperConfig.s.sol";
 
 library HelperUtils {
     using stdJson for string;
-
-    function getChainName(uint256 chainId) internal pure returns (string memory) {
-        if (chainId == 43113) {
-            return "avalancheFuji";
-        } else if (chainId == 11155111) {
-            return "ethereumSepolia";
-        } else if (chainId == 421614) {
-            return "arbitrumSepolia";
-        } else if (chainId == 84532) {
-            return "baseSepolia";
-        } else {
-            revert("Unsupported chain ID");
-        }
-    }
-
-    function getNetworkConfig(HelperConfig helperConfig, uint256 chainId)
-        internal
-        pure
-        returns (HelperConfig.NetworkConfig memory)
-    {
-        if (chainId == 43113) {
-            return helperConfig.getAvalancheFujiConfig();
-        } else if (chainId == 11155111) {
-            return helperConfig.getEthereumSepoliaConfig();
-        } else if (chainId == 421614) {
-            return helperConfig.getArbitrumSepolia();
-        } else if (chainId == 84532) {
-            return helperConfig.getBaseSepoliaConfig();
-        } else {
-            revert("Unsupported chain ID");
-        }
-    }
 
     function getAddressFromJson(Vm vm, string memory path, string memory key) internal view returns (address) {
         string memory json = vm.readFile(path);

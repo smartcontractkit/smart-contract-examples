@@ -8,7 +8,7 @@ import {BurnMintERC20} from "@chainlink/contracts/src/v0.8/shared/token/ERC20/Bu
 contract MintTokens is Script {
     function run() external {
         // Get the current chain name based on the chain ID
-        string memory chainName = HelperUtils.getChainName(block.chainid);
+        string memory chainName = getChain(block.chainid).chainAlias;
 
         // Construct paths to the configuration and token JSON files
         string memory root = vm.projectRoot();

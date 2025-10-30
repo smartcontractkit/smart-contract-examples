@@ -83,7 +83,6 @@ PRIVATE_KEY=<your_private_key>
 RPC_URL_FUJI=<your_rpc_url_fuji>
 RPC_URL_ARBITRUM_SEPOLIA=<your_rpc_url_arbitrum_sepolia>
 ETHERSCAN_API_KEY=<your_etherscan_api_key>
-ARBISCAN_API_KEY=<your_arbiscan_api_key>
 ```
 
 Variables to configure:
@@ -92,7 +91,6 @@ Variables to configure:
 - `RPC_URL_FUJI`: The RPC URL for the Fuji testnet. You can get this from the [Alchemy](https://www.alchemy.com/) or [Infura](https://infura.io/) website.
 - `RPC_URL_ARBITRUM_SEPOLIA`: The RPC URL for the Arbitrum Sepolia testnet. You can get this from the [Alchemy](https://www.alchemy.com/) or [Infura](https://infura.io/) website.
 - `ETHERSCAN_API_KEY`: An API key from Etherscan to verify your contracts. You can obtain one from [Etherscan](https://docs.etherscan.io/getting-started/viewing-api-usage-statistics).
-- `ARBISCAN_API_KEY`: An API key from Arbiscan to verify your contracts on Arbitrum. See [this guide](https://docs.arbiscan.io/getting-started/viewing-api-usage-statistics) to get one from Arbiscan.
 
 **Load the environment variables** into the terminal session where you will run the commands:
 
@@ -116,7 +114,7 @@ forge script script/AcceptAdminRole.s.sol --rpc-url $RPC_URL --private-key $PRIV
 
 The script pulls the token address from a previously deployed token in a JSON file located in the `script/output/` folder. The `TokenAdminRegistry` address is fetched from the `HelperConfig.s.sol` file.
 
-- **Deployed Token Address**: The token address is read from the output file corresponding to the current chain (e.g., `deployedToken_avalancheFuji.json`).
+- **Deployed Token Address**: The token address is read from the output file corresponding to the current chain (e.g., `deployedToken_avalanche_fuji.json`).
 - **TokenAdminRegistry Address**: The `TokenAdminRegistry` address is retrieved based on the network settings in `HelperConfig.s.sol`.
 
 ### Examples
@@ -197,9 +195,9 @@ forge script script/ApplyChainUpdates.s.sol --rpc-url $RPC_URL --private-key $PR
 
 The script pulls the pool and token addresses from previously deployed pool and token JSON files located in the `script/output/` folder. The cross-chain configuration (e.g., chain selector) is fetched from the `HelperConfig.s.sol` file.
 
-- **Deployed Local Pool Address**: The pool address is read from the output file corresponding to the current chain (e.g., `deployedTokenPool_avalancheFuji.json`).
-- **Deployed Remote Pool Address**: The remote pool address is read from the JSON file corresponding to the remote chain (e.g., `deployedTokenPool_arbitrumSepolia.json`).
-- **Deployed Remote Token Address**: The remote token address is read from the JSON file corresponding to the remote chain (e.g., `deployedToken_arbitrumSepolia.json`).
+- **Deployed Local Pool Address**: The pool address is read from the output file corresponding to the current chain (e.g., `deployedTokenPool_avalanche_fuji.json`).
+- **Deployed Remote Pool Address**: The remote pool address is read from the JSON file corresponding to the remote chain (e.g., `deployedTokenPool_arbitrum_one_sepolia.json`).
+- **Deployed Remote Token Address**: The remote token address is read from the JSON file corresponding to the remote chain (e.g., `deployedToken_arbitrum_one_sepolia.json`).
 - **Remote Chain Selector**: The chain selector for the remote chain is fetched based on the network configuration in `HelperConfig.s.sol`.
 - **Rate Limiter Configuration**: The script allows configuring rate limiting for both inbound and outbound transfers. By default, rate limiting is disabled in this script.
 
@@ -239,7 +237,7 @@ forge script script/ClaimAdmin.s.sol --rpc-url $RPC_URL --private-key $PRIVATE_K
 
 The script pulls the token and admin details from the `config.json` file and the deployed token address from a JSON file located in the `script/output/` folder.
 
-- **Deployed Token Address**: The token address is read from the output file corresponding to the current chain (e.g., `deployedToken_avalancheFuji.json`).
+- **Deployed Token Address**: The token address is read from the output file corresponding to the current chain (e.g., `deployedToken_avalanche_fuji.json`).
 - **Admin Address**: The admin address is read from the `config.json` file (`ccipAdminAddress` field).
 
 ### Examples
@@ -278,7 +276,7 @@ forge script script/DeployBurnMintTokenPool.s.sol --rpc-url $RPC_URL --private-k
 
 The script pulls the token address from a previously deployed token in a JSON file located in the `script/output/` folder. The network configuration (router and RMN proxy addresses) is also fetched from the `HelperConfig.s.sol` file.
 
-- **Deployed Token Address**: The token address is read from the output file corresponding to the current chain (e.g., `deployedToken_avalancheFuji.json`).
+- **Deployed Token Address**: The token address is read from the output file corresponding to the current chain (e.g., `deployedToken_avalanche_fuji.json`).
 - **Router and RMN Proxy**: The router and RMN proxy addresses are retrieved based on the network settings in `HelperConfig.s.sol`.
 
 ### Examples
@@ -317,7 +315,7 @@ forge script script/DeployLockReleaseTokenPool.s.sol --rpc-url $RPC_URL --privat
 
 The script pulls the token address from a previously deployed token in a JSON file located in the `script/output/` folder. The network configuration (router and RMN proxy addresses) is fetched from the `HelperConfig.s.sol` file.
 
-- **Deployed Token Address**: The token address is read from the output file corresponding to the current chain (e.g., `deployedToken_avalancheFuji.json`).
+- **Deployed Token Address**: The token address is read from the output file corresponding to the current chain (e.g., `deployedToken_avalanche_fuji.json`).
 - **Router and RMN Proxy**: The router and RMN proxy addresses are retrieved based on the network settings in `HelperConfig.s.sol`.
 
 ### Examples
@@ -527,7 +525,7 @@ forge script script/MintTokens.s.sol --rpc-url $RPC_URL --private-key $PRIVATE_K
 
 The script pulls the token address from a previously deployed token in a JSON file located in the `script/output/` folder. The mint amount is specified in the `config.json` file.
 
-- **Deployed Token Address**: The token address is read from the output file corresponding to the current chain (e.g., `deployedToken_avalancheFuji.json`).
+- **Deployed Token Address**: The token address is read from the output file corresponding to the current chain (e.g., `deployedToken_avalanche_fuji.json`).
 - **Mint Amount**: The amount of tokens to mint is read from the `config.json` file (`tokenAmountToMint` field).
 
 ### Examples
@@ -604,15 +602,15 @@ Sets the pool for a deployed token in the `TokenAdminRegistry` contract. The scr
 ### Usage
 
 ```bash
-forge script script/SetPool.s.sol --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast --verify
+forge script script/SetPool.s.sol --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast
 ```
 
 ### Config Parameters
 
 The script pulls the token and pool addresses from previously deployed token and pool JSON files located in the `script/output/` folder. The `TokenAdminRegistry` address is retrieved from the `HelperConfig.s.sol` file.
 
-- **Deployed Token Address**: The token address is read from the output file corresponding to the current chain (e.g., `deployedToken_avalancheFuji.json`).
-- **Deployed Pool Address**: The pool address is read from the output file corresponding to the current chain (e.g., `deployedTokenPool_avalancheFuji.json`).
+- **Deployed Token Address**: The token address is read from the output file corresponding to the current chain (e.g., `deployedToken_avalanche_fuji.json`).
+- **Deployed Pool Address**: The pool address is read from the output file corresponding to the current chain (e.g., `deployedTokenPool_avalanche_fuji.json`).
 - **TokenAdminRegistry Address**: The `TokenAdminRegistry` address is retrieved based on the network settings in `HelperConfig.s.sol`.
 
 ### Examples
@@ -620,7 +618,7 @@ The script pulls the token and pool addresses from previously deployed token and
 - Set the pool for a token:
 
   ```bash
-  forge script script/SetPool.s.sol --rpc-url $RPC_URL_FUJI --private-key $PRIVATE_KEY --broadcast --verify
+  forge script script/SetPool.s.sol --rpc-url $RPC_URL_FUJI --private-key $PRIVATE_KEY --broadcast
   ```
 
   This will:
@@ -729,14 +727,14 @@ The `TransferTokens` script facilitates cross-chain token transfers using Chainl
 ### Usage
 
 ```bash
-forge script script/TransferTokens.s.sol --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast --verify
+forge script script/TransferTokens.s.sol --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast
 ```
 
 ### Config Parameters
 
 The script pulls the token address, transfer amount, and fee type from the `config.json` file. It also reads the destination chain information from the same file.
 
-- **Deployed Token Address**: The token address is read from the output file corresponding to the current chain (e.g., `deployedToken_avalancheFuji.json`).
+- **Deployed Token Address**: The token address is read from the output file corresponding to the current chain (e.g., `deployedToken_avalanche_fuji.json`).
 - **Transfer Amount**: The amount of tokens to transfer is read from `config.json` (`tokenAmountToTransfer` field).
 - **Fee Type**: The fee type is specified in the `config.json` file as either `"native"` (e.g., ETH, AVAX) or `"link"` (to pay fees in LINK tokens).
 - **Destination Chain**: The destination chain ID is determined based on the current chain ID and the `remoteChains` field in `config.json`.
@@ -746,7 +744,7 @@ The script pulls the token address, transfer amount, and fee type from the `conf
 - Transfer tokens across chains:
 
   ```bash
-  forge script script/TransferTokens.s.sol --rpc-url $RPC_URL_FUJI --private-key $PRIVATE_KEY --broadcast --verify
+  forge script script/TransferTokens.s.sol --rpc-url $RPC_URL_FUJI --private-key $PRIVATE_KEY --broadcast
   ```
 
   This will:

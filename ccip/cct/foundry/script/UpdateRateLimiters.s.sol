@@ -5,7 +5,6 @@ import {Script, console} from "forge-std/Script.sol";
 import {TokenPool} from "@chainlink/contracts-ccip/contracts/pools/TokenPool.sol";
 import {RateLimiter} from "@chainlink/contracts-ccip/contracts/libraries/RateLimiter.sol";
 import {HelperConfig} from "./HelperConfig.s.sol";
-import {HelperUtils} from "./utils/HelperUtils.s.sol";
 
 contract UpdateRateLimiters is Script {
     function run(
@@ -21,8 +20,7 @@ contract UpdateRateLimiters is Script {
     ) public {
         // Retrieve the remote chain selector from the chain ID
         HelperConfig helperConfig = new HelperConfig();
-        HelperConfig.NetworkConfig memory remoteNetworkConfig =
-            HelperUtils.getNetworkConfig(helperConfig, remoteChainId);
+        HelperConfig.NetworkConfig memory remoteNetworkConfig = helperConfig.getNetworkConfig(remoteChainId);
         require(remoteNetworkConfig.chainSelector != 0, "Remote network configuration not found");
 
         uint64 remoteChainSelector = remoteNetworkConfig.chainSelector;
