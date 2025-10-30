@@ -6,6 +6,7 @@ import {
   CCIPContractName,
   logger,
   getEVMNetworkConfig,
+  validateNetworkName,
 } from "../config";
 
 /**
@@ -37,7 +38,7 @@ export const acceptAdminRole = task("acceptAdminRole", "Accepts the admin role f
       // Connect to network first
       const networkConnection = await hre.network.connect();
       const { viem } = networkConnection;
-      const networkName = networkConnection.networkName as Chains;
+      const networkName = validateNetworkName(networkConnection.networkName);
 
       logger.info(`🔄 Accepting admin role for ${tokenaddress} on ${networkName}...`);
 

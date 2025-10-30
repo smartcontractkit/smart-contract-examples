@@ -1,11 +1,9 @@
-
 import { HardhatUserConfig } from "hardhat/config";
 import hardhatToolboxViemPlugin from "@nomicfoundation/hardhat-toolbox-viem";
 import hardhatVerifyPlugin from "@nomicfoundation/hardhat-verify";
 import { networks } from "./config";
 import { tasks, npmFilesToBuild } from "./tasks";
 
-// Type adapter to convert Networks type to Hardhat's expected Record<string, NetworkUserConfig>
 type HardhatNetworks = Record<string, {
   type: "http";
   chainId: number;
@@ -15,7 +13,6 @@ type HardhatNetworks = Record<string, {
   nonce?: number;
 }>;
 
-// Type-safe conversion function that ensures networks match Hardhat's expected structure
 function toHardhatNetworks(networks: typeof import("./config").networks): HardhatNetworks {
   return networks as HardhatNetworks;
 }

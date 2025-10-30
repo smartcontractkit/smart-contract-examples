@@ -7,6 +7,7 @@ import {
   logger,
   configData,
   getEVMNetworkConfig,
+  validateNetworkName,
 } from "../config";
 import { CHAIN_FAMILY } from "../config/types";
 import {
@@ -72,7 +73,7 @@ export const removeRemotePool = task("removeRemotePool", "Removes a remote pool 
       // Connect to network first
       const networkConnection = await hre.network.connect();
       const { viem } = networkConnection;
-      const networkName = networkConnection.networkName as Chains;
+      const networkName = validateNetworkName(networkConnection.networkName);
       const networkConfig = getEVMNetworkConfig(networkName);
       if (!networkConfig) throw new Error(`Network ${networkName} not found`);
       const { confirmations } = networkConfig;

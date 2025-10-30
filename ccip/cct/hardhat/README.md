@@ -23,21 +23,22 @@ All tasks in this project use Hardhat's global options. The most important one i
 
 The following networks are configured and available for use:
 
-| Network Name      | Description              | Environment Variable       |
-| ----------------- | ------------------------ | -------------------------- |
-| `avalancheFuji`   | Avalanche Fuji Testnet   | `AVALANCHE_FUJI_RPC_URL`   |
-| `arbitrumSepolia` | Arbitrum Sepolia Testnet | `ARBITRUM_SEPOLIA_RPC_URL` |
-| `sepolia`         | Ethereum Sepolia Testnet | `ETHEREUM_SEPOLIA_RPC_URL` |
-| `baseSepolia`     | Base Sepolia Testnet     | `BASE_SEPOLIA_RPC_URL`     |
-| `polygonAmoy`     | Polygon Amoy Testnet     | `POLYGON_AMOY_RPC_URL`     |
+| Network Name      | Description              | Environment Variable       | Type    |
+| ----------------- | ------------------------ | -------------------------- | ------- |
+| `avalancheFuji`   | Avalanche Fuji Testnet   | `AVALANCHE_FUJI_RPC_URL`   | EVM     |
+| `arbitrumSepolia` | Arbitrum Sepolia Testnet | `ARBITRUM_SEPOLIA_RPC_URL` | EVM     |
+| `ethereumSepolia` | Ethereum Sepolia Testnet | `ETHEREUM_SEPOLIA_RPC_URL` | EVM     |
+| `baseSepolia`     | Base Sepolia Testnet     | `BASE_SEPOLIA_RPC_URL`     | EVM     |
+| `polygonAmoy`     | Polygon Amoy Testnet     | `POLYGON_AMOY_RPC_URL`     | EVM     |
+| `solanaDevnet`    | Solana Devnet            | N/A (destination only)     | Non-EVM |
 
 ### Network Configuration
 
-Network configurations are defined in:
+Network configurations use a **professional single source of truth architecture**:
 
-- **Network settings**: `/config/networks.ts`
-- **Chain parameters**: `/config/config.json`
-- **Contract addresses**: Automatically loaded per network
+- **All network settings**: `/config/networks.ts` (consolidated configuration)
+- **Types auto-generated**: From the network configuration data
+- **Zero maintenance**: No manual enum synchronization needed
 
 To use a network, ensure:
 
@@ -84,11 +85,135 @@ npx env-enc remove VARIABLE_NAME
 - `BASE_SEPOLIA_RPC_URL`: RPC URL for Base Sepolia testnet
 - `POLYGON_AMOY_RPC_URL`: RPC URL for Polygon Amoy testnet
 
+**Optional (for contract verification):**
+
+- `ETHERSCAN_API_KEY`: Single API key for all Etherscan-compatible explorers (Etherscan V2)
+  - Works across Ethereum, Arbitrum, Base, Polygon, and other Etherscan-compatible networks
+  - Get your API key from [Etherscan](https://etherscan.io/apis)
+  - No need for separate API keys per network (Etherscan V2 improvement)
+
 **Security Notes:**
 
 - The `.env.enc` file should be included in `.gitignore`
 - Your encryption password is required each time you start a new terminal session
 - Never commit your `.env.enc` file to version control
+
+## Adding New Networks
+
+The network configuration system uses a single source of truth architecture that automatically generates TypeScript types and Hardhat network configurations from the network data.
+
+### Adding a Network
+
+To add a new CCIP-supported network, add the network configuration to the `configData` object in `config/networks.ts`:
+
+```typescript
+export const configData = {
+  // ... existing networks
+  newNetwork: {
+    chainFamily: "evm", // or "svm" for non-EVM chains
+    chainId: 12345,
+    chainSelector: "1234567890123456789",
+    router: "0xRouterAddress",
+    rmnProxy: "0xRMNProxyAddress",
+    tokenAdminRegistry: "0xTokenAdminRegistryAddress",
+    registryModuleOwnerCustom: "0xRegistryModuleOwnerAddress",
+    link: "0xLinkTokenAddress",
+    confirmations: 2,
+    nativeCurrencySymbol: "NEW",
+    // chainType auto-defaults to "l1" for most chains, "op" for Base/Optimism
+  },
+};
+```
+
+The network becomes available in:
+
+- All task `--network` options
+
+### CCIP Configuration Sources
+
+Obtain the required addresses and chain selectors from the official CCIP directories:
+
+- **Mainnet Networks**: [https://docs.chain.link/ccip/directory/mainnet](https://docs.chain.link/ccip/directory/mainnet)
+- **Testnet Networks**: [https://docs.chain.link/ccip/directory/testnet](https://docs.chain.link/ccip/directory/testnet)
+
+Required information from these directories:
+
+- Router contract addresses
+- Chain selectors (unique CCIP identifiers)
+- RMN Proxy addresses
+- Token Admin Registry addresses
+- LINK token addresses
+
+### Environment Variable
+
+The system automatically generates environment variable names from network names using this pattern:
+- Convert camelCase to SNAKE_CASE
+- Add `_RPC_URL` suffix
+
+**Examples:**
+- `newNetwork` → `NEW_NETWORK_RPC_URL`
+- `optimismSepolia` → `OPTIMISM_SEPOLIA_RPC_URL`  
+- `bscTestnet` → `BSC_TESTNET_RPC_URL`
+
+Set the RPC URL environment variable:
+
+```bash
+npx env-enc set NEW_NETWORK_RPC_URL
+```
+
+**For the example network above:**
+```bash
+npx env-enc set OPTIMISM_SEPOLIA_RPC_URL
+```
+
+### Contract Verification (Optional)
+
+**Automatic Verification (Natively Supported):**
+Most standard networks are natively supported by Hardhat for contract verification. Check [Hardhat's chain descriptors](https://github.com/NomicFoundation/hardhat/blob/main/v-next/hardhat/src/internal/builtin-plugins/network-manager/chain-descriptors.ts) for the complete list of supported networks.
+
+**Custom Chain Descriptors Required:**
+For networks not natively supported by Hardhat, add a chain descriptor to `hardhat.config.ts`. This is particularly useful for:
+- Newer networks not yet added to Hardhat
+- Private/enterprise chains
+- Custom testnets
+
+```typescript
+chainDescriptors: {
+  12345: { // Your network's chainId
+    name: "New Network",
+    chainType: "generic",
+    blockExplorers: {
+      etherscan: {
+        name: "NewScan",
+        url: "https://newscan.io",
+        apiUrl: "https://api.newscan.io/api",
+      },
+    },
+  },
+}
+```
+
+Note: With Etherscan V2, a single `ETHERSCAN_API_KEY` works across all Etherscan-compatible networks.
+
+### Example: Adding Optimism Sepolia
+
+```typescript
+optimismSepolia: {
+  chainFamily: "evm",
+  chainId: 11155420,
+  chainSelector: "5224473277236331295",
+  router: "0x114A20A10b43D4115e5aeef7345a1A71d2a60C57",
+  rmnProxy: "0x...",
+  tokenAdminRegistry: "0x...",
+  registryModuleOwnerCustom: "0x...",
+  link: "0x...",
+  confirmations: 2,
+  nativeCurrencySymbol: "ETH",
+  // chainType auto-defaults to "op" (detected from "optimism" in name)
+}
+```
+
+All tasks will support `--network optimismSepolia` after adding this configuration.
 
 ### Example Usage
 
@@ -112,6 +237,7 @@ npx hardhat transferTokens --tokenaddress 0x123... --amount 1000 --destinationch
 - [Supported Networks](#supported-networks)
 - [Network Configuration](#network-configuration)
 - [Environment Variable Setup](#environment-variable-setup)
+- [Adding New Networks](#adding-new-networks)
 - [Example Usage](#example-usage)
 
 **EOA**:

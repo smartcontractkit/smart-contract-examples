@@ -5,6 +5,7 @@ import {
   Chains,
   logger,
   getEVMNetworkConfig,
+  validateNetworkName,
   CCIPContractName
 } from "../config";
 import {
@@ -44,7 +45,7 @@ export const getPoolConfig = task(
       // Connect to network first
       const networkConnection = await hre.network.connect();
       const { viem } = networkConnection;
-      const networkName = networkConnection.networkName as Chains;
+      const networkName = validateNetworkName(networkConnection.networkName);
 
       logger.info(`📊 Fetching pool configuration for ${pooladdress} on ${networkName}...`);
 

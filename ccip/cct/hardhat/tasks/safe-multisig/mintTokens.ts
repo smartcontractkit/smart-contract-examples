@@ -1,6 +1,6 @@
 import { task } from "hardhat/config";
 import { HardhatRuntimeEnvironment } from "hardhat/types/hre";
-import { Chains, logger, getEVMNetworkConfig } from "../../config";
+import { Chains, logger, getEVMNetworkConfig, validateNetworkName } from "../../config";
 import {
   MetaTransactionData,
   SafeTransaction,
@@ -67,7 +67,7 @@ export const mintTokensFromSafe = task("mintTokensFromSafe", "Mint tokens to mul
       // ⚙️ Connect to network and get viem client
       const networkConnection = await hre.network.connect();
       const { viem } = networkConnection;
-      const networkName = networkConnection.networkName as Chains;
+      const networkName = validateNetworkName(networkConnection.networkName);
       const publicClient = await viem.getPublicClient();
 
       // ⚙️ Validate network config

@@ -6,6 +6,7 @@ import {
   TokenContractName,
   logger,
   getEVMNetworkConfig,
+  validateNetworkName,
 } from "../config";
 
 /**
@@ -61,7 +62,7 @@ export const mintTokens = task("mintTokens", "Mints tokens for a specified recei
       // Connect to network first
       const networkConnection = await hre.network.connect();
       const { viem } = networkConnection;
-      const networkName = networkConnection.networkName as Chains;
+      const networkName = validateNetworkName(networkConnection.networkName);
 
       const networkConfig = getEVMNetworkConfig(networkName);
       if (!networkConfig)
