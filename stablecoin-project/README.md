@@ -53,7 +53,7 @@ forge test
 ### Run Scripts
 
 ```shell
-# In a seperate window
+# In a separate window
 anvil
 # Run the interaction script on local network
 forge script script/StableCoinInteraction.s.sol --rpc-url http://127.0.0.1:8545 --broadcast

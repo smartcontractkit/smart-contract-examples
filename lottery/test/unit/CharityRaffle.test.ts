@@ -97,7 +97,7 @@ import { CharityRaffle, VRFCoordinatorV2Mock } from "../../typechain-types"
                 )
                 expect(await charityRaffle.getDonations(charity1.address)).to.equal("1")
             })
-            it("donates enterance fee to chosen charity", async () => {
+            it("donates entrance fee to chosen charity", async () => {
                 // ideally would test one at a time, but tested once above
                 const charity1StartingBalance: BigNumber = await charity1.getBalance()
                 const charity2StartingBalance: BigNumber = await charity2.getBalance()

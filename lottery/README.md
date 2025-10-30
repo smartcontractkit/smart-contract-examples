@@ -26,7 +26,7 @@ This project is apart of the Hardhat FreeCodeCamp video.
   - You'll know you did it right if you can run `git --version` and you see a response like `git version x.x.x`
 - [Nodejs](https://nodejs.org/en/)
   - You'll know you've installed nodejs right if you can run:
-    - `node --version` and get an ouput like: `vx.x.x`
+    - `node --version` and get an output like: `vx.x.x`
 - [Yarn](https://yarnpkg.com/getting-started/install) instead of `npm`
   - You'll know you've installed yarn right if you can run:
     - `yarn --version` and get an output like: `x.x.x`
@@ -132,7 +132,7 @@ yarn hardhat verify --constructor-args arguments.ts DEPLOYED_CONTRACT_ADDRESS
 ```
 
 ### Optional Charity Raffle
-  This repo also includes the option to deploy a raffle where players enter by donating to their choice of one of three charities. On deployment, the charity raffle contract is funded with the jackpot for the player winner. The Chainlink keepers end the charity raffle and the VRF picks a player winner. Once the lottery ends, the contract funder has the option to match the donation value of the charity that recieved the highest number of player donations. If there is a tie between charities with the highest donations, the VRF and keepers will settle the tie and declare the winner.
+  This repo also includes the option to deploy a raffle where players enter by donating to their choice of one of three charities. On deployment, the charity raffle contract is funded with the jackpot for the player winner. The Chainlink keepers end the charity raffle and the VRF picks a player winner. Once the lottery ends, the contract funder has the option to match the donation value of the charity that received the highest number of player donations. If there is a tie between charities with the highest donations, the VRF and keepers will settle the tie and declare the winner.
 
 # Linting
 
