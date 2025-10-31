@@ -7,9 +7,13 @@
     },
     "dependencies": {
       "@arbitrum/sdk": "^v3.1.2",
+      "arb-shared-dependencies": "^1.0.0",
       "ts-node": "^10.8.1",
       "typescript": "^4.7.3"
     },
+    "devDependencies": {
+        "@types/node": "^22.7.5"
+    }, 
     "author": "",
     "license": "ISC"
   }
