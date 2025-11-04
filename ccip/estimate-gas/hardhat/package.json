@@ -12,13 +12,13 @@
   "license": "ISC",
   "devDependencies": {
     "@chainlink/contracts": "1.5.0",
-    "@chainlink/contracts-ccip": "1.6.2",
+    "@chainlink/contracts-ccip": "1.6.3",
     "@chainlink/env-enc": "^1.0.5",
     "@nomicfoundation/hardhat-toolbox-viem": "^5.0.0",
     "@openzeppelin/contracts": "5.4.0",
-    "hardhat": "^3.0.7",
     "@types/chai": "^4.3.16",
     "@types/mocha": "^10.0.6",
-    "@types/node": "^20.12.12"
+    "@types/node": "^20.12.12",
+    "hardhat": "^3.0.7"
   }
 }
