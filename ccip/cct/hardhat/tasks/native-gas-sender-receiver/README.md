@@ -12,7 +12,15 @@ This folder contains Hardhat tasks for deploying and interacting with the Chainl
    npm install
    ```
 
-2. **Set up encrypted environment variables:**
+2. **Compile the contracts:**
+
+   ```bash
+   npx hardhat compile
+   ```
+
+   This generates the necessary contract artifacts (ABIs and bytecode) required by the tasks.
+
+3. **Set up encrypted environment variables:**
 
    ```bash
    # Set encryption password (required at start of each session)
@@ -33,6 +41,54 @@ For testing with **Ethereum Sepolia** and **Arbitrum Sepolia**, you'll need:
 | `ARBITRUM_SEPOLIA_RPC_URL` | Arbitrum Sepolia RPC endpoint                | `https://sepolia-rollup.arbitrum.io/rpc` |
 | `ETHERSCAN_API_KEY`        | Etherscan API key for contract verification  | `ABC123...`                              |
 | `ARBISCAN_API_KEY`         | Arbiscan API key for contract verification   | `DEF456...`                              |
+
+### Recommended RPC Providers
+
+For reliable transaction processing and receipt polling, we **strongly recommend** using professional RPC providers instead of public endpoints:
+
+**Recommended Providers:**
+
+- **Alchemy** ([https://www.alchemy.com](https://www.alchemy.com)) - Free tier available
+- **Infura** ([https://www.infura.io](https://www.infura.io)) - Free tier available
+- **QuickNode** ([https://www.quicknode.com](https://www.quicknode.com)) - Free tier available
+
+**Why This Matters:**
+
+Public RPC endpoints (especially for testnets) can be slow, rate-limited, or out-of-sync. This can cause:
+
+- Transaction receipt polling timeouts
+- "Transaction could not be found" errors
+- Tasks failing even though transactions succeed on-chain
+
+**Symptoms of RPC Issues:**
+
+If you encounter errors like:
+
+```
+Transaction with hash "0x..." could not be found.
+Version: viem@2.38.0
+```
+
+But the transaction appears on the block explorer, your RPC endpoint is likely behind or unreliable.
+
+**Solution:**
+
+Use a professional RPC provider. Example configuration with Alchemy:
+
+```bash
+# Set your Alchemy API key in environment variables
+npx env-enc set
+
+# When prompted for ARBITRUM_SEPOLIA_RPC_URL:
+# Instead of: https://sepolia-rollup.arbitrum.io/rpc (public, unreliable)
+# Use: https://arb-sepolia.g.alchemy.com/v2/YOUR_ALCHEMY_API_KEY
+
+# Similarly for Ethereum Sepolia:
+# Instead of: https://rpc.sepolia.org (public, unreliable)
+# Use: https://eth-sepolia.g.alchemy.com/v2/YOUR_ALCHEMY_API_KEY
+```
+
+**Note**: All recommended providers offer free tiers that are more than sufficient for testing and development.
 
 ### Setting Environment Variables
 
@@ -117,10 +173,10 @@ The `EtherSenderReceiver` contract enables cross-chain transfers of native token
 
 ### Testing Simplification
 
-For testing purposes, we use **WETH on both chains** to simulate the cross-ecosystem bridging concept, but in reality:
+For testing purposes, we use **wrapped native tokens on both chains** to simulate the cross-ecosystem bridging concept, but in reality:
 
 - **Chain XYZ** would have its own native token `XYZ` and wrapped token `WXYZ`
-- **Ethereum** would receive `WXYZ` tokens (not `WETH`)
+- **Ethereum** would receive `WXYZ` tokens (not ETH's wrapped native)
 - **Token pools** would be configured to support `WXYZ` on Ethereum
 
 ## Use Case 1: Native Token Delivery
@@ -246,7 +302,7 @@ npx hardhat sendTokens \
 👉 Track cross-chain status: https://ccip.chain.link/tx/0x3a831dadf27a81607882750d55f3f664ea7fc6665296be93233ec5703d78ce70
 ```
 
-**Wrapped Native Fee Payment (WETH):**
+**Wrapped Native Fee Payment:**
 
 ```bash
 npx hardhat sendTokens \
@@ -305,17 +361,17 @@ You want to bridge `WXYZ` tokens to Ethereum where `WXYZ` is also supported (via
 
 1. **Source (XYZ Chain)**: Use EtherSenderReceiver to wrap `XYZ → WXYZ`
 2. **CCIP Transfer**: Send `WXYZ` tokens cross-chain
-3. **Destination (Ethereum)**: Recipient receives `WXYZ` tokens directly (not `WETH`)
+3. **Destination (Ethereum)**: Recipient receives `WXYZ` tokens directly (not ETH's wrapped native)
 
 ### Testing Simplification
 
-For testing, we use **Arbitrum Sepolia → Ethereum Sepolia** with WETH to simulate this concept, but the principle is the same for any cross-ecosystem bridging scenario.
+For testing, we use **Arbitrum Sepolia → Ethereum Sepolia** with wrapped native tokens to simulate this concept, but the principle is the same for any cross-ecosystem bridging scenario.
 
 ### Requirements
 
 **Token Pool Configuration**: The destination chain must have token pools configured to support the foreign wrapped token (WXYZ in our example). This is handled by CCIP's token pool infrastructure.
 
-### Test Example: Arbitrum → Ethereum (WETH Simulation)
+### Test Example: Arbitrum → Ethereum (Wrapped Native Simulation)
 
 **Native Fee Payment:**
 
@@ -452,146 +508,160 @@ All three options work with both native delivery (gasLimit > 0) and wrapped deli
 
 ## Supported Networks
 
-The tasks work on all CCIP-supported testnet and mainnet networks:
+This task system automatically supports all CCIP-enabled networks configured in the project.
+
+Currently available networks include:
 
 - **Ethereum Sepolia** / Ethereum Mainnet
 - **Arbitrum Sepolia** / Arbitrum One
 - **Avalanche Fuji** / Avalanche Mainnet
 - **Base Sepolia** / Base Mainnet
 - **Polygon Amoy** / Polygon Mainnet
+- And any other networks added to the configuration
 
 Each network automatically uses its native token pair (ETH/WETH, AVAX/WAVAX, MATIC/WMATIC, etc.).
 
-## Adding a New Network
+### Adding New Networks
 
-To add support for a new CCIP-enabled network, follow these steps:
+To add support for a new CCIP-enabled network, see the [Adding New Networks](../../README.md#adding-new-networks) section in the main project README.
 
-### Step 1: Update Type Definitions
+Once a network is added to `config/networks.ts`, it automatically becomes available for use with all native gas sender receiver tasks without any additional configuration.
 
-**File**: `config/types.ts`
+## Integration
 
-Add the new network to both enums:
+Build EtherSenderReceiver into your application using viem, wagmi, or ethers.js.
 
-```typescript
-export enum Chains {
-  // ... existing networks
-  newNetworkName = "newNetworkName", // ADD THIS
-}
+**Prerequisites**: TypeScript, viem basics, CCIP message structure
 
-export enum EVMChains {
-  // ... existing networks
-  newNetworkName = "newNetworkName", // ADD THIS
-}
-```
-
-### Step 2: Add Network Configuration
-
-**File**: `config/config.json`
-
-Add the network's CCIP infrastructure addresses:
-
-```json
-{
-  "newNetworkName": {
-    "chainId": 12345,
-    "chainSelector": "1234567890123456789",
-    "router": "0xRouterAddressOnNewNetwork",
-    "rmnProxy": "0xRMNProxyAddress",
-    "tokenAdminRegistry": "0xTokenAdminRegistryAddress",
-    "registryModuleOwnerCustom": "0xRegistryModuleOwnerAddress",
-    "link": "0xLinkTokenAddress",
-    "confirmations": 2,
-    "nativeCurrencySymbol": "NEW",
-    "chainType": "l1",
-    "chainFamily": "evm"
-  }
-}
-```
-
-### Step 3: Add Network Connection
-
-**File**: `config/networks.ts`
-
-Add the network to the networks object:
+### Message Structure
 
 ```typescript
-const networks: Networks = {
-  // ... existing networks
-  [EVMChains.newNetworkName]: {
-    type: "http",
-    ...configData.newNetworkName,
-    url:
-      process.env.NEW_NETWORK_RPC_URL ||
-      "https://UNSET-PLEASE-SET-NEW_NETWORK_RPC_URL",
-    gasPrice: undefined,
-    nonce: undefined,
-    accounts,
-  },
+const message = {
+  receiver: bytes, // Encoded destination address
+  data: bytes, // Auto-filled by contract with msg.sender
+  tokenAmounts: [
+    {
+      token: address, // Auto-filled by contract with wrapped native
+      amount: uint256,
+    },
+  ],
+  feeToken: address, // 0x0 for native, or LINK/wrapped native address
+  extraArgs: bytes, // Gas limit + execution settings
 };
 ```
 
-### Step 4: Add Verification Support (Optional)
+### Contract Behavior
 
-**File**: `hardhat.config.ts`
+EtherSenderReceiver modifies your message before sending:
 
-If the network needs custom verification settings:
+| Field                   | You Provide | Contract Overwrites      | Why                               |
+| ----------------------- | ----------- | ------------------------ | --------------------------------- |
+| `data`                  | `"0x"`      | `abi.encode(msg.sender)` | Destination needs final recipient |
+| `tokenAmounts[0].token` | `0x0`       | Wrapped native address   | Transfers wrapped native          |
+
+### Quick Start
 
 ```typescript
-chainDescriptors: {
-  12345: { // New network's chainId
-    name: "New Network Name",
-    chainType: "generic",
-    blockExplorers: {
-      etherscan: {
-        name: "NewScan",
-        url: "https://newscan.io",
-        apiUrl: "https://api.newscan.io/api",
-      },
-    },
-  },
-}
+import { parseEther, encodeAbiParameters, zeroAddress } from "viem";
+
+const message = {
+  receiver: encodeAbiParameters([{ type: "address" }], ["0x742d35Cc..."]),
+  data: "0x",
+  tokenAmounts: [{ token: zeroAddress, amount: parseEther("0.001") }],
+  feeToken: zeroAddress,
+  extraArgs:
+    "0x181dcf10" +
+    encodeAbiParameters(
+      [{ type: "uint256" }, { type: "bool" }],
+      [200000n, true]
+    ).slice(2),
+};
+
+const fee = await contract.read.getFee([chainSelector, message]);
+
+await contract.write.ccipSend([chainSelector, message], {
+  value: parseEther("0.001") + fee,
+});
 ```
 
-### Step 5: Environment Variables
+### Encoding Receivers
 
-Add the required environment variables using `npx env-enc set`:
+Encoding depends on destination chain family.
 
-- `NEW_NETWORK_RPC_URL` - RPC endpoint for the network
-- `NEWSCAN_API_KEY` - Block explorer API key (for verification)
+**EVM chains** (Ethereum, Arbitrum, Avalanche):
 
-### Step 6: Required CCIP Information
-
-To get the configuration values, consult:
-
-- **CCIP Mainnet Directory**: [https://docs.chain.link/ccip/directory/mainnet](https://docs.chain.link/ccip/directory/mainnet)
-- **CCIP Testnet Directory**: [https://docs.chain.link/ccip/directory/testnet](https://docs.chain.link/ccip/directory/testnet)
-- **CCIP Addresses**: Router, RMN Proxy, Token Admin Registry addresses
-- **Chain Selector**: Unique CCIP identifier for the network
-- **LINK Token**: LINK contract address on the network
-
-### Step 7: Test the New Network
-
-```bash
-# Deploy EtherSenderReceiver
-npx hardhat deployTokenSenderReceiver --network newNetworkName --verifycontract
-
-# Test cross-chain transfer
-npx hardhat sendTokens \
-  --contract 0xDeployedContract \
-  --destinationchain ethereumSepolia \
-  --receiver 0xRecipientAddress \
-  --amount 0.001 \
-  --network newNetworkName
+```typescript
+const receiver = encodeAbiParameters(
+  [{ type: "address" }],
+  ["0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"]
+);
 ```
 
-### Files Summary
+**Solana** (Use Case 2 only, `gasLimit=0`):
 
-| File                 | Purpose          | Changes                               |
-| -------------------- | ---------------- | ------------------------------------- |
-| `config/types.ts`    | Type definitions | Add to `Chains` and `EVMChains` enums |
-| `config/config.json` | CCIP addresses   | Add network configuration object      |
-| `config/networks.ts` | RPC connections  | Add network connection settings       |
-| `hardhat.config.ts`  | Verification     | Add chain descriptor (optional)       |
-| Environment          | Secrets          | Add RPC URL and API key               |
+```typescript
+import bs58 from "bs58";
 
-**Note**: All CCIP infrastructure addresses can be found in the [CCIP Mainnet Directory](https://docs.chain.link/ccip/directory/mainnet) and [CCIP Testnet Directory](https://docs.chain.link/ccip/directory/testnet) for each supported network.
+const bytes = bs58.decode("9d087fc03ae39b088326b67fa3c788236645b717...");
+const receiver = "0x" + Buffer.from(bytes).toString("hex");
+```
+
+Solana works only for cross-ecosystem bridging where wrapped native token pools exist on Solana. No EtherSenderReceiver needed on destination—receiver gets wrapped tokens directly. Set `gasLimit=0`.
+
+### ExtraArgs Format
+
+CCIP requires EVMExtraArgsV2 tag `0x181dcf10`:
+
+```typescript
+const extraArgsEncoded = encodeAbiParameters(
+  [{ type: "uint256" }, { type: "bool" }],
+  [gasLimit, true] // allowOutOfOrderExecution = true
+);
+const extraArgs = "0x181dcf10" + extraArgsEncoded.slice(2);
+```
+
+**Gas limits**:
+
+- `0` — Wrapped tokens only (no ccipReceive)
+- `200000` — Standard unwrapping
+- Higher — Custom logic
+
+### Fee Payment
+
+**Native**:
+
+```typescript
+await contract.write.ccipSend([chainSelector, message], {
+  value: amount + fee, // Transfer + fee
+});
+```
+
+**LINK or wrapped native**:
+
+```typescript
+await feeToken.write.approve([contractAddress, fee]);
+await contract.write.ccipSend([chainSelector, message], {
+  value: amount, // Transfer only, fee pulled from approval
+});
+```
+
+### Production Checklist
+
+- Add 10-20% buffer to fee estimates
+- Validate receiver matches destination chain type
+- Handle RPC errors (transaction might succeed despite error)
+- Link to CCIP Explorer: `https://ccip.chain.link/tx/${hash}`
+
+### Troubleshooting
+
+**"Transaction could not be found"**
+
+RPC lag. Transaction likely succeeded—check block explorer.
+
+**"Insufficient balance"**
+
+Native fee needs `amount + fee`. LINK or wrapped native fee needs `amount` native + `fee` in token.
+
+**"Invalid receiver"**
+
+Wrong encoding for destination chain family (EVM vs non-EVM).

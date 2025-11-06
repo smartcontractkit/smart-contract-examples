@@ -5,6 +5,8 @@ import { CCIPContractName, logger } from "../../config";
 import type { FeeTokenType } from "./types";
 import { validateAddress } from "./validators";
 import { InsufficientBalanceError } from "./types";
+import { prepareChainAddressData } from "../../utils/chainHandlers";
+import { CHAIN_FAMILY } from "../../config/types";
 
 /**
  * CCIP message structure for EtherSenderReceiver
@@ -31,11 +33,14 @@ export interface FeeResult {
 
 /**
  * Builds a CCIP message for EtherSenderReceiver contract with proper extraArgs
+ * Note: receiver can be any chain address (EVM 0x or non-EVM like Solana base58)
+ * Uses prepareChainAddressData to properly encode addresses based on destination chain family
  */
 export function buildCCIPMessage(
-  receiver: Address,
+  receiver: string,
   amount: bigint,
   feeTokenAddress: Address,
+  destinationChainFamily: CHAIN_FAMILY,
   gasLimit: bigint = 200000n,
   allowOutOfOrderExecution: boolean = true
 ): CCIPMessage {
@@ -50,8 +55,12 @@ export function buildCCIPMessage(
   const evmExtraArgsV2Tag = '0x181dcf10'; // GENERIC_EXTRA_ARGS_V2_TAG
   const extraArgs = (evmExtraArgsV2Tag + extraArgsEncoded.slice(2)) as `0x${string}`;
 
+  // ✅ Use prepareChainAddressData to properly encode receiver address based on chain family
+  // This handles EVM (0x addresses), Solana (base58 decoded to hex), and other chain types
+  const receiverBytes = prepareChainAddressData(receiver, destinationChainFamily);
+
   return {
-    receiver: encodeAbiParameters([{ type: 'address', name: 'receiver' }], [receiver]),
+    receiver: receiverBytes as `0x${string}`,
     data: toHex(""), // Will be overwritten by contract with abi.encode(msg.sender)
     tokenAmounts: [
       {

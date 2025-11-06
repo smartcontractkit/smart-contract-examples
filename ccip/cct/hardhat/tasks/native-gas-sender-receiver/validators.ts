@@ -1,8 +1,10 @@
 import { isAddress, parseEther } from "viem";
 import type { Address } from "viem";
-import { Chains } from "../../config";
+import { Chains, isValidChain, configData } from "../../config";
 import type { FeeTokenType } from "./types";
 import { ValidationError } from "./types";
+import { validateChainAddressOrThrow, InvalidAddressError, UnsupportedChainFamilyError } from "../../utils/chainHandlers";
+import { CHAIN_FAMILY } from "../../config/types";
 
 
 /**
@@ -10,13 +12,6 @@ import { ValidationError } from "./types";
  */
 export function isValidAddress(value: string): value is Address {
   return isAddress(value);
-}
-
-/**
- * Type guard to check if a string is a valid chain name
- */
-export function isValidChain(value: string): value is Chains {
-  return Object.values(Chains).includes(value as Chains);
 }
 
 /**
@@ -77,10 +72,10 @@ export function validateChain(value: string, paramName: string): Chains {
   }
   
   if (!isValidChain(value)) {
-    throw new ValidationError(`Unsupported chain: ${value}. Supported chains: ${Object.values(Chains).join(", ")}`, {
+    throw new ValidationError(`Unsupported chain: ${value}. Supported chains: ${Object.keys(configData).join(", ")}`, {
       paramName,
       value,
-      supportedChains: Object.values(Chains)
+      supportedChains: Object.keys(configData)
     });
   }
   
@@ -165,21 +160,29 @@ export function validateGasLimit(value: string, paramName: string): bigint {
   return BigInt(value);
 }
 
-
 /**
- * Validates and returns a typed network chain name
+ * Validates receiver address based on destination chain family
+ * Supports both EVM (0x hex) and non-EVM (e.g., Solana base58) addresses
  */
-export function validateNetworkChainType(networkName: string): Chains {
-  if (!networkName) {
-    throw new ValidationError("Missing network name", { networkName });
+export function validateReceiverAddressForChain(
+  address: string,
+  chainFamily: CHAIN_FAMILY,
+  paramName: string = "receiver"
+): string {
+  if (!address) {
+    throw new ValidationError(`Missing required parameter: ${paramName}`, { paramName });
   }
   
-  if (!isValidChain(networkName)) {
-    throw new ValidationError(`Invalid network name: ${networkName}`, {
-      networkName,
-      supportedChains: Object.values(Chains)
-    });
+  try {
+    validateChainAddressOrThrow(address, chainFamily);
+    return address;
+  } catch (error) {
+    if (error instanceof InvalidAddressError || error instanceof UnsupportedChainFamilyError) {
+      throw new ValidationError(
+        `Invalid ${chainFamily} address for ${paramName}: ${address} — ${error.message}`,
+        { paramName, address, chainFamily }
+      );
+    }
+    throw error;
   }
-  
-  return networkName;
 }

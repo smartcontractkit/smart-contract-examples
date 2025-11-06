@@ -8,16 +8,17 @@ import {
   logger,
   getEVMNetworkConfig,
   configData,
+  validateNetworkName,
 } from "../../config";
+import { CHAIN_FAMILY } from "../../config/types";
 import { NetworkError, ContractError, InsufficientBalanceError } from "./types";
 import {
   validateContractAddress,
   validateChain,
-  validateReceiverAddress,
+  validateReceiverAddressForChain,
   validateEtherAmount,
   validateFeeToken,
   validateGasLimit,
-  validateNetworkChainType
 } from "./validators";
 import {
   buildCCIPMessage,
@@ -117,39 +118,43 @@ export const sendTokens = task(
       // Connect to network first to get network connection details
       const networkConnection = await hre.network.connect();
       const { viem } = networkConnection;
-      const networkName = networkConnection.networkName;
+      const networkName = validateNetworkName(networkConnection.networkName);
 
-      // ✅ Validate network and parameters with proper typing
-      const typedNetworkName = validateNetworkChainType(networkName);
+      // ✅ Validate parameters
       const validatedContractAddress = validateContractAddress(contractAddress);
       const validatedDestinationChain = validateChain(destinationchain, "destinationchain");
-      const validatedReceiver = validateReceiverAddress(receiver);
+      
+      // ✅ Get destination config to access chain family for receiver validation
+      const destConfig = configData[validatedDestinationChain];
+      if (!destConfig) {
+        throw new NetworkError(`Configuration not found for destination chain: ${validatedDestinationChain}`, {
+          destinationChain: validatedDestinationChain
+        });
+      }
+      
+      // ✅ Validate receiver address based on destination chain family
+      const destChainFamily = destConfig.chainFamily as CHAIN_FAMILY;
+      const validatedReceiver = validateReceiverAddressForChain(receiver, destChainFamily, "receiver");
+      
       const validatedAmount = validateEtherAmount(amount, "amount");
       const validatedFeeToken = validateFeeToken(feetoken, "feetoken");
       const validatedGasLimit = validateGasLimit(gaslimit, "gaslimit");
 
       // ✅ Get network configurations
-      const sourceConfig = getEVMNetworkConfig(typedNetworkName);
+      const sourceConfig = getEVMNetworkConfig(networkName);
       if (!sourceConfig) {
-        throw new NetworkError(`Network ${typedNetworkName} not found in config`, {
-          networkName: typedNetworkName
+        throw new NetworkError(`Network ${networkName} not found in config`, {
+          networkName
         });
       }
 
-      logger.info(`🚀 Sending ${sourceConfig.nativeCurrencySymbol} cross-chain from ${typedNetworkName} to ${validatedDestinationChain}...`);
+      logger.info(`🚀 Sending ${sourceConfig.nativeCurrencySymbol} cross-chain from ${networkName} to ${validatedDestinationChain}...`);
       
       // ✅ Log gas limit behavior
       if (validatedGasLimit === 0n) {
         logger.info(`⚡ Gas limit: 0 (receiver will get wrapped native tokens only - no ccipReceive call)`);
       } else {
         logger.info(`⚡ Gas limit: ${validatedGasLimit} (receiver will get native ${sourceConfig.nativeCurrencySymbol} via ccipReceive)`);
-      }
-
-      const destConfig = configData[validatedDestinationChain];
-      if (!destConfig) {
-        throw new NetworkError(`Configuration not found for destination chain: ${validatedDestinationChain}`, {
-          destinationChain: validatedDestinationChain
-        });
       }
 
       // ✅ Parse amount
@@ -176,11 +181,12 @@ export const sendTokens = task(
         wethAddress
       );
 
-      // ✅ Build CCIP message using utility
+      // ✅ Build CCIP message using utility with destination chain family
       const message = buildCCIPMessage(
         validatedReceiver,
         amountWei,
         feeTokenAddress,
+        destChainFamily,
         validatedGasLimit
       );
 
@@ -232,7 +238,7 @@ export const sendTokens = task(
             walletEthCost: validatedFeeToken === "native" ? formatEther(amountWei + fee) : validatedAmount,
             walletEthCostWei: validatedFeeToken === "native" ? (amountWei + fee).toString() : amountWei.toString(),
             walletFeeTokenCost: validatedFeeToken !== "native" ? feeFormatted : "0",
-            sourceChain: typedNetworkName,
+            sourceChain: networkName,
             destinationChain: validatedDestinationChain,
           };
           return estimateResult;
@@ -299,7 +305,7 @@ export const sendTokens = task(
         logger.info(`   Hash: ${txHash}`);
         logger.info(`   Block: ${receipt.blockNumber}`);
         logger.info(`   Gas Used: ${receipt.gasUsed}`);
-        logger.info(`   From: ${typedNetworkName} → To: ${validatedDestinationChain}`);
+        logger.info(`   From: ${networkName} → To: ${validatedDestinationChain}`);
         logger.info(`   Amount: ${validatedAmount} ${sourceConfig.nativeCurrencySymbol}`);
         logger.info(`   Destination Address: ${validatedReceiver}`);
         logger.info(`   Final Recipient: ${wallet.account.address} (sender)`);
@@ -328,7 +334,7 @@ export const sendTokens = task(
 
         logger.error(`❌ Transaction failed:`, error);
         throw new ContractError(`Failed to send cross-chain native token transfer`, {
-          sourceChain: typedNetworkName,
+          sourceChain: networkName,
           destinationChain: validatedDestinationChain,
           amount: validatedAmount,
           receiver: validatedReceiver,

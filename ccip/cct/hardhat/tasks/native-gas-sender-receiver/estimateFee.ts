@@ -7,7 +7,9 @@ import {
   logger,
   getEVMNetworkConfig,
   configData,
+  validateNetworkName,
 } from "../../config";
+import { CHAIN_FAMILY } from "../../config/types";
 import { NetworkError } from "./types";
 import {
   validateContractAddress,
@@ -15,8 +17,7 @@ import {
   validateEtherAmount,
   validateFeeToken,
   validateGasLimit,
-  validateNetworkChainType,
-  validateAddress
+  validateReceiverAddressForChain,
 } from "./validators";
 import { 
   buildCCIPMessage, 
@@ -99,27 +100,38 @@ export const estimateFee = task(
       // Connect to network first to get network connection details
       const networkConnection = await hre.network.connect();
       const { viem } = networkConnection;
-      const networkName = networkConnection.networkName;
+      const networkName = validateNetworkName(networkConnection.networkName);
 
-      // ✅ Validate network and parameters with proper typing
-      const typedNetworkName = validateNetworkChainType(networkName);
+      // ✅ Validate parameters
       const validatedContractAddress = validateContractAddress(contractAddress);
       const validatedDestinationChain = validateChain(destinationchain, "destinationchain");
+      
+      // ✅ Get destination config to access chain family for receiver validation
+      const destConfig = configData[validatedDestinationChain];
+      if (!destConfig) {
+        throw new NetworkError(`Configuration not found for destination chain: ${validatedDestinationChain}`, {
+          destinationChain: validatedDestinationChain
+        });
+      }
+      
+      // ✅ Validate receiver address based on destination chain family
+      const destChainFamily = destConfig.chainFamily as CHAIN_FAMILY;
+      const validatedReceiver = validateReceiverAddressForChain(receiver, destChainFamily, "receiver");
+      
       const validatedAmount = validateEtherAmount(amount, "amount");
       const validatedFeeToken = validateFeeToken(feetoken, "feetoken");
-      const validatedReceiver = validateAddress(receiver, "receiver");
       const validatedGasLimit = validateGasLimit(gaslimit, "gaslimit");
 
       // ✅ Get network configurations
-      const sourceConfig = getEVMNetworkConfig(typedNetworkName);
+      const sourceConfig = getEVMNetworkConfig(networkName);
       if (!sourceConfig) {
-        throw new NetworkError(`Network ${typedNetworkName} not found in config`, {
-          networkName: typedNetworkName
+        throw new NetworkError(`Network ${networkName} not found in config`, {
+          networkName
         });
       }
 
       logger.info(`🔍 Estimating cross-chain native token transfer fees...`);
-      logger.info(`   From: ${typedNetworkName}`);
+      logger.info(`   From: ${networkName}`);
       logger.info(`   To: ${validatedDestinationChain}`);
       logger.info(`   Amount: ${validatedAmount} ${sourceConfig.nativeCurrencySymbol}`);
       logger.info(`   Destination Address: ${validatedReceiver}`);
@@ -129,13 +141,6 @@ export const estimateFee = task(
         logger.info(`   Gas limit: 0 (receiver will get wrapped native tokens only - no ccipReceive call)`);
       } else {
         logger.info(`   Gas limit: ${validatedGasLimit} (receiver will get native ${sourceConfig.nativeCurrencySymbol} via ccipReceive)`);
-      }
-
-      const destConfig = configData[validatedDestinationChain];
-      if (!destConfig) {
-        throw new NetworkError(`Configuration not found for destination chain: ${validatedDestinationChain}`, {
-          destinationChain: validatedDestinationChain
-        });
       }
 
       // ✅ Parse amount
@@ -158,11 +163,12 @@ export const estimateFee = task(
           wethAddress
         );
 
-        // ✅ Build CCIP message using utility
+        // ✅ Build CCIP message using utility with destination chain family
         const message = buildCCIPMessage(
           validatedReceiver,
           amountWei,
           feeTokenAddress,
+          destChainFamily,
           validatedGasLimit
         );
 
@@ -227,7 +233,7 @@ export const estimateFee = task(
           walletEthCost,
           walletEthCostWei,
           walletFeeTokenCost,
-          sourceChain: typedNetworkName,
+          sourceChain: networkName,
           destinationChain: validatedDestinationChain,
         };
 

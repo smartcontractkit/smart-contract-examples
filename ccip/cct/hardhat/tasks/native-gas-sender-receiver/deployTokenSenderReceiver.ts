@@ -6,9 +6,10 @@ import {
   CCIPContractName,
   logger,
   getEVMNetworkConfig,
+  validateNetworkName,
 } from "../../config";
 import { NetworkError, ContractError } from "./types";
-import { validateNetworkChainType, validateAddress } from "./validators";
+import { validateAddress } from "./validators";
 
 /**
  * Task-specific types for deployEtherSenderReceiver
@@ -49,25 +50,22 @@ export const deployTokenSenderReceiver = task(
       // Connect to network first to get network connection details
       const networkConnection = await hre.network.connect();
       const { viem } = networkConnection;
-      const networkName = networkConnection.networkName;
+      const networkName = validateNetworkName(networkConnection.networkName);
 
-      // Validate network is a supported EVM chain
-      const typedNetworkName = validateNetworkChainType(networkName);
-
-      logger.info(`🚀 Deploying EtherSenderReceiver on ${typedNetworkName}...`);
+      logger.info(`🚀 Deploying EtherSenderReceiver on ${networkName}...`);
 
       // ✅ Get network configuration
-      const evmNetworkConfig = getEVMNetworkConfig(typedNetworkName);
+      const evmNetworkConfig = getEVMNetworkConfig(networkName);
       if (!evmNetworkConfig) {
-        throw new NetworkError(`Network ${typedNetworkName} not found in config`, {
-          networkName: typedNetworkName
+        throw new NetworkError(`Network ${networkName} not found in config`, {
+          networkName
         });
       }
 
       const { router } = evmNetworkConfig;
       if (!router) {
-        throw new NetworkError(`CCIP Router not configured for network: ${typedNetworkName}`, {
-          networkName: typedNetworkName
+        throw new NetworkError(`CCIP Router not configured for network: ${networkName}`, {
+          networkName
         });
       }
 
@@ -131,7 +129,7 @@ export const deployTokenSenderReceiver = task(
         logger.info(`🎉 Deployment completed successfully!`);
         logger.info(`📋 Contract Information:`);
         logger.info(`   Address: ${contract.address}`);
-        logger.info(`   Network: ${typedNetworkName} (Chain ID: ${evmNetworkConfig.chainId})`);
+        logger.info(`   Network: ${networkName} (Chain ID: ${evmNetworkConfig.chainId})`);
         logger.info(`   Version: ${version}`);
         logger.info(`   Router: ${actualRouter}`);
         logger.info(`   WETH: ${wethAddress}`);
@@ -154,7 +152,7 @@ export const deployTokenSenderReceiver = task(
 
         logger.error(`❌ Deployment failed:`, error);
         throw new ContractError(`Failed to deploy EtherSenderReceiver contract`, {
-          networkName: typedNetworkName,
+          networkName,
           router: router,
           originalError: error instanceof Error ? error.message : String(error)
         });
