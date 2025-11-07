@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "devDependencies": {
     "@chainlink/contracts": "1.5.0",
-    "@chainlink/contracts-ccip": "1.6.2",
+    "@chainlink/contracts-ccip": "1.6.3",
     "@chainlink/local": "0.2.7-beta.0",
     "@openzeppelin/contracts": "5.4.0"
   }
