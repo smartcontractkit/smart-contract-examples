@@ -39,6 +39,7 @@ export enum CCIPContractName {
   OwnerIsCreator = "OwnerIsCreator",
   RateLimiter = "RateLimiter",
   Client = "Client",
+  EtherSenderReceiver = "EtherSenderReceiver",
 }
 
 export enum PoolType {
