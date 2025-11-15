@@ -6,7 +6,7 @@ This guide shows you how to read data from a Data Streams feed, verify the answe
 - Chainlink Automation then uses `StreamsLookup` to retrieve a signed report from the Data Streams Engine, return the data in a callback, and run the [`performUpkeep` function](https://docs.chain.link/chainlink-automation/reference/automation-interfaces#performupkeep-function-for-log-triggers) on your registered upkeep contract.
 - The `performUpkeep` function calls the `verify` function on the verifier contract.
 
-> :warning: **Disclaimer**: "This tutorial represents an educational example to use a Chainlink system, product, or service and is provided to demonstrate how to interact with Chainlink’s systems, products, and services to integrate them into your own. This template is provided “AS IS” and “AS AVAILABLE” without warranties of any kind, it has not been audited, and it may be missing key checks or error handling to make the usage of the system, product or service more clear. Do not use the code in this example in a production environment without completing your own audits and application of best practices. Neither Chainlink Labs, the Chainlink Foundation, nor Chainlink node operators are responsible for unintended outputs that are generated due to errors in code."
+> :warning: **Disclaimer**: "This tutorial represents an educational example to use a Chainlink system, product, or service and is provided to demonstrate how to interact with Chainlink's systems, products, and services to integrate them into your own. This template is provided "AS IS" and "AS AVAILABLE" without warranties of any kind, it has not been audited, and it may be missing key checks or error handling to make the usage of the system, product or service more clear. Do not use the code in this example in a production environment without completing your own audits and application of best practices. Neither Chainlink Labs, the Chainlink Foundation, nor Chainlink node operators are responsible for unintended outputs that are generated due to errors in code."
 
 ## Before you begin
 
@@ -14,11 +14,11 @@ This guide uses the [Hardhat](https://hardhat.org/) development environment to d
 
 ### Requirements
 
-- **Git**: Make sure you have Git installed. You can check your current version by running <CopyText text="git --version" code/> in your terminal and download the latest version from the official [Git website](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git) if necessary.
-- **Nodejs** and **npm**: [Install the latest release of Node.js 20](https://nodejs.org/en/download/). Optionally, you can use the nvm package to switch between Node.js versions with <CopyText text="nvm use 20" code/>. To ensure you are running the correct version in a terminal, type <CopyText text="node -v" code/>.
+- **Git**: Make sure you have Git installed. You can check your current version by running `git --version` in your terminal and download the latest version from the official [Git website](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git) if necessary.
+- **Node.js** and **npm**: [Install the latest release of Node.js 22](https://nodejs.org/en/download/). Optionally, you can use the nvm package to switch between Node.js versions with `nvm use 22`. To ensure you are running the correct version in a terminal, type `node -v`.
   ```bash
    $ node -v
-   v20.11.0
+   v22.x.x
   ```
 - **RPC URL**: You need a Remote Procedure Call (RPC) URL for the Arbitrum Sepolia network. You can obtain one by creating an account on [Alchemy](https://www.alchemy.com/) or [Infura](https://www.infura.io/) and setting up an Arbitrum Sepolia project.
 - **Private key**: You need the private key of the account that will deploy and interact with the contracts. You can use the private key of your [MetaMask wallet](https://metamask.io/).
@@ -63,17 +63,20 @@ Deploy an upkeep contract that is enabled to retrieve data from Data Streams. Fo
 Execute the following command to deploy the Chainlink Automation upkeep contract and the Log Emitter contract to the Arbitrum Sepolia network.
 
 ```bash
-npx hardhat deployAll --network arbitrumSepolia
+npx hardhat ignition deploy ignition/modules/StreamsModule.ts --network arbitrumSepolia
 ```
 
 Expect output similar to the following in your terminal:
 
 ```bash
-ℹ Deploying StreamsUpkeepRegistrar contract...
-✔ StreamsUpkeepRegistrar deployed at: 0x48403478Aa021A9BC30Da0BDE47cbc155CcA8916
-ℹ Deploying LogEmitter contract...
-✔ LogEmitter deployed at: 0xD721337a827F9D814daEcCc3c7e72300af914BFE
-✔ All contracts deployed successfully.
+Deploying [ StreamsModule ]
+Batch #1
+  Executed StreamsModule#LogEmitter
+  Executed StreamsModule#StreamsUpkeepRegistrar
+[ StreamsModule ] successfully deployed 🚀
+Deployed Addresses
+StreamsModule#LogEmitter - 0x9B68AB315EA2DBD4Ce61e31Dc2c784101338bAaA
+StreamsModule#StreamsUpkeepRegistrar - 0x07E8dEe8Ce82Ba750E525EB9151b57a76f731806
 ```
 
 Save the deployed contract addresses for both contracts. You will use these addresses later.
@@ -83,7 +86,7 @@ Save the deployed contract addresses for both contracts. You will use these addr
 In this example, the upkeep contract pays for onchain verification of reports from Data Streams. The Automation subscription does not cover the cost. Transfer `1.5` testnet LINK to the upkeep contract address you saved earlier. You can retrieve unused LINK later.
 
 ```bash
-npx hardhat transfer-link --recipient <StreamsUpkeepRegistrarAddress> --amount 1500000000000000000 --network arbitrumSepolia
+npx hardhat transfer-link --recipient <StreamsUpkeepRegistrarAddress> --amount 1.5 --network arbitrumSepolia
 ```
 
 Replace `<StreamsUpkeepRegistrarAddress>` with the address of the `StreamsUpkeepRegistrar` contract you saved earlier.
@@ -91,10 +94,14 @@ Replace `<StreamsUpkeepRegistrarAddress>` with the address of the `StreamsUpkeep
 Expect output similar to the following in your terminal:
 
 ```bash
-ℹ Starting LINK transfer from <YOUR_ADDRESS> to the streams upkeep contract at 0xD721337a827F9D814daEcCc3c7e72300af914BFE
+ℹ Starting LINK transfer from <YOUR ADDRESS> to 0x07E8dEe8Ce82Ba750E525EB9151b57a76f731806
 ℹ LINK token address: 0xb1D4538B4571d411F07960EF2838Ce337FE1E80E
-ℹ LINK balance of sender 0x45C90FBb5acC1a5c156a401B56Fea55e69E7669d is 6.5 LINK
-✔ 1.5 LINK were sent from 0x45C90FBb5acC1a5c156a401B56Fea55e69E7669d to 0xD721337a827F9D814daEcCc3c7e72300af914BFE. Transaction Hash: 0xf241bf4415ec081325ccd8ec3d54432e424afd16f1c81fa78b291ae9a0c03ce2
+ℹ LINK balance of sender <YOUR ADDRESS> is 38.84611618077145972 LINK
+ℹ Transaction submitted: 0xf170c98ec99b322747ec3b87306f37f384c978b84cee11006d9b80d9cee6e78d
+✔ 1.5 LINK were sent from <YOUR ADDRESS> to 0x07E8dEe8Ce82Ba750E525EB9151b57a76f731806
+  Transaction Hash: 0xf170c98ec99b322747ec3b87306f37f384c978b84cee11006d9b80d9cee6e78d
+  Block Number: 207017202
+  Gas Used: 51658
 ```
 
 ### Register and fund the upkeep
@@ -106,6 +113,9 @@ npx hardhat registerAndFundUpkeep --streams-upkeep <StreamsUpkeepRegistrarAddres
 ```
 
 Replace `<StreamsUpkeepRegistrarAddress>` and `<LogEmitterAddress>` with the addresses of your `StreamsUpkeepRegistrar` and `LogEmitter` contracts.
+
+> **Note:** This step may fail. Chainlink Automation auto-approval is currently disabled on several chains, which [requires approval from the Chainlink Automation team](https://chainlinkcommunity.typeform.com/to/m10dC36d).
+> You may use https://automation.chain.link/ to register your Upkeep contract and log emitter. Depending on your network, you may be asked to submit verification prior to registration.
 
 Expect output similar to the following in your terminal:
 
@@ -133,7 +143,7 @@ After the transaction is complete, the log is emitted, and the upkeep is trigger
 
 ### View the retrieved price
 
-The retrieved price is stored in the `s_last_retrieved_price` contract variable and emitted in the logs. To see the price retrieved by the `StreamsUpkeepRegistrar` contract:
+The retrieved price is stored in the `lastDecodedPrice` contract variable and emitted in the logs. To see the price retrieved by the `StreamsUpkeepRegistrar` contract:
 
 ```bash
 npx hardhat getLastRetrievedPrice --streams-upkeep <StreamsUpkeepRegistrarAddress> --network arbitrumSepolia
