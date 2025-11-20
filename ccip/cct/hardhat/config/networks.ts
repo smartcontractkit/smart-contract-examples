@@ -126,6 +126,9 @@ for (const [name, config] of Object.entries(configData)) {
             gasPrice: undefined,
             nonce: undefined,
             accounts,
+            // Add timeout and retry settings for better RPC reliability
+            timeout: 60000, // 60 seconds timeout for requests
+            httpHeaders: {},
         };
     }
 }

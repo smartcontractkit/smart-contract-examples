@@ -317,7 +317,7 @@ npx hardhat deployToken [parameters]
     --name "My Token" \
     --symbol "MTK" \
     --maxsupply 1000000000000000000000 \
-    --verifycontract true \
+    --verifycontract \
     --network avalancheFuji
   ```
 - Deploy a token with a pre-mint amount and verify the contract:
@@ -326,7 +326,7 @@ npx hardhat deployToken [parameters]
     --name "My Token" \
     --symbol "MTK" \
     --premint 10000000000000000000 \
-    --verifycontract true \
+    --verifycontract \
     --network avalancheFuji
   ```
 
@@ -1210,7 +1210,7 @@ npx hardhat deployFaucet [parameters]
   npx hardhat deployFaucet \
     --tokenaddress 0xYourTokenAddress \
     --initialdripamount 1000000000000000000 \
-    --verifycontract true \
+    --verifycontract \
     --network avalancheFuji
   ```
 
@@ -1319,7 +1319,7 @@ npx hardhat deployTokenWithSafe [parameters]
     --name "My Token" \
     --symbol "MTK" \
     --maxsupply 1000000000000000000000 \
-    --verifycontract true \
+    --verifycontract \
     --network avalancheFuji
   ```
 
@@ -1331,7 +1331,7 @@ npx hardhat deployTokenWithSafe [parameters]
     --name "My Token" \
     --symbol "MTK" \
     --premint 10000000000000000000 \
-    --verifycontract true \
+    --verifycontract \
     --network avalancheFuji
   ```
 
@@ -1422,7 +1422,7 @@ npx hardhat deployTokenPoolWithSafe \
   --tokenaddress 0xYourTokenAddress \
   --safeaddress 0xYourSafeAddress \
   --localtokendecimals 8 \
-  --verifycontract true \
+  --verifycontract \
   --network avalancheFuji
 ```
 

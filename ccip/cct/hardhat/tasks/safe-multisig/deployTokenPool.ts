@@ -103,26 +103,35 @@ export const deployTokenPoolWithSafe = task(
 
       try {
         // ⚙️ Deploy contract
-        const constructorArgs = Array<any>([
-          tokenaddress,
+        const constructorArgs: [`0x${string}`, number, `0x${string}`[], `0x${string}`, `0x${string}`] = [
+          tokenaddress as `0x${string}`,
           decimals,
           [],
-          rmnProxy,
-          router
-        ]);
+          rmnProxy as `0x${string}`,
+          router as `0x${string}`
+        ];
 
-        const { contract, deploymentTransaction } = await viem.sendDeploymentTransaction(
-          TokenPoolContractName.BurnMintTokenPool,
-          ...constructorArgs
-        );
+        // Deploy contract using deployContract method instead of sendDeploymentTransaction
+        // to avoid the immediate getTransaction call that causes the error
+        const hash = await wallet.deployContract({
+          abi: (await hre.artifacts.readArtifact(TokenPoolContractName.BurnMintTokenPool)).abi,
+          bytecode: (await hre.artifacts.readArtifact(TokenPoolContractName.BurnMintTokenPool)).bytecode as `0x${string}`,
+          args: constructorArgs,
+        });
 
-        logger.info(`⏳ Deployment tx: ${deploymentTransaction.hash}`);
+        logger.info(`⏳ Deployment tx: ${hash}`);
         logger.info(`   Waiting for ${confirmations} confirmation(s)...`);
-        await publicClient.waitForTransactionReceipt({
-          hash: deploymentTransaction.hash,
+        const receipt = await publicClient.waitForTransactionReceipt({
+          hash,
           confirmations,
         });
-        logger.info(`✅ TokenPool deployed at: ${contract.address}`);
+        
+        const contractAddress = receipt.contractAddress;
+        if (!contractAddress) {
+          throw new Error("Contract address not found in receipt");
+        }
+        
+        logger.info(`✅ TokenPool deployed at: ${contractAddress}`);
 
         // ⚙️ Optional verification
         if (verifycontract) {
@@ -130,8 +139,8 @@ export const deployTokenPoolWithSafe = task(
           try {
             const isVerified = await verifyContract(
               {
-                address: contract.address,
-                constructorArgs: constructorArgs.flat(),
+                address: contractAddress,
+                constructorArgs: [...constructorArgs],
               },
               hre
             );
@@ -154,7 +163,7 @@ export const deployTokenPoolWithSafe = task(
         logger.info(`⚙️ Transferring ownership to Safe: ${safeaddress}`);
         const pool = await viem.getContractAt(
           TokenPoolContractName.BurnMintTokenPool,
-          contract.address
+          contractAddress
         );
 
         const transferTx = await pool.write.transferOwnership(

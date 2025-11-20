@@ -8,7 +8,7 @@
   "author": "",
   "license": "ISC",
   "scripts": {
-    "compile:hardhat": "hardhat compile",
+    "compile:hardhat": "hardhat clean && hardhat compile",
     "compile:typescript": "tsc --noEmit",
     "compile": "npm run compile:hardhat && npm run compile:typescript"
   },
