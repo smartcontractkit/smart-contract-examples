@@ -6,7 +6,7 @@ import {HelperUtils} from "./utils/HelperUtils.s.sol"; // Utility functions for 
 import {HelperConfig} from "./HelperConfig.s.sol"; // Network configuration helper
 import {ChainNameResolver} from "./utils/ChainNameResolver.s.sol"; // Chain name resolution utility
 import {LockReleaseTokenPool} from "@chainlink/contracts-ccip/contracts/pools/LockReleaseTokenPool.sol";
-import {IERC20} from "@openzeppelin/contracts@4.8.3/token/ERC20/IERC20.sol";
+import {IERC20} from "@chainlink/contracts/src/v0.8/vendor/openzeppelin-solidity/v4.8.3/contracts/token/ERC20/IERC20.sol";
 
 contract DeployLockReleaseTokenPool is Script {
     function run() external {

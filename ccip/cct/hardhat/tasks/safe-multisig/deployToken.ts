@@ -124,25 +124,36 @@ export const deployTokenWithSafe = task(
 
         // ✅ Deploy BurnMintERC20 contract
         logger.info(`   Deploying contract...`);
-        const constructorArgs = Array<any>([
+        const constructorArgs: [string, string, number, bigint, bigint] = [
               name,
               symbol,
               decimals,
               maxsupply,
               premint
-        ]);
-        const token = await viem.deployContract(
-          TokenContractName.BurnMintERC20,
-          ...constructorArgs
-        );
-
-        const contractAddress = token.address;
+        ];
         
-        logger.info(`✅ Token deployed at: ${contractAddress}`);
+        // Deploy contract using deployContract method instead of sendDeploymentTransaction
+        // to avoid the immediate getTransaction call that causes the error
+        const hash = await wallet.deployContract({
+          abi: (await hre.artifacts.readArtifact(TokenContractName.BurnMintERC20)).abi,
+          bytecode: (await hre.artifacts.readArtifact(TokenContractName.BurnMintERC20)).bytecode as `0x${string}`,
+          args: constructorArgs,
+        });
+
+        logger.info(`⏳ Deployment tx: ${hash}`);
         logger.info(`   Waiting for ${confirmations} confirmation(s)...`);
         
-        // Wait for confirmations
-        await new Promise(resolve => setTimeout(resolve, confirmations * 3000));
+        const receipt = await publicClient.waitForTransactionReceipt({
+          hash,
+          confirmations,
+        });
+        
+        const contractAddress = receipt.contractAddress;
+        if (!contractAddress) {
+          throw new Error("Contract address not found in receipt");
+        }
+        
+        logger.info(`✅ Token deployed at: ${contractAddress}`);
 
         // ✅ Verify contract if requested
         if (verifycontract) {
@@ -153,7 +164,7 @@ export const deployTokenWithSafe = task(
             const isVerified = await verifyContract(
               {
                 address: contractAddress,
-                constructorArgs: constructorArgs.flat(),
+                constructorArgs: [...constructorArgs],
               },
               hre,
             );
@@ -174,6 +185,13 @@ export const deployTokenWithSafe = task(
 
         // Transfer ownership of the token to the Safe account
         logger.info(`   Transferring ownership of token to Safe at ${safeaddress}`);
+        
+        // Get the deployed token contract
+        const token = await viem.getContractAt(
+          TokenContractName.BurnMintERC20,
+          contractAddress
+        );
+        
         const adminRole = await token.read.DEFAULT_ADMIN_ROLE();
         logger.info(`   Granting DEFAULT_ADMIN_ROLE to Safe: ${safeaddress}`);
         // ✅ Grant admin role to Safe

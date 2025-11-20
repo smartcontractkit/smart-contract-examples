@@ -92,34 +92,43 @@ export const deployToken = task("deployToken", "Deploys a BurnMintERC20 token wi
 
       try {
         // ✅ Deploy contract
-        const constructorArgs = Array<any>([
+        const constructorArgs: [string, string, number, bigint, bigint] = [
           name,
           symbol,
           decimalsNum,
           maxSupplyBig,
           premintBig
-        ]);
+        ];
 
-        const { contract, deploymentTransaction } = await viem.sendDeploymentTransaction(
-          TokenContractName.BurnMintERC20,
-          ...constructorArgs
-        );
+        // Deploy contract using deployContract method instead of sendDeploymentTransaction
+        // to avoid the immediate getTransaction call that causes the error
+        const hash = await wallet.deployContract({
+          abi: (await hre.artifacts.readArtifact(TokenContractName.BurnMintERC20)).abi,
+          bytecode: (await hre.artifacts.readArtifact(TokenContractName.BurnMintERC20)).bytecode as `0x${string}`,
+          args: constructorArgs,
+        });
 
-        logger.info(`⏳ Deployment tx: ${deploymentTransaction.hash}`);
+        logger.info(`⏳ Deployment tx: ${hash}`);
 
         const { confirmations } = evmNetworkConfig;
         if (confirmations === undefined)
           throw new Error(`confirmations not defined for ${networkName}`);
 
         logger.info(`   Waiting for ${confirmations} confirmation(s)...`);
-        await publicClient.waitForTransactionReceipt({
-          hash: deploymentTransaction.hash,
+        const receipt = await publicClient.waitForTransactionReceipt({
+          hash,
           confirmations,
         });
-        logger.info(`✅ Token deployed at: ${contract.address}`);
+        
+        const contractAddress = receipt.contractAddress;
+        if (!contractAddress) {
+          throw new Error("Contract address not found in receipt");
+        }
+        
+        logger.info(`✅ Token deployed at: ${contractAddress}`);
 
         // ✅ Connect to token contract for post-deploy setup
-        const token = await viem.getContractAt(TokenContractName.BurnMintERC20, contract.address);
+        const token = await viem.getContractAt(TokenContractName.BurnMintERC20, contractAddress);
 
         // Grant mint/burn roles to CCIP admin
         const currentAdmin = await token.read.getCCIPAdmin();
@@ -141,8 +150,8 @@ export const deployToken = task("deployToken", "Deploys a BurnMintERC20 token wi
           try {
             const isVerified = await verifyContract(
               {
-                address: contract.address,
-                constructorArgs: constructorArgs.flat(),
+                address: contractAddress,
+                constructorArgs: [...constructorArgs],
               },
               hre,
             );

@@ -127,39 +127,47 @@ export const deployTokenPool = task("deployTokenPool", "Deploys a token pool (bu
         }
 
         // Deploy the token pool
-        const constructorArgs = Array<any>([
+        const constructorArgs: [string, number, string[], string, string] = [
             tokenaddress,
             decimalsNum,
             allowlistAddresses, // allowlist (empty array or provided addresses)
             rmnProxy,
             router,
-        ]);
+        ];
 
-        const { contract, deploymentTransaction } = await viem.sendDeploymentTransaction(
-          contractName,
-          ...constructorArgs
-        );
+        // Deploy contract using deployContract method instead of sendDeploymentTransaction
+        // to avoid the immediate getTransaction call that causes the error
+        const hash = await wallet.deployContract({
+          abi: (await hre.artifacts.readArtifact(contractName)).abi,
+          bytecode: (await hre.artifacts.readArtifact(contractName)).bytecode as `0x${string}`,
+          args: constructorArgs,
+        });
 
-
-        logger.info(`⏳ Deployment tx: ${deploymentTransaction.hash}`);
+        logger.info(`⏳ Deployment tx: ${hash}`);
         logger.info(`   Waiting for ${confirmations} confirmation(s)...`);
-        await publicClient.waitForTransactionReceipt({
-          hash: deploymentTransaction.hash,
+        const receipt = await publicClient.waitForTransactionReceipt({
+          hash,
           confirmations,
         });
-        logger.info(`✅ Token pool deployed at: ${contract.address}`);
+        
+        const contractAddress = receipt.contractAddress;
+        if (!contractAddress) {
+          throw new Error("Contract address not found in receipt");
+        }
+        
+        logger.info(`✅ Token pool deployed at: ${contractAddress}`);
 
         // Grant mint/burn roles if BurnMint pool
         if (pooltype === PoolType.burnMint) {
           logger.info(
-            `Granting mint and burn roles to ${contract.address} on token ${tokenaddress}`
+            `Granting mint and burn roles to ${contractAddress} on token ${tokenaddress}`
           );
           const token = await viem.getContractAt(
             TokenContractName.BurnMintERC20,
             tokenaddress as `0x${string}`
           );
           const grantTx = await token.write.grantMintAndBurnRoles(
-            [contract.address],
+            [contractAddress],
             { account: wallet.account }
           );
           logger.info(`   Waiting for ${confirmations} confirmation(s)...`);
@@ -176,8 +184,8 @@ export const deployTokenPool = task("deployTokenPool", "Deploys a token pool (bu
           try {
             const isVerified = await verifyContract(
               {
-                address: contract.address,
-                constructorArgs: constructorArgs.flat(),
+                address: contractAddress,
+                constructorArgs: [...constructorArgs],
               },
               hre,
             );

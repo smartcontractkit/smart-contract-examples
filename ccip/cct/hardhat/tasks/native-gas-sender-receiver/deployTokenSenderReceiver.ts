@@ -71,35 +71,44 @@ export const deployTokenSenderReceiver = task(
 
       logger.info(`📍 Using CCIP Router: ${router}`);
 
-      // ✅ Get public client
+      // ✅ Get wallet and public client
+      const [wallet] = await viem.getWalletClients();
       const publicClient = await viem.getPublicClient();
 
       try {
         // ✅ Deploy contract
         const routerAddress = validateAddress(router, "router");
-        const constructorArgs = [routerAddress];
+        const constructorArgs: [Address] = [routerAddress];
 
-        const { contract, deploymentTransaction } = await viem.sendDeploymentTransaction(
-          CCIPContractName.EtherSenderReceiver,
-          [routerAddress]
-        );
+        // Deploy contract using deployContract method instead of sendDeploymentTransaction
+        // to avoid the immediate getTransaction call that causes the error
+        const hash = await wallet.deployContract({
+          abi: (await hre.artifacts.readArtifact(CCIPContractName.EtherSenderReceiver)).abi,
+          bytecode: (await hre.artifacts.readArtifact(CCIPContractName.EtherSenderReceiver)).bytecode as `0x${string}`,
+          args: constructorArgs,
+        });
 
-        logger.info(`⏳ Deployment tx: ${deploymentTransaction.hash}`);
+        logger.info(`⏳ Deployment tx: ${hash}`);
 
         const { confirmations } = evmNetworkConfig;
 
         logger.info(`   Waiting for ${confirmations} confirmation(s)...`);
-        await publicClient.waitForTransactionReceipt({
-          hash: deploymentTransaction.hash,
+        const receipt = await publicClient.waitForTransactionReceipt({
+          hash,
           confirmations,
         });
 
-        logger.info(`✅ EtherSenderReceiver deployed at: ${contract.address}`);
+        const contractAddress = receipt.contractAddress;
+        if (!contractAddress) {
+          throw new Error("Contract address not found in receipt");
+        }
+
+        logger.info(`✅ EtherSenderReceiver deployed at: ${contractAddress}`);
 
         // ✅ Get contract info with proper typing
         const etherSenderReceiver = await viem.getContractAt(
           CCIPContractName.EtherSenderReceiver,
-          contract.address
+          contractAddress
         );
 
         const [version, actualRouter, wethAddress] = await Promise.all([
@@ -115,8 +124,8 @@ export const deployTokenSenderReceiver = task(
           try {
             isVerified = await verifyContract(
               {
-                address: contract.address,
-                constructorArgs: constructorArgs,
+                address: contractAddress,
+                constructorArgs: [...constructorArgs],
               },
               hre,
             );
@@ -128,7 +137,7 @@ export const deployTokenSenderReceiver = task(
         // ✅ Final deployment summary with all information
         logger.info(`🎉 Deployment completed successfully!`);
         logger.info(`📋 Contract Information:`);
-        logger.info(`   Address: ${contract.address}`);
+        logger.info(`   Address: ${contractAddress}`);
         logger.info(`   Network: ${networkName} (Chain ID: ${evmNetworkConfig.chainId})`);
         logger.info(`   Version: ${version}`);
         logger.info(`   Router: ${actualRouter}`);
@@ -136,8 +145,8 @@ export const deployTokenSenderReceiver = task(
         logger.info(`   Verified: ${isVerified ? "✅ Yes" : "❌ No"}`);
 
         const result: DeployResult = {
-          contractAddress: contract.address,
-          deploymentHash: deploymentTransaction.hash,
+          contractAddress: contractAddress,
+          deploymentHash: hash,
           router: actualRouter,
           weth: wethAddress,
           version,
