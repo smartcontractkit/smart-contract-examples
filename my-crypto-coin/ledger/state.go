@@ -1,11 +1,11 @@
 package ledger
 
 import (
+	"bufio"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
-	"bufio"
-	"encoding/json"
 )
 
 type State struct {
@@ -15,8 +15,7 @@ type State struct {
 	dbFile *os.File
 }
 
-
-func SyncState() (*State, error)  {
+func SyncState() (*State, error) {
 	cwd, err := os.Getwd()
 	if err != nil {
 		return nil, err

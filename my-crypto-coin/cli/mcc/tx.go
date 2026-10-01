@@ -1,10 +1,11 @@
 package main
 
 import (
-	"github.com/spf13/cobra"
-	"my-crypto-coin/ledger"
 	"fmt"
+	"my-crypto-coin/ledger"
 	"os"
+
+	"github.com/spf13/cobra"
 )
 
 func txCmd() *cobra.Command {
@@ -19,7 +20,6 @@ func txCmd() *cobra.Command {
 
 	return txsCmd
 }
-
 
 func newTxCmd() *cobra.Command {
 	var cmd = &cobra.Command{

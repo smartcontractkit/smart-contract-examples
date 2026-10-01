@@ -1,10 +1,11 @@
 package main
 
 import (
-	"github.com/spf13/cobra"
-	"my-crypto-coin/ledger"
 	"fmt"
+	"my-crypto-coin/ledger"
 	"os"
+
+	"github.com/spf13/cobra"
 )
 
 func balancesCmd() *cobra.Command {

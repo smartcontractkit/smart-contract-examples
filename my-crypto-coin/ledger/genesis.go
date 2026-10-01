@@ -1,8 +1,8 @@
 package ledger
 
 import (
-	"io/ioutil"
 	"encoding/json"
+	"io/ioutil"
 )
 
 type Genesis struct {
@@ -16,11 +16,11 @@ func loadGenesis(path string) (Genesis, error) {
 	}
 
 	var loadedGenesis Genesis
-	
+
 	err = json.Unmarshal(genesisFileContent, &loadedGenesis)
 	if err != nil {
 		return Genesis{}, err
 	}
 
 	return loadedGenesis, nil
-} 
+}

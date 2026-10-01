@@ -112,16 +112,16 @@ func ConnectAndListen(ctx context.Context, feedIds []string) error {
 
 // openWebsocketConnection opens a WebSocket connection to the server.
 func openWebsocketConnection(ctx context.Context, feedIds []string) (*websocket.Conn, error) {
-	baseUrl := os.Getenv("BASE_URL") // Example: https://ws.testnet-dataengine.chain.link
-	clientId := os.Getenv("CLIENT_ID") // Example: "00000000-0000-0000-0000-000000000000"
+	baseUrl := os.Getenv("BASE_URL")         // Example: https://ws.testnet-dataengine.chain.link
+	clientId := os.Getenv("CLIENT_ID")       // Example: "00000000-0000-0000-0000-000000000000"
 	userSecret := os.Getenv("CLIENT_SECRET") // Example: "your-secret"
 
 	if len(feedIds) == 0 {
-        return nil, fmt.Errorf("no feed ID(s) provided")
-    }
+		return nil, fmt.Errorf("no feed ID(s) provided")
+	}
 
 	params := url.Values{
-		"feedIDs":   {strings.Join(feedIds, ",")},
+		"feedIDs": {strings.Join(feedIds, ",")},
 	}
 
 	reqURL := &url.URL{
